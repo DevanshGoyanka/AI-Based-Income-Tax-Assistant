@@ -1,0 +1,7 @@
+com\taxerp\signer\service\CmsTokenSigningService$TokenStatus.class
+com\taxerp\signer\service\Pkcs11Service.class
+com\taxerp\signer\controller\CmsSignerController.class
+com\taxerp\signer\service\SignatureVerifier.class
+com\taxerp\signer\service\CmsTokenSigningService$SigningResult.class
+com\taxerp\signer\LocalDscSignerApplication.class
+com\taxerp\signer\service\CmsTokenSigningService.class
