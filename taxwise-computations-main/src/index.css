@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Navy / Gold ERP Theme */
+    --background: 216 25% 96%;
+    --foreground: 210 40% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 210 40% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 210 40% 12%;
+
+    --primary: 38 56% 51%;
+    --primary-foreground: 213 55% 10%;
+
+    --secondary: 213 55% 10%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 216 25% 93%;
+    --muted-foreground: 213 22% 49%;
+
+    --accent: 204 66% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 42%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 216 25% 90%;
+    --border-strong: 213 18% 82%;
+    --input: 213 18% 82%;
+    --ring: 38 56% 51%;
+
+    --radius: 0.625rem;
+
+    /* Extended palette */
+    --navy: 213 55% 10%;
+    --navy-mid: 213 44% 14%;
+    --navy-light: 213 38% 21%;
+    --gold: 38 56% 51%;
+    --gold-light: 35 72% 67%;
+    --gold-pale: 40 90% 93%;
+    --accent-blue: 204 66% 38%;
+    --accent-teal: 174 78% 26%;
+    --accent-rose: 333 78% 42%;
+    --success: 142 64% 24%;
+    --success-bg: 142 76% 92%;
+    --warning: 32 88% 37%;
+    --warning-bg: 48 96% 89%;
+    --danger: 0 72% 42%;
+    --danger-bg: 0 93% 94%;
+    --info: 224 76% 40%;
+    --info-bg: 217 91% 92%;
+    --text-primary: 210 40% 12%;
+    --text-secondary: 213 22% 37%;
+    --text-muted: 213 14% 61%;
+
+    --sidebar-background: 213 55% 10%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 38 56% 51%;
+    --sidebar-primary-foreground: 213 55% 10%;
+    --sidebar-accent: 213 38% 21%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100% / 0.08;
+    --sidebar-ring: 38 56% 51%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    @apply bg-background text-foreground;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Crimson Pro', serif;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Crimson Pro', serif;
+  }
+  .font-body {
+    font-family: 'DM Sans', sans-serif;
+  }
+  .font-mono {
+    font-family: 'DM Mono', monospace;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 3px; }
+::-webkit-scrollbar-track { background: transparent; }

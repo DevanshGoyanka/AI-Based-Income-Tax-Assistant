@@ -1,0 +1,3110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IncomeTax ERP — Advocate Practice Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0B1929;
+  --navy-mid: #112236;
+  --navy-light: #1A3150;
+  --gold: #C9943A;
+  --gold-light: #E8B86D;
+  --gold-pale: #FDF3E0;
+  --accent-blue: #1D6FA4;
+  --accent-teal: #0F766E;
+  --accent-rose: #BE185D;
+  --success: #15803D;
+  --success-bg: #DCFCE7;
+  --warning: #B45309;
+  --warning-bg: #FEF3C7;
+  --danger: #B91C1C;
+  --danger-bg: #FEE2E2;
+  --info: #1E40AF;
+  --info-bg: #DBEAFE;
+  --bg: #F4F6F9;
+  --bg-card: #FFFFFF;
+  --border: #E1E7EF;
+  --border-strong: #C8D3E0;
+  --text-primary: #0F1E2D;
+  --text-secondary: #4A5D72;
+  --text-muted: #8A9BB0;
+  --sidebar-w: 258px;
+  --header-h: 62px;
+  --radius: 10px;
+  --radius-sm: 6px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  height: 100vh;
+}
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0;
+  width: var(--sidebar-w);
+  height: 100vh;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.sidebar-brand {
+  padding: 20px 22px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.brand-icon {
+  width: 36px; height: 36px;
+  background: var(--gold);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--navy);
+  flex-shrink: 0;
+}
+.brand-text { display: flex; flex-direction: column; }
+.brand-name {
+  font-family: 'Crimson Pro', serif;
+  font-size: 16px; font-weight: 600;
+  color: #FFFFFF;
+  letter-spacing: 0.2px;
+  line-height: 1.2;
+}
+.brand-sub {
+  font-size: 10.5px;
+  color: var(--gold-light);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.sidebar-search {
+  padding: 14px 16px 10px;
+  flex-shrink: 0;
+}
+.sidebar-search input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 7px;
+  padding: 8px 12px 8px 34px;
+  color: #fff;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238A9BB0' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 11px center;
+  transition: border-color 0.2s;
+}
+.sidebar-search input::placeholder { color: var(--text-muted); }
+.sidebar-search input:focus { border-color: var(--gold); }
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 10px 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.30);
+  padding: 14px 12px 6px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  color: rgba(255,255,255,0.65);
+  font-size: 13.5px;
+  font-weight: 400;
+  position: relative;
+  margin-bottom: 1px;
+  text-decoration: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.90); }
+.nav-item.active {
+  background: rgba(201,148,58,0.18);
+  color: var(--gold-light);
+  font-weight: 500;
+}
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 20px;
+  background: var(--gold);
+  border-radius: 0 3px 3px 0;
+}
+.nav-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+.nav-item.active .nav-icon { opacity: 1; }
+.nav-badge {
+  margin-left: auto;
+  background: var(--gold);
+  color: var(--navy);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.nav-badge.red { background: #EF4444; color: #fff; }
+.nav-badge.blue { background: #3B82F6; color: #fff; }
+
+.sidebar-footer {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.user-avatar {
+  width: 34px; height: 34px;
+  border-radius: 50%;
+  background: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  color: var(--navy);
+  flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 13px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 11px; color: rgba(255,255,255,0.45); }
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(255,255,255,0.35);
+  transition: color 0.2s;
+  padding: 4px;
+}
+.logout-btn:hover { color: rgba(255,255,255,0.7); }
+
+/* ─── MAIN AREA ─── */
+.main-wrap {
+  margin-left: var(--sidebar-w);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: var(--header-h);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 16px;
+  flex-shrink: 0;
+  z-index: 50;
+}
+.page-title-area { flex: 1; }
+.page-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+.page-sub { font-size: 12px; color: var(--text-muted); margin-top: 1px; }
+
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.ay-select {
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 7px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+.icon-btn {
+  width: 36px; height: 36px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  position: relative;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--border); color: var(--text-primary); }
+.notif-dot {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 7px; height: 7px;
+  background: #EF4444;
+  border-radius: 50%;
+  border: 1.5px solid white;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: 'DM Sans', sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.btn-primary { background: var(--gold); color: var(--navy); }
+.btn-primary:hover { background: var(--gold-light); }
+.btn-secondary { background: var(--bg); border: 1px solid var(--border-strong); color: var(--text-primary); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid #FECACA; }
+.btn-danger:hover { background: #FECACA; }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg); }
+
+/* ─── CONTENT ─── */
+.content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.content-area::-webkit-scrollbar { width: 5px; }
+.content-area::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── STAT CARDS ─── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 3px;
+}
+.stat-card.gold::before { background: var(--gold); }
+.stat-card.blue::before { background: var(--accent-blue); }
+.stat-card.teal::before { background: var(--accent-teal); }
+.stat-card.rose::before { background: var(--accent-rose); }
+.stat-card.success::before { background: var(--success); }
+.stat-card.warning::before { background: var(--warning); }
+
+.stat-label { font-size: 11.5px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value {
+  font-family: 'Crimson Pro', serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.1;
+  margin: 6px 0 4px;
+}
+.stat-meta { font-size: 12px; color: var(--text-muted); }
+.stat-change { font-size: 12px; font-weight: 500; }
+.stat-change.up { color: var(--success); }
+.stat-change.down { color: var(--danger); }
+.stat-icon {
+  position: absolute;
+  top: 16px; right: 16px;
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.15;
+}
+.stat-card.gold .stat-icon { background: var(--gold); }
+.stat-card.blue .stat-icon { background: var(--accent-blue); }
+.stat-card.teal .stat-icon { background: var(--accent-teal); }
+.stat-card.rose .stat-icon { background: var(--accent-rose); }
+
+/* ─── TABLES ─── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 12px 14px;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover { background: #FAFBFD; }
+.td-mono { font-family: 'DM Mono', monospace; font-size: 12.5px; letter-spacing: 0.3px; }
+.td-muted { color: var(--text-secondary); font-size: 12.5px; }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-gold { background: var(--gold-pale); color: #92640A; }
+.badge-muted { background: var(--bg); color: var(--text-secondary); border: 1px solid var(--border); }
+.badge-navy { background: #E0E8F4; color: var(--navy); }
+.badge-dot::before {
+  content: '';
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  display: inline-block;
+}
+
+/* ─── FILTER BAR ─── */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.search-input {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+  max-width: 340px;
+}
+.search-input svg {
+  position: absolute;
+  left: 11px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+.search-input input {
+  width: 100%;
+  padding: 8px 12px 8px 34px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-input input:focus { border-color: var(--gold); }
+.filter-select {
+  padding: 8px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+}
+
+/* ─── GRID LAYOUTS ─── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+
+/* ─── PROGRESS BAR ─── */
+.progress-bar {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.progress-fill.gold { background: var(--gold); }
+.progress-fill.teal { background: var(--accent-teal); }
+.progress-fill.blue { background: var(--accent-blue); }
+.progress-fill.danger { background: #EF4444; }
+
+/* ─── PIPELINE / STAGES ─── */
+.pipeline {
+  display: flex;
+  gap: 0;
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.pipe-stage {
+  flex: 1;
+  padding: 12px 14px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+  position: relative;
+}
+.pipe-stage:last-child { border-right: none; }
+.pipe-stage:hover { background: var(--bg); }
+.pipe-stage.active { background: var(--gold-pale); }
+.pipe-count {
+  font-family: 'Crimson Pro', serif;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.pipe-stage.active .pipe-count { color: #92640A; }
+.pipe-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+.pipe-stage.active .pipe-label { color: #92640A; }
+
+/* ─── TIMELINE / ACTIVITY ─── */
+.activity-list { display: flex; flex-direction: column; gap: 0; }
+.activity-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.activity-dot.gold { background: var(--gold); }
+.activity-dot.teal { background: var(--accent-teal); }
+.activity-dot.blue { background: var(--accent-blue); }
+.activity-dot.red { background: #EF4444; }
+.activity-dot.gray { background: var(--border-strong); }
+.activity-body { flex: 1; min-width: 0; }
+.activity-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+.activity-text strong { font-weight: 600; }
+.activity-time { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── TABS ─── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+.tab-item {
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.tab-item:hover { color: var(--text-primary); }
+.tab-item.active { color: var(--gold); border-bottom-color: var(--gold); }
+
+/* ─── NOTICES ─── */
+.notice-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.notice-card:hover { border-color: var(--gold); background: #FEFCF7; }
+.notice-card.urgent { border-left: 3px solid #EF4444; }
+.notice-card.high { border-left: 3px solid #F59E0B; }
+.notice-card.normal { border-left: 3px solid var(--accent-blue); }
+.notice-icon {
+  width: 36px; height: 36px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+.notice-icon.urgent { background: var(--danger-bg); }
+.notice-icon.warn { background: var(--warning-bg); }
+.notice-icon.info { background: var(--info-bg); }
+.notice-body { flex: 1; }
+.notice-title { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+.notice-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; display: flex; gap: 10px; }
+.notice-meta span { display: flex; align-items: center; gap: 4px; }
+.notice-due { font-size: 12px; font-weight: 500; color: var(--danger); }
+
+/* ─── JOB MONITOR ─── */
+.job-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.job-row:last-child { border-bottom: none; }
+.job-status-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.job-status-dot.running { background: var(--accent-blue); animation: pulse 1.5s infinite; }
+.job-status-dot.done { background: var(--success); }
+.job-status-dot.failed { background: var(--danger); }
+.job-status-dot.queued { background: var(--text-muted); }
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.3); }
+}
+.job-info { flex: 1; }
+.job-name { font-size: 13.5px; font-weight: 500; }
+.job-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.job-progress-wrap { width: 120px; }
+.job-pct { font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px; text-align: right; }
+.job-actions { display: flex; gap: 6px; }
+
+/* ─── CALENDAR ─── */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-top: 14px;
+}
+.cal-head {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-primary);
+  transition: background 0.15s;
+  position: relative;
+  padding: 6px 2px 2px;
+}
+.cal-day:hover { background: var(--bg); }
+.cal-day.today {
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 700;
+}
+.cal-day.other-month { color: var(--text-muted); }
+.cal-day.has-event::after {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  position: absolute;
+  bottom: 3px;
+}
+.cal-day.has-deadline::after { background: #EF4444; }
+.cal-day.today::after { background: var(--navy); }
+
+/* ─── BILLING ─── */
+.invoice-row {
+  display: flex;
+  align-items: center;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+  gap: 14px;
+}
+.invoice-row:last-child { border-bottom: none; }
+.inv-id { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); width: 80px; flex-shrink: 0; }
+.inv-client { flex: 1; }
+.inv-name { font-size: 13.5px; font-weight: 500; }
+.inv-pan { font-size: 11.5px; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+.inv-service { font-size: 12.5px; color: var(--text-secondary); width: 140px; flex-shrink: 0; }
+.inv-amount { font-family: 'Crimson Pro', serif; font-size: 17px; font-weight: 600; width: 90px; text-align: right; flex-shrink: 0; }
+.inv-status { width: 90px; flex-shrink: 0; }
+.inv-actions { display: flex; gap: 6px; }
+
+/* ─── FORM ELEMENTS ─── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.form-control {
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-control:focus { border-color: var(--gold); }
+
+/* ─── RECONCILIATION ─── */
+.recon-table thead th { font-size: 11px; }
+.recon-table td { font-size: 12.5px; padding: 10px 12px; }
+.match { background: #F0FDF4; }
+.mismatch { background: #FFF7ED; }
+.diff-cell { font-weight: 600; }
+.diff-positive { color: var(--success); }
+.diff-negative { color: var(--danger); }
+
+/* ─── CLIENT DETAIL PANEL ─── */
+.detail-panel {
+  display: none;
+  position: fixed;
+  top: 0; right: 0;
+  width: 440px;
+  height: 100vh;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.detail-panel.open { display: flex; }
+.panel-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  border-radius: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.panel-close:hover { background: var(--bg); color: var(--text-primary); }
+.client-av {
+  width: 46px; height: 46px;
+  border-radius: 12px;
+  background: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--gold-light);
+  flex-shrink: 0;
+}
+.panel-info { flex: 1; }
+.panel-name { font-size: 16px; font-weight: 600; color: var(--text-primary); }
+.panel-pan { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.panel-section { margin-bottom: 22px; }
+.panel-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+}
+.detail-key { font-size: 12px; color: var(--text-muted); width: 130px; flex-shrink: 0; }
+.detail-val { font-size: 13px; color: var(--text-primary); flex: 1; }
+
+/* ─── MISC ─── */
+.section-gap { margin-bottom: 20px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-center { display: flex; align-items: center; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+.empty-state-icon { font-size: 32px; margin-bottom: 10px; opacity: 0.4; }
+.empty-state-text { font-size: 14px; }
+
+/* Overlay for panel */
+.panel-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.2);
+  z-index: 199;
+}
+.panel-overlay.open { display: block; }
+
+/* Reconciliation meters */
+.recon-meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.recon-source { font-size: 13px; font-weight: 600; width: 80px; flex-shrink: 0; }
+.recon-bar-wrap { flex: 1; }
+.recon-bar-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+.recon-amount { font-family: 'Crimson Pro', serif; font-size: 16px; font-weight: 600; width: 110px; text-align: right; flex-shrink: 0; }
+
+/* Donut chart placeholder */
+.donut-chart {
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--success) 0deg 172deg,
+    var(--gold) 172deg 230deg,
+    var(--accent-blue) 230deg 280deg,
+    #EF4444 280deg 310deg,
+    var(--border-strong) 310deg 360deg
+  );
+  position: relative;
+  flex-shrink: 0;
+}
+.donut-chart::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 72px; height: 72px;
+  background: var(--bg-card);
+  border-radius: 50%;
+}
+.donut-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  text-align: center;
+}
+.donut-pct {
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px; font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.donut-tiny { font-size: 10px; color: var(--text-muted); }
+
+/* Legend */
+.legend { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12.5px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-label { color: var(--text-secondary); flex: 1; }
+.legend-val { font-weight: 600; color: var(--text-primary); }
+
+/* WhatsApp status */
+.wa-status { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.wa-icon { width: 18px; height: 18px; }
+
+.section-title {
+  font-family: 'Crimson Pro', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+/* Filing status pipeline visual */
+.filing-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 20px 0;
+  overflow-x: auto;
+}
+.fp-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.fp-circle {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  border: 2px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+}
+.fp-circle.done { background: var(--success-bg); border-color: var(--success); color: var(--success); }
+.fp-circle.current { background: var(--gold-pale); border-color: var(--gold); color: #92640A; }
+.fp-circle.pending { background: var(--bg); border-color: var(--border); color: var(--text-muted); }
+.fp-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; text-align: center; max-width: 70px; line-height: 1.3; }
+.fp-label.done { color: var(--success); font-weight: 500; }
+.fp-label.current { color: #92640A; font-weight: 600; }
+.fp-connector {
+  height: 2px;
+  width: 40px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin-top: -16px;
+}
+.fp-connector.done { background: var(--success); }
+
+/* Firm accounting */
+.pl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13.5px;
+}
+.pl-row:last-child { border-bottom: none; }
+.pl-row.total {
+  font-weight: 700;
+  font-size: 15px;
+  border-top: 2px solid var(--border-strong);
+  border-bottom: none;
+  padding-top: 14px;
+  margin-top: 4px;
+  font-family: 'Crimson Pro', serif;
+}
+.pl-row.header { font-weight: 700; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+.pl-income { color: var(--success); font-weight: 600; }
+.pl-expense { color: var(--danger); font-weight: 600; }
+.pl-net { color: var(--accent-blue); font-weight: 700; }
+
+/* Notification panel */
+.notif-list { display: flex; flex-direction: column; gap: 0; }
+.notif-item {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.notif-item:hover { background: var(--bg); }
+.notif-item.unread { background: #FEFCF7; }
+.notif-dot-outer {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--gold);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.notif-item:not(.unread) .notif-dot-outer { background: transparent; }
+.notif-body { flex: 1; }
+.notif-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; }
+.notif-time { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+/* Task board */
+.task-col {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 14px;
+  min-height: 200px;
+}
+.task-col-header {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.task-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.task-card:hover { border-color: var(--gold); }
+.task-client { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.task-title { font-size: 13px; font-weight: 500; color: var(--text-primary); line-height: 1.3; }
+.task-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.task-due { font-size: 11px; color: var(--text-muted); }
+.task-due.overdue { color: var(--danger); font-weight: 600; }
+.task-priority { width: 8px; height: 8px; border-radius: 50%; }
+.task-priority.urgent { background: #EF4444; }
+.task-priority.high { background: #F59E0B; }
+.task-priority.normal { background: var(--accent-blue); }
+.task-priority.low { background: var(--border-strong); }
+
+/* AY selector tabs */
+.ay-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.ay-tab {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+.ay-tab.active { background: var(--navy); color: var(--gold-light); border-color: var(--navy); }
+.ay-tab:hover:not(.active) { border-color: var(--gold); color: var(--gold); }
+
+/* ─── MINI BAR CHART ─── */
+.mini-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 50px;
+}
+.mini-bar {
+  flex: 1;
+  background: var(--gold);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+  min-height: 4px;
+}
+.mini-bar:hover { opacity: 1; }
+.mini-bar.current { opacity: 1; }
+
+/* Scrollbar overall */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-badge">
+      <div class="brand-icon">IT</div>
+      <div class="brand-text">
+        <span class="brand-name">IncomeTax ERP</span>
+        <span class="brand-sub">Advocate Practice</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="sidebar-search">
+    <input type="text" placeholder="Search clients, PAN…" id="globalSearch">
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-label">Overview</div>
+    <a class="nav-item active" onclick="showView('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="2" width="7" height="7" rx="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5"/></svg>
+      Dashboard
+    </a>
+
+    <div class="nav-section-label">Clients & Filing</div>
+    <a class="nav-item" onclick="showView('clients')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="8" cy="6" r="3"/><path d="M2 17c0-3.3 2.7-6 6-6"/><circle cx="15" cy="12" r="3"/><path d="M11 17.9c.3-3.1 2.5-5.5 5.4-5.9"/></svg>
+      Client Master
+      <span class="nav-badge">5,000</span>
+    </a>
+    <a class="nav-item" onclick="showView('filing')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M8 10h4M8 13h4M8 7h2"/></svg>
+      ITR Filing
+      <span class="nav-badge blue">342</span>
+    </a>
+    <a class="nav-item" onclick="showView('reconciliation')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h12M4 10h12M4 13h8"/><circle cx="16" cy="13" r="2"/></svg>
+      Reconciliation
+      <span class="nav-badge red">18</span>
+    </a>
+
+    <div class="nav-section-label">Automation</div>
+    <a class="nav-item" onclick="showView('sync')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M16.5 10A6.5 6.5 0 0 1 5.1 14.9"/><path d="M3.5 10A6.5 6.5 0 0 1 14.9 5.1"/><path d="M3.5 14V10h4"/><path d="M16.5 6v4h-4"/></svg>
+      ITD Portal Sync
+    </a>
+    <a class="nav-item" onclick="showView('jobs')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="16" height="12" rx="1.5"/><path d="M6 5V3M14 5V3"/><circle cx="14" cy="13" r="3"/><path d="M14 11.5V13l1 1"/></svg>
+      Background Jobs
+      <span class="nav-badge blue">3</span>
+    </a>
+
+    <div class="nav-section-label">Compliance</div>
+    <a class="nav-item" onclick="showView('notices')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M10 2a6 6 0 0 1 6 6v2l1.5 3h-15L4 10V8a6 6 0 0 1 6-6z"/><path d="M8 15a2 2 0 0 0 4 0"/></svg>
+      Notice Management
+      <span class="nav-badge red">7</span>
+    </a>
+    <a class="nav-item" onclick="showView('calendar')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="4" width="16" height="14" rx="1.5"/><path d="M6 2v4M14 2v4M2 9h16"/></svg>
+      Compliance Calendar
+    </a>
+    <a class="nav-item" onclick="showView('tasks')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h12M4 10h8M4 14h6"/><circle cx="16" cy="14" r="2"/><path d="M14.6 12.6l1 1 2-2"/></svg>
+      Tasks & Work Queue
+      <span class="nav-badge">24</span>
+    </a>
+
+    <div class="nav-section-label">Finance</div>
+    <a class="nav-item" onclick="showView('billing')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="5" width="16" height="12" rx="1.5"/><path d="M2 9h16"/><path d="M6 13h2M10 13h4"/></svg>
+      Billing & Fees
+    </a>
+    <a class="nav-item" onclick="showView('accounting')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 3v14M14 3v14M3 9h14M3 14h14"/></svg>
+      Firm Accounting
+    </a>
+
+    <div class="nav-section-label">Analytics</div>
+    <a class="nav-item" onclick="showView('reports')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16V8l4-4 4 4 4-4v12"/><path d="M4 16h12"/></svg>
+      Reports & Analytics
+    </a>
+    <a class="nav-item" onclick="showView('communication')">
+      <svg class="nav-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M17 8.5c0 3-2.7 5.5-6 5.5a6.8 6.8 0 0 1-2.7-.5L3 15l1.5-4.5A5.3 5.3 0 0 1 5 8.5C5 5.5 7.7 3 11 3s6 2.5 6 5.5z"/></svg>
+      Communication
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-avatar">AP</div>
+    <div class="user-info">
+      <div class="user-name">Adv. Prakash Mehta</div>
+      <div class="user-role">Senior Advocate · Admin</div>
+    </div>
+    <button class="logout-btn" title="Settings">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.9 4.9l1.4 1.4M13.7 13.7l1.4 1.4M4.9 15.1l1.4-1.4M13.7 6.3l1.4-1.4"/></svg>
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN WRAPPER -->
+<div class="main-wrap">
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="page-title-area">
+      <div class="page-title" id="pageTitle">Dashboard</div>
+      <div class="page-sub" id="pageSub">AY 2025–26 & 2026–27 · 5,000 Active Clients</div>
+    </div>
+    <div class="topbar-actions">
+      <select class="ay-select" id="aySelect">
+        <option>AY 2025–26</option>
+        <option>AY 2026–27</option>
+        <option>Both AYs</option>
+      </select>
+      <div class="icon-btn" title="Notifications" onclick="toggleNotifPanel()">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 2a6 6 0 0 1 6 6v2l1.5 3h-15L4 10V8a6 6 0 0 1 6-6z"/><path d="M8 15a2 2 0 0 0 4 0"/></svg>
+        <span class="notif-dot"></span>
+      </div>
+      <div class="icon-btn" title="Help">
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="10" cy="10" r="8"/><path d="M10 14v-1M10 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4"/></svg>
+      </div>
+      <button class="btn btn-primary" onclick="showView('sync')">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.5 10A6.5 6.5 0 0 1 5.1 14.9"/><path d="M3.5 10A6.5 6.5 0 0 1 14.9 5.1"/><path d="M3.5 14V10h4"/><path d="M16.5 6v4h-4"/></svg>
+        Run Bulk Sync
+      </button>
+    </div>
+  </header>
+
+  <!-- CONTENT -->
+  <main class="content-area">
+
+    <!-- ══════════════ DASHBOARD VIEW ══════════════ -->
+    <div class="view active" id="view-dashboard">
+      <!-- AY filing season progress -->
+      <div class="card section-gap">
+        <div class="card-header">
+          <div>
+            <div class="card-title">AY 2025–26 Filing Season Progress</div>
+            <div class="card-sub">Last updated: Today, 10:42 AM</div>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="badge badge-gold badge-dot">Peak Season Active</span>
+            <button class="btn btn-secondary btn-sm" onclick="showView('filing')">View All →</button>
+          </div>
+        </div>
+        <div class="pipeline">
+          <div class="pipe-stage">
+            <div class="pipe-count">4,217</div>
+            <div class="pipe-label">Total Clients</div>
+          </div>
+          <div class="pipe-stage active">
+            <div class="pipe-count">2,891</div>
+            <div class="pipe-label">Filed ✓</div>
+          </div>
+          <div class="pipe-stage">
+            <div class="pipe-count">342</div>
+            <div class="pipe-label">In Progress</div>
+          </div>
+          <div class="pipe-stage">
+            <div class="pipe-count">518</div>
+            <div class="pipe-label">Doc Pending</div>
+          </div>
+          <div class="pipe-stage">
+            <div class="pipe-count">248</div>
+            <div class="pipe-label">Ready to File</div>
+          </div>
+          <div class="pipe-stage">
+            <div class="pipe-count">218</div>
+            <div class="pipe-label">Mismatch</div>
+          </div>
+          <div class="pipe-stage">
+            <div class="pipe-count">0</div>
+            <div class="pipe-label">Not Started</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;">
+          <div class="progress-bar" style="flex:1;height:10px;">
+            <div class="progress-fill gold" style="width:68.6%"></div>
+          </div>
+          <span style="font-size:13px;font-weight:600;color:#92640A;white-space:nowrap;">68.6% Complete</span>
+        </div>
+      </div>
+
+      <!-- Stat cards -->
+      <div class="stats-grid section-gap">
+        <div class="stat-card gold">
+          <div class="stat-label">Revenue This Month</div>
+          <div class="stat-value">₹8.4L</div>
+          <div class="stat-meta"><span class="stat-change up">↑ 23% vs last month</span></div>
+          <div class="stat-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2zm1 11.5V15H9v-1.5c-1.4-.3-2.5-1.3-2.5-2.5h1.5c0 .8.9 1.5 2 1.5s2-.7 2-1.5c0-.7-.6-1.2-2-1.5-1.9-.5-3-1.4-3-2.5 0-1.2 1.1-2.2 2.5-2.5V3h2v1.5c1.4.3 2.5 1.3 2.5 2.5H12c0-.8-.9-1.5-2-1.5s-2 .7-2 1.5c0 .7.6 1.2 2 1.5 1.9.5 3 1.4 3 2.5 0 1.2-1.1 2.2-2.5 2.5z"/></svg>
+          </div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Pending E-Verify</div>
+          <div class="stat-value">143</div>
+          <div class="stat-meta"><span style="color:var(--warning);font-weight:500;">12 expiring in 7 days</span></div>
+          <div class="stat-icon" style="color:var(--accent-blue)">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 1 0 0 16A8 8 0 0 0 10 2zm-1 5h2v4l3 2-1 1.7-3.5-2.2A1 1 0 0 1 9 12V7z"/></svg>
+          </div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Active Notices</div>
+          <div class="stat-value">31</div>
+          <div class="stat-meta"><span class="stat-change down">7 require response today</span></div>
+          <div class="stat-icon" style="color:var(--accent-teal)">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a6 6 0 0 1 6 6v2l1.5 3h-15L4 10V8a6 6 0 0 1 6-6zm0 16a2 2 0 0 1-2-2h4a2 2 0 0 1-2 2z"/></svg>
+          </div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-label">Outstanding Dues</div>
+          <div class="stat-value">₹3.2L</div>
+          <div class="stat-meta"><span style="color:var(--danger);font-weight:500;">₹84K overdue 90+ days</span></div>
+          <div class="stat-icon" style="color:var(--accent-rose)">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><rect x="2" y="5" width="16" height="12" rx="1.5"/><path d="M2 9h16"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom row -->
+      <div class="grid-21 section-gap">
+        <!-- Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Recent Activity</div>
+            <button class="btn btn-ghost btn-sm">See all</button>
+          </div>
+          <div class="activity-list">
+            <div class="activity-item">
+              <div class="activity-dot teal"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Ramesh Verma</strong> — ITR-2 filed successfully via ITD API. E-verify pending.</div>
+                <div class="activity-time">2 minutes ago · AY 2025–26</div>
+              </div>
+              <span class="badge badge-success">Filed</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot red"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Priya Nair</strong> — Notice u/s 143(1)(a) auto-detected on ITD portal.</div>
+                <div class="activity-time">14 minutes ago · Response due Apr 18</div>
+              </div>
+              <span class="badge badge-danger">Notice</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot gold"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Bulk Sync Job #847</strong> — Completed for 200 clients. 194 success, 6 CAPTCHA failed.</div>
+                <div class="activity-time">1 hour ago · Batch 5 of 25</div>
+              </div>
+              <span class="badge badge-warning">Partial</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot blue"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Suresh Kumar</strong> — AIS mismatch of ₹34,500 flagged for reconciliation review.</div>
+                <div class="activity-time">2 hours ago · AY 2025–26</div>
+              </div>
+              <span class="badge badge-warning">Mismatch</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot teal"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Meena Agarwal</strong> — E-verification completed via Aadhaar OTP. WhatsApp confirmation sent.</div>
+                <div class="activity-time">3 hours ago</div>
+              </div>
+              <span class="badge badge-success">E-Verified</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot gold"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>Invoice #INV-2847</strong> — ₹4,500 generated for Arjun Bhatia (ITR-2 filing).</div>
+                <div class="activity-time">4 hours ago</div>
+              </div>
+              <span class="badge badge-muted">Invoice</span>
+            </div>
+            <div class="activity-item">
+              <div class="activity-dot gray"></div>
+              <div class="activity-body">
+                <div class="activity-text"><strong>5 advance tax reminders</strong> sent via WhatsApp — Q4 installment due Mar 15.</div>
+                <div class="activity-time">Yesterday, 6:00 PM</div>
+              </div>
+              <span class="badge badge-info">WhatsApp</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <!-- ITR Type Breakdown -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">ITR Type Filed</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px;">
+              <div style="position:relative;width:120px;height:120px;flex-shrink:0;">
+                <div class="donut-chart"></div>
+                <div class="donut-center">
+                  <div class="donut-pct">2891</div>
+                  <div class="donut-tiny">Filed</div>
+                </div>
+              </div>
+              <div class="legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--success)"></div><span class="legend-label">ITR-1</span><span class="legend-val">1,382</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div><span class="legend-label">ITR-2</span><span class="legend-val">647</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--accent-blue)"></div><span class="legend-label">ITR-3</span><span class="legend-val">492</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div><span class="legend-label">ITR-4</span><span class="legend-val">370</span></div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--border-strong)"></div><span class="legend-label">Others</span><span class="legend-val">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today's deadlines -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Today's Deadlines</div>
+              <span class="badge badge-danger">7 urgent</span>
+            </div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>Notice 143(1)(a)</strong> — Priya Nair</div>
+                  <div class="activity-time">Respond by Today 5 PM</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>Advance Tax Q4</strong> — 5 clients</div>
+                  <div class="activity-time">Mar 15 · Payment deadline</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot gold"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>E-Verify Expiry</strong> — 3 clients</div>
+                  <div class="activity-time">120-day window closing</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Running Jobs quick view -->
+      <div class="card section-gap">
+        <div class="card-header">
+          <div class="card-title">Background Jobs Status</div>
+          <button class="btn btn-ghost btn-sm" onclick="showView('jobs')">View all jobs →</button>
+        </div>
+        <div>
+          <div class="job-row">
+            <div class="job-status-dot running"></div>
+            <div class="job-info">
+              <div class="job-name">Annual Bulk Sync — Batch 6/25 (AY 2025–26)</div>
+              <div class="job-detail">200 clients · 148 done · 52 pending · 0 failed so far</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct">74%</div>
+              <div class="progress-bar"><div class="progress-fill blue" style="width:74%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-danger btn-sm">Stop</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot running"></div>
+            <div class="job-info">
+              <div class="job-name">WhatsApp Advance Tax Reminder Broadcast</div>
+              <div class="job-detail">Sending to 48 clients · 31 delivered · 17 queued</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct">65%</div>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:65%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-secondary btn-sm">Pause</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot done"></div>
+            <div class="job-info">
+              <div class="job-name">Batch 5/25 Sync — Completed</div>
+              <div class="job-detail">200 clients · 194 success · 6 CAPTCHA failed · 28 min</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct" style="color:var(--success)">Done</div>
+              <div class="progress-bar"><div class="progress-fill teal" style="width:100%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-ghost btn-sm">Details</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ CLIENTS VIEW ══════════════ -->
+    <div class="view" id="view-clients">
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="m15 15-3-3"/></svg>
+          <input type="text" placeholder="Search by name, PAN, mobile…" id="clientSearch">
+        </div>
+        <select class="filter-select">
+          <option>All Types</option>
+          <option>Individual</option>
+          <option>HUF</option>
+          <option>Firm</option>
+          <option>Company</option>
+        </select>
+        <select class="filter-select">
+          <option>All Statuses</option>
+          <option>Filed</option>
+          <option>In Progress</option>
+          <option>Doc Pending</option>
+          <option>Mismatch</option>
+          <option>Watch List</option>
+        </select>
+        <select class="filter-select">
+          <option>AY 2025–26</option>
+          <option>AY 2026–27</option>
+        </select>
+        <button class="btn btn-secondary btn-sm">
+          <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h14M6 10h8M9 14h2"/></svg>
+          Filters
+        </button>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v14M3 10l7 7 7-7"/></svg>
+            Export Excel
+          </button>
+          <button class="btn btn-primary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 5v10M5 10h10"/></svg>
+            Add Client
+          </button>
+          <button class="btn btn-secondary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v14M3 10l7 7 7-7"/></svg>
+            Bulk Import
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header" style="margin-bottom:0;">
+          <div>
+            <div class="card-title">All Clients</div>
+            <div class="card-sub">Showing 5,000 clients · AY 2025–26</div>
+          </div>
+          <div class="flex-center gap-8">
+            <span class="badge badge-success badge-dot">2,891 Filed</span>
+            <span class="badge badge-warning badge-dot">518 Pending</span>
+            <span class="badge badge-danger badge-dot">31 Watch List</span>
+          </div>
+        </div>
+
+        <div class="table-wrap" style="margin-top:16px;">
+          <table id="clientTable">
+            <thead>
+              <tr>
+                <th><input type="checkbox" style="cursor:pointer;"></th>
+                <th>Client Name</th>
+                <th>PAN</th>
+                <th>Type</th>
+                <th>Mobile</th>
+                <th>ITR Form</th>
+                <th>AIS Sync</th>
+                <th>Filing Status</th>
+                <th>E-Verify</th>
+                <th>Watch</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="clientTableBody">
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid var(--border);margin-top:4px;">
+          <span style="font-size:12.5px;color:var(--text-muted);">Showing 1–25 of 5,000 clients</span>
+          <div class="flex-center gap-8">
+            <button class="btn btn-ghost btn-sm">← Prev</button>
+            <button class="btn btn-primary btn-sm">1</button>
+            <button class="btn btn-ghost btn-sm">2</button>
+            <button class="btn btn-ghost btn-sm">3</button>
+            <span style="font-size:13px;color:var(--text-muted);">… 200</span>
+            <button class="btn btn-ghost btn-sm">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ ITR FILING VIEW ══════════════ -->
+    <div class="view" id="view-filing">
+      <div class="ay-tabs">
+        <div class="ay-tab active">AY 2025–26</div>
+        <div class="ay-tab">AY 2026–27</div>
+      </div>
+
+      <!-- Filing pipeline stages -->
+      <div class="card section-gap">
+        <div class="card-header">
+          <div class="card-title">Filing Workflow Pipeline</div>
+          <span class="badge badge-gold">342 In Progress</span>
+        </div>
+        <div class="filing-pipeline" style="gap:0;">
+          <div class="fp-stage">
+            <div class="fp-circle done">✓</div>
+            <div class="fp-label done">Docs Downloaded</div>
+          </div>
+          <div class="fp-connector done"></div>
+          <div class="fp-stage">
+            <div class="fp-circle done">✓</div>
+            <div class="fp-label done">AIS Reconciled</div>
+          </div>
+          <div class="fp-connector done"></div>
+          <div class="fp-stage">
+            <div class="fp-circle current">3</div>
+            <div class="fp-label current">Computation Review</div>
+          </div>
+          <div class="fp-connector"></div>
+          <div class="fp-stage">
+            <div class="fp-circle pending">4</div>
+            <div class="fp-label">Ready to File</div>
+          </div>
+          <div class="fp-connector"></div>
+          <div class="fp-stage">
+            <div class="fp-circle pending">5</div>
+            <div class="fp-label">Filed via ITD API</div>
+          </div>
+          <div class="fp-connector"></div>
+          <div class="fp-stage">
+            <div class="fp-circle pending">6</div>
+            <div class="fp-label">E-Verification</div>
+          </div>
+          <div class="fp-connector"></div>
+          <div class="fp-stage">
+            <div class="fp-circle pending">7</div>
+            <div class="fp-label">Computation Sent</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="m15 15-3-3"/></svg>
+          <input type="text" placeholder="Search client name or PAN…">
+        </div>
+        <select class="filter-select">
+          <option>All Stages</option>
+          <option>Doc Pending</option>
+          <option>Reconciliation</option>
+          <option>Mismatch Review</option>
+          <option>Ready to File</option>
+          <option>Filed</option>
+          <option>E-Verify Pending</option>
+        </select>
+        <select class="filter-select">
+          <option>All ITR Forms</option>
+          <option>ITR-1</option>
+          <option>ITR-2</option>
+          <option>ITR-3</option>
+          <option>ITR-4</option>
+        </select>
+        <div style="margin-left:auto;">
+          <button class="btn btn-primary btn-sm">
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2z"/><path d="M8 10h4M8 13h4M8 7h2"/></svg>
+            New ITR Filing
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table id="filingTable">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>PAN</th>
+                <th>ITR Form</th>
+                <th>AIS Synced</th>
+                <th>Recon Status</th>
+                <th>Filing Stage</th>
+                <th>Tax Payable</th>
+                <th>Refund</th>
+                <th>E-Verify</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="filingTableBody">
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid var(--border);margin-top:4px;">
+          <span style="font-size:12.5px;color:var(--text-muted);">Showing 1–25 of 342 in-progress clients</span>
+          <div class="flex-center gap-8">
+            <button class="btn btn-ghost btn-sm">← Prev</button>
+            <button class="btn btn-primary btn-sm">1</button>
+            <button class="btn btn-ghost btn-sm">2</button>
+            <button class="btn btn-ghost btn-sm">Next →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ RECONCILIATION VIEW ══════════════ -->
+    <div class="view" id="view-reconciliation">
+      <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;">
+        <div class="stat-card gold">
+          <div class="stat-label">Total Mismatches</div>
+          <div class="stat-value">218</div>
+          <div class="stat-meta">AY 2025–26</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Under Review</div>
+          <div class="stat-value">18</div>
+          <div class="stat-meta">Advocate attention needed</div>
+        </div>
+        <div class="stat-card success">
+          <div class="stat-label">Resolved Today</div>
+          <div class="stat-value">34</div>
+          <div class="stat-meta">Moved to Ready to File</div>
+        </div>
+      </div>
+
+      <!-- Sample reconciliation detail -->
+      <div class="grid-12 section-gap">
+        <div>
+          <div class="filter-bar">
+            <div class="search-input">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="m15 15-3-3"/></svg>
+              <input type="text" placeholder="Search client…">
+            </div>
+            <select class="filter-select">
+              <option>All Mismatches</option>
+              <option>TDS Mismatch</option>
+              <option>Income Mismatch</option>
+              <option>SFT Mismatch</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Client</th>
+                    <th>Mismatch Type</th>
+                    <th>Difference</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr onclick="showReconDetail()" style="cursor:pointer;">
+                    <td><div style="font-weight:500;">Suresh Kumar</div><div class="td-muted td-mono">ABCPK1234R</div></td>
+                    <td><span class="badge badge-danger">TDS Mismatch</span></td>
+                    <td><span style="color:var(--danger);font-weight:600;">−₹34,500</span></td>
+                    <td><span class="badge badge-warning">Under Review</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Resolve</button></td>
+                  </tr>
+                  <tr onclick="showReconDetail()" style="cursor:pointer;">
+                    <td><div style="font-weight:500;">Anita Desai</div><div class="td-muted td-mono">DEFPA5678S</div></td>
+                    <td><span class="badge badge-warning">Income Mismatch</span></td>
+                    <td><span style="color:var(--warning);font-weight:600;">+₹1,20,000</span></td>
+                    <td><span class="badge badge-warning">Under Review</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Resolve</button></td>
+                  </tr>
+                  <tr onclick="showReconDetail()" style="cursor:pointer;">
+                    <td><div style="font-weight:500;">Vikram Shah</div><div class="td-muted td-mono">GHIPV9012T</div></td>
+                    <td><span class="badge badge-info">SFT Entry</span></td>
+                    <td><span style="color:var(--info);font-weight:600;">₹8,50,000</span></td>
+                    <td><span class="badge badge-muted">Pending</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Review</button></td>
+                  </tr>
+                  <tr>
+                    <td><div style="font-weight:500;">Kavya Reddy</div><div class="td-muted td-mono">JKLKR3456U</div></td>
+                    <td><span class="badge badge-danger">TDS Mismatch</span></td>
+                    <td><span style="color:var(--danger);font-weight:600;">−₹12,800</span></td>
+                    <td><span class="badge badge-muted">Pending</span></td>
+                    <td><button class="btn btn-ghost btn-sm">Review</button></td>
+                  </tr>
+                  <tr>
+                    <td><div style="font-weight:500;">Rajesh Patel</div><div class="td-muted td-mono">MNOPJ7890V</div></td>
+                    <td><span class="badge badge-warning">Interest Income</span></td>
+                    <td><span style="color:var(--warning);font-weight:600;">+₹23,400</span></td>
+                    <td><span class="badge badge-success">Resolved</span></td>
+                    <td><button class="btn btn-ghost btn-sm">View</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail panel -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">Reconciliation Detail — Suresh Kumar</div>
+
+          <div class="recon-meter">
+            <div class="recon-source" style="color:var(--accent-blue)">Form 26AS</div>
+            <div class="recon-bar-wrap">
+              <div class="recon-bar-label">TDS Credited</div>
+              <div class="progress-bar"><div class="progress-fill blue" style="width:78%"></div></div>
+            </div>
+            <div class="recon-amount">₹1,48,000</div>
+          </div>
+          <div class="recon-meter">
+            <div class="recon-source" style="color:var(--success)">AIS</div>
+            <div class="recon-bar-wrap">
+              <div class="recon-bar-label">TDS as per AIS</div>
+              <div class="progress-bar"><div class="progress-fill teal" style="width:64%"></div></div>
+            </div>
+            <div class="recon-amount">₹1,13,500</div>
+          </div>
+          <div class="recon-meter">
+            <div class="recon-source" style="color:var(--gold)">Computation</div>
+            <div class="recon-bar-wrap">
+              <div class="recon-bar-label">TDS as per Client</div>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:70%"></div></div>
+            </div>
+            <div class="recon-amount">₹1,35,200</div>
+          </div>
+
+          <div style="background:var(--danger-bg);border:1px solid #FECACA;border-radius:8px;padding:12px 14px;margin-top:14px;">
+            <div style="font-size:12px;font-weight:700;color:var(--danger);margin-bottom:6px;">⚠ Mismatch Summary</div>
+            <div style="font-size:12.5px;color:var(--danger);">26AS vs AIS: <strong>−₹34,500</strong> — Employer TDS not reflected in AIS</div>
+            <div style="font-size:12.5px;color:var(--danger);margin-top:3px;">AIS vs Computation: <strong>−₹21,700</strong> — Savings interest underreported</div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <div class="form-label">Advocate's Notes</div>
+            <textarea class="form-control" rows="3" placeholder="Note your finding and resolution steps…" style="resize:none;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px;">
+            <button class="btn btn-primary btn-sm">Mark Resolved</button>
+            <button class="btn btn-secondary btn-sm">Escalate</button>
+            <button class="btn btn-ghost btn-sm">Download Report</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ SYNC VIEW ══════════════ -->
+    <div class="view" id="view-sync">
+      <div class="grid-21 section-gap">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">ITD Portal Sync — Trigger New Job</div>
+              <div class="card-sub">Downloads AIS, TIS, 26AS for selected clients</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Sync Scope</label>
+              <select class="form-control">
+                <option>All Active Clients (5,000)</option>
+                <option>Selected Batch</option>
+                <option>Single Client</option>
+                <option>Watch-List Only</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Assessment Year</label>
+              <select class="form-control">
+                <option>AY 2025–26</option>
+                <option>AY 2026–27</option>
+                <option>Both AYs</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Documents to Download</label>
+              <select class="form-control">
+                <option>AIS + TIS + 26AS (Full)</option>
+                <option>AIS + TIS Only</option>
+                <option>26AS Only</option>
+                <option>Notices Only</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label class="form-label">Batch Size</label>
+              <select class="form-control">
+                <option>200 clients/batch</option>
+                <option>100 clients/batch</option>
+                <option>50 clients/batch</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="background:var(--warning-bg);border:1px solid #FDE68A;border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;color:var(--warning);">
+            <strong>Bulk sync for 5,000 clients will run as 25 batches overnight.</strong> CAPTCHA solver active (Tesseract + 2Captcha fallback). Estimated time: 4–6 hours.
+          </div>
+
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary">
+              <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M16.5 10A6.5 6.5 0 0 1 5.1 14.9"/><path d="M3.5 10A6.5 6.5 0 0 1 14.9 5.1"/><path d="M3.5 14V10h4"/><path d="M16.5 6v4h-4"/></svg>
+              Start Sync Now
+            </button>
+            <button class="btn btn-secondary">Schedule for Tonight 10 PM</button>
+            <button class="btn btn-ghost">Save as Draft</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px;">CAPTCHA Solver Status</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;">
+              <div>
+                <div style="font-size:13px;font-weight:500;">Tesseract OCR (Primary)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);">Accuracy: ~87% · Last tested: Today</div>
+              </div>
+              <span class="badge badge-success badge-dot">Active</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;">
+              <div>
+                <div style="font-size:13px;font-weight:500;">2Captcha API (Fallback)</div>
+                <div style="font-size:11.5px;color:var(--text-muted);">Balance: ₹342 · ~1,140 solves remaining</div>
+              </div>
+              <span class="badge badge-info badge-dot">Standby</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg);border-radius:8px;">
+              <div>
+                <div style="font-size:13px;font-weight:500;">Max Retry Attempts</div>
+                <div style="font-size:11.5px;color:var(--text-muted);">3 attempts before marking as failed</div>
+              </div>
+              <span style="font-size:13px;font-weight:600;">3×</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync history -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Sync Jobs</div>
+          <button class="btn btn-ghost btn-sm">View full history</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Job ID</th>
+                <th>Started</th>
+                <th>Scope</th>
+                <th>AY</th>
+                <th>Total</th>
+                <th>Success</th>
+                <th>Failed</th>
+                <th>Duration</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="td-mono">#847</td>
+                <td class="td-muted">Today, 8:00 AM</td>
+                <td>Batch 6/25</td>
+                <td>AY 2025–26</td>
+                <td>200</td>
+                <td style="color:var(--success);font-weight:600;">148</td>
+                <td style="color:var(--danger);font-weight:600;">0</td>
+                <td class="td-muted">Running…</td>
+                <td><span class="badge badge-info badge-dot">Running</span></td>
+                <td><button class="btn btn-danger btn-sm">Stop</button></td>
+              </tr>
+              <tr>
+                <td class="td-mono">#846</td>
+                <td class="td-muted">Today, 6:52 AM</td>
+                <td>Batch 5/25</td>
+                <td>AY 2025–26</td>
+                <td>200</td>
+                <td style="color:var(--success);font-weight:600;">194</td>
+                <td style="color:var(--danger);font-weight:600;">6</td>
+                <td class="td-muted">28 min</td>
+                <td><span class="badge badge-warning badge-dot">Partial</span></td>
+                <td><button class="btn btn-ghost btn-sm">Details</button></td>
+              </tr>
+              <tr>
+                <td class="td-mono">#845</td>
+                <td class="td-muted">Yesterday, 11 PM</td>
+                <td>Batch 4/25</td>
+                <td>AY 2025–26</td>
+                <td>200</td>
+                <td style="color:var(--success);font-weight:600;">200</td>
+                <td style="color:var(--success);font-weight:600;">0</td>
+                <td class="td-muted">31 min</td>
+                <td><span class="badge badge-success badge-dot">Complete</span></td>
+                <td><button class="btn btn-ghost btn-sm">Details</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ NOTICES VIEW ══════════════ -->
+    <div class="view" id="view-notices">
+      <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;">
+        <div class="stat-card rose">
+          <div class="stat-label">Total Active</div>
+          <div class="stat-value">31</div>
+          <div class="stat-meta">Open notices</div>
+        </div>
+        <div class="stat-card gold">
+          <div class="stat-label">Due This Week</div>
+          <div class="stat-value">7</div>
+          <div class="stat-meta">Response required</div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Scrutiny Cases</div>
+          <div class="stat-value">4</div>
+          <div class="stat-meta">u/s 143(2) / 144</div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Closed This Month</div>
+          <div class="stat-value">12</div>
+          <div class="stat-meta">Successfully resolved</div>
+        </div>
+      </div>
+
+      <div class="grid-12">
+        <div>
+          <div class="filter-bar">
+            <select class="filter-select">
+              <option>All Sections</option>
+              <option>143(1)(a) — CPC Intimation</option>
+              <option>143(2) — Scrutiny</option>
+              <option>144 — Best Judgment</option>
+              <option>148 — Reassessment</option>
+              <option>156 — Notice of Demand</option>
+            </select>
+            <select class="filter-select">
+              <option>All Priorities</option>
+              <option>Urgent</option>
+              <option>High</option>
+              <option>Normal</option>
+            </select>
+          </div>
+
+          <div class="notice-card urgent" onclick="selectNotice(0)">
+            <div class="notice-icon urgent">⚠</div>
+            <div class="notice-body">
+              <div class="notice-title">Priya Nair — Notice u/s 143(1)(a)</div>
+              <div class="notice-meta">
+                <span>PAN: QRSPN4521K</span>
+                <span>AY 2023–24</span>
+                <span>Received: Apr 1, 2026</span>
+              </div>
+              <div class="notice-due">Response due: Apr 18, 2026 (13 days)</div>
+            </div>
+            <span class="badge badge-danger">Urgent</span>
+          </div>
+
+          <div class="notice-card high">
+            <div class="notice-icon warn">📋</div>
+            <div class="notice-body">
+              <div class="notice-title">Rohit Bansal — Notice u/s 148 (Reassessment)</div>
+              <div class="notice-meta">
+                <span>PAN: UVWRB7823L</span>
+                <span>AY 2021–22</span>
+                <span>Received: Mar 28, 2026</span>
+              </div>
+              <div class="notice-due" style="color:var(--warning);">Response due: Apr 27, 2026 (22 days)</div>
+            </div>
+            <span class="badge badge-warning">High</span>
+          </div>
+
+          <div class="notice-card normal">
+            <div class="notice-icon info">📄</div>
+            <div class="notice-body">
+              <div class="notice-title">Deepak Joshi — Notice of Demand u/s 156</div>
+              <div class="notice-meta">
+                <span>PAN: XYZPJ0012M</span>
+                <span>AY 2024–25</span>
+                <span>Amount: ₹1,24,820</span>
+              </div>
+              <div class="notice-due" style="color:var(--info);">Payment/rectification by May 3, 2026</div>
+            </div>
+            <span class="badge badge-info">Normal</span>
+          </div>
+
+          <div class="notice-card normal">
+            <div class="notice-icon info">📋</div>
+            <div class="notice-body">
+              <div class="notice-title">Sunita Khanna — Scrutiny Notice u/s 143(2)</div>
+              <div class="notice-meta">
+                <span>PAN: ABCSK5634N</span>
+                <span>AY 2023–24</span>
+                <span>Received: Mar 20, 2026</span>
+              </div>
+              <div class="notice-due" style="color:var(--info);">Hearing date: May 15, 2026</div>
+            </div>
+            <span class="badge badge-info">Scrutiny</span>
+          </div>
+        </div>
+
+        <!-- Notice detail -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:16px;">Notice Detail</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+            <div class="client-av">PN</div>
+            <div>
+              <div style="font-size:15px;font-weight:600;">Priya Nair</div>
+              <div style="font-size:12px;color:var(--text-muted);font-family:'DM Mono',monospace;">QRSPN4521K</div>
+            </div>
+            <span class="badge badge-danger" style="margin-left:auto;">URGENT</span>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Notice Information</div>
+            <div class="detail-row"><div class="detail-key">Section</div><div class="detail-val"><strong>143(1)(a)</strong> — Intimation with adjustments</div></div>
+            <div class="detail-row"><div class="detail-key">Assessment Year</div><div class="detail-val">AY 2023–24</div></div>
+            <div class="detail-row"><div class="detail-key">Notice Date</div><div class="detail-val">April 1, 2026</div></div>
+            <div class="detail-row"><div class="detail-key">Response Deadline</div><div class="detail-val" style="color:var(--danger);font-weight:600;">April 18, 2026</div></div>
+            <div class="detail-row"><div class="detail-key">Demand Amount</div><div class="detail-val" style="font-family:'Crimson Pro',serif;font-size:16px;font-weight:600;color:var(--danger);">₹24,820</div></div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-section-title">Notice Reason</div>
+            <div style="font-size:13px;color:var(--text-primary);line-height:1.6;background:var(--bg);padding:12px;border-radius:8px;">
+              TDS credit mismatch: ₹8,400 claimed in ITR but only ₹0 shown in Form 26AS for employer deductor AAACF1234B. Interest on savings accounts unreported — ₹16,420 per AIS vs ₹0 in ITR.
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+            <button class="btn btn-primary" style="width:100%;justify-content:center;">Draft Response Letter</button>
+            <button class="btn btn-secondary" style="width:100%;justify-content:center;">Upload Documents</button>
+            <button class="btn btn-ghost" style="width:100%;justify-content:center;">Mark as Resolved</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ CALENDAR VIEW ══════════════ -->
+    <div class="view" id="view-calendar">
+      <div class="grid-21">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">April 2026</div>
+            <div class="flex-center gap-8">
+              <button class="btn btn-ghost btn-sm">← Mar</button>
+              <button class="btn btn-ghost btn-sm">May →</button>
+            </div>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-head">Sun</div><div class="cal-head">Mon</div><div class="cal-head">Tue</div><div class="cal-head">Wed</div><div class="cal-head">Thu</div><div class="cal-head">Fri</div><div class="cal-head">Sat</div>
+            <!-- Week 1 -->
+            <div class="cal-day other-month">30</div><div class="cal-day other-month">31</div>
+            <div class="cal-day today">1</div>
+            <div class="cal-day has-event">2</div><div class="cal-day">3</div><div class="cal-day has-deadline">4</div><div class="cal-day">5</div>
+            <!-- Week 2 -->
+            <div class="cal-day">6</div><div class="cal-day has-event">7</div><div class="cal-day">8</div><div class="cal-day has-event">9</div>
+            <div class="cal-day">10</div><div class="cal-day has-deadline">11</div><div class="cal-day">12</div>
+            <!-- Week 3 -->
+            <div class="cal-day">13</div><div class="cal-day has-event">14</div><div class="cal-day has-deadline">15</div>
+            <div class="cal-day">16</div><div class="cal-day">17</div><div class="cal-day has-deadline">18</div><div class="cal-day">19</div>
+            <!-- Week 4 -->
+            <div class="cal-day">20</div><div class="cal-day">21</div><div class="cal-day has-event">22</div>
+            <div class="cal-day">23</div><div class="cal-day">24</div><div class="cal-day has-event">25</div><div class="cal-day">26</div>
+            <!-- Week 5 -->
+            <div class="cal-day">27</div><div class="cal-day has-deadline">28</div><div class="cal-day">29</div>
+            <div class="cal-day">30</div><div class="cal-day other-month">1</div><div class="cal-day other-month">2</div><div class="cal-day other-month">3</div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:14px;font-size:12px;">
+            <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--accent-blue);"></div>Reminders/Events</div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:#EF4444;"></div>Deadlines</div>
+            <div style="display:flex;align-items:center;gap:6px;"><div style="width:8px;height:8px;border-radius:50%;background:var(--gold);"></div>Today</div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">April Deadlines</div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>Apr 15</strong> — Advance Tax Q4 (last installment)</div>
+                  <div class="activity-time">9 clients with advance tax liability</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>Apr 18</strong> — Notice 143(1)(a) response due</div>
+                  <div class="activity-time">Priya Nair · QRSPN4521K</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot gold"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>Apr 27</strong> — Notice 148 response</div>
+                  <div class="activity-time">Rohit Bansal · AY 2021–22</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot blue"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>Apr 30</strong> — Form 16 release reminder</div>
+                  <div class="activity-time">Broadcast to salaried clients</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Key Annual Dates</div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot red"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>Jul 31, 2026</strong> — ITR Filing Due Date</div>
+                  <div class="activity-time">AY 2025–26 · Non-audit cases</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot gold"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>Jun 15, 2026</strong> — Advance Tax Q1</div>
+                  <div class="activity-time">AY 2026–27 · 15% of estimated tax</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot blue"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:12.5px;"><strong>Oct 31, 2026</strong> — Audit Case Deadline</div>
+                  <div class="activity-time">ITR-3/6 with audit requirement</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ JOBS VIEW ══════════════ -->
+    <div class="view" id="view-jobs">
+      <div class="filter-bar">
+        <select class="filter-select">
+          <option>All Jobs</option>
+          <option>Running</option>
+          <option>Completed</option>
+          <option>Failed</option>
+          <option>Queued</option>
+        </select>
+        <select class="filter-select">
+          <option>All Job Types</option>
+          <option>Portal Sync</option>
+          <option>Notice Check</option>
+          <option>WhatsApp Broadcast</option>
+          <option>Report Generation</option>
+        </select>
+        <div style="margin-left:auto;">
+          <button class="btn btn-secondary btn-sm">Refresh Status</button>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-header">
+          <div class="card-title">Background Jobs</div>
+          <div class="flex-center gap-8">
+            <span class="badge badge-info badge-dot">2 Running</span>
+            <span class="badge badge-muted badge-dot">1 Queued</span>
+          </div>
+        </div>
+        <div>
+          <div class="job-row">
+            <div class="job-status-dot running"></div>
+            <div class="job-info">
+              <div class="job-name">Annual Bulk Sync — AY 2025–26 (Batch 6/25)</div>
+              <div class="job-detail">Job #847 · Started 8:00 AM · 200 clients · 148 done · 52 remaining · 0 failed</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct">74%</div>
+              <div class="progress-bar"><div class="progress-fill blue" style="width:74%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-danger btn-sm">Stop</button>
+              <button class="btn btn-ghost btn-sm">Details</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot running"></div>
+            <div class="job-info">
+              <div class="job-name">WhatsApp Advance Tax Reminder — Q4 Installment</div>
+              <div class="job-detail">Job #848 · Started 9:30 AM · 48 recipients · 31 delivered · 17 pending</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct">65%</div>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:65%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-secondary btn-sm">Pause</button>
+              <button class="btn btn-ghost btn-sm">Details</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot queued"></div>
+            <div class="job-info">
+              <div class="job-name">Annual Bulk Sync — AY 2025–26 (Batch 7/25)</div>
+              <div class="job-detail">Job #849 · Queued · Waiting for Batch 6 to complete · 200 clients</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct" style="color:var(--text-muted);">Queued</div>
+              <div class="progress-bar"><div class="progress-fill gold" style="width:0%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-danger btn-sm">Cancel</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot done"></div>
+            <div class="job-info">
+              <div class="job-name">Annual Bulk Sync — AY 2025–26 (Batch 5/25)</div>
+              <div class="job-detail">Job #846 · Completed 6:52 AM → 7:20 AM · 194 success · 6 CAPTCHA failed</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct" style="color:var(--success);">97%</div>
+              <div class="progress-bar"><div class="progress-fill teal" style="width:97%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-secondary btn-sm">Retry Failed (6)</button>
+              <button class="btn btn-ghost btn-sm">Report</button>
+            </div>
+          </div>
+          <div class="job-row">
+            <div class="job-status-dot failed"></div>
+            <div class="job-info">
+              <div class="job-name">Notice Auto-Check — Watch List Clients</div>
+              <div class="job-detail">Job #840 · Failed 2:14 AM · ITD Portal timeout · 31 clients unscanned</div>
+            </div>
+            <div class="job-progress-wrap">
+              <div class="job-pct" style="color:var(--danger);">Failed</div>
+              <div class="progress-bar"><div class="progress-fill danger" style="width:20%"></div></div>
+            </div>
+            <div class="job-actions">
+              <button class="btn btn-primary btn-sm">Retry Now</button>
+              <button class="btn btn-ghost btn-sm">Log</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ BILLING VIEW ══════════════ -->
+    <div class="view" id="view-billing">
+      <div class="stats-grid section-gap">
+        <div class="stat-card gold">
+          <div class="stat-label">Billed This Month</div>
+          <div class="stat-value">₹12.6L</div>
+          <div class="stat-meta"><span class="stat-change up">↑ 18% vs March</span></div>
+        </div>
+        <div class="stat-card teal">
+          <div class="stat-label">Collected</div>
+          <div class="stat-value">₹9.4L</div>
+          <div class="stat-meta">74.6% collection rate</div>
+        </div>
+        <div class="stat-card rose">
+          <div class="stat-label">Outstanding</div>
+          <div class="stat-value">₹3.2L</div>
+          <div class="stat-meta"><span style="color:var(--danger);">₹84K overdue 90+ days</span></div>
+        </div>
+        <div class="stat-card blue">
+          <div class="stat-label">Invoices This Month</div>
+          <div class="stat-value">284</div>
+          <div class="stat-meta">Avg ₹4,436 per invoice</div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="m15 15-3-3"/></svg>
+          <input type="text" placeholder="Search client or invoice…">
+        </div>
+        <select class="filter-select">
+          <option>All Statuses</option>
+          <option>Paid</option>
+          <option>Pending</option>
+          <option>Overdue</option>
+          <option>Partial</option>
+        </select>
+        <select class="filter-select">
+          <option>All Services</option>
+          <option>ITR Filing</option>
+          <option>Notice Response</option>
+          <option>Appeal</option>
+          <option>Advance Tax</option>
+        </select>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm">Export</button>
+          <button class="btn btn-primary btn-sm">New Invoice</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Recent Invoices</div>
+          <div class="tab-bar" style="margin:0;border:none;">
+            <div class="tab-item active" style="padding:6px 12px;font-size:12.5px;">All</div>
+            <div class="tab-item" style="padding:6px 12px;font-size:12.5px;">Unpaid</div>
+            <div class="tab-item" style="padding:6px 12px;font-size:12.5px;">Overdue</div>
+          </div>
+        </div>
+        <div>
+          <div class="invoice-row">
+            <div class="inv-id">#INV-2851</div>
+            <div class="inv-client"><div class="inv-name">Arjun Bhatia</div><div class="inv-pan">ABCPB9876Q</div></div>
+            <div class="inv-service">ITR-2 Filing</div>
+            <div class="inv-amount">₹4,500</div>
+            <div class="inv-status"><span class="badge badge-success">Paid</span></div>
+            <div class="inv-actions">
+              <button class="btn btn-ghost btn-sm">View</button>
+              <button class="btn btn-ghost btn-sm">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v14M3 10l7 7 7-7"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="invoice-row">
+            <div class="inv-id">#INV-2850</div>
+            <div class="inv-client"><div class="inv-name">Sunita Khanna</div><div class="inv-pan">ABCSK5634N</div></div>
+            <div class="inv-service">Notice u/s 143(2)</div>
+            <div class="inv-amount">₹18,000</div>
+            <div class="inv-status"><span class="badge badge-warning">Pending</span></div>
+            <div class="inv-actions">
+              <button class="btn btn-ghost btn-sm">Remind</button>
+              <button class="btn btn-ghost btn-sm">View</button>
+            </div>
+          </div>
+          <div class="invoice-row">
+            <div class="inv-id">#INV-2849</div>
+            <div class="inv-client"><div class="inv-name">Rohit Bansal</div><div class="inv-pan">UVWRB7823L</div></div>
+            <div class="inv-service">Notice u/s 148</div>
+            <div class="inv-amount">₹35,000</div>
+            <div class="inv-status"><span class="badge badge-warning">Partial</span></div>
+            <div class="inv-actions">
+              <button class="btn btn-ghost btn-sm">Record Payment</button>
+              <button class="btn btn-ghost btn-sm">View</button>
+            </div>
+          </div>
+          <div class="invoice-row">
+            <div class="inv-id">#INV-2838</div>
+            <div class="inv-client"><div class="inv-name">Kavya Reddy</div><div class="inv-pan">JKLKR3456U</div></div>
+            <div class="inv-service">ITR-3 Filing</div>
+            <div class="inv-amount">₹8,200</div>
+            <div class="inv-status"><span class="badge badge-danger">Overdue</span></div>
+            <div class="inv-actions">
+              <button class="btn btn-danger btn-sm">WhatsApp</button>
+              <button class="btn btn-ghost btn-sm">View</button>
+            </div>
+          </div>
+          <div class="invoice-row">
+            <div class="inv-id">#INV-2835</div>
+            <div class="inv-client"><div class="inv-name">Meena Agarwal</div><div class="inv-pan">ABCMA3344R</div></div>
+            <div class="inv-service">ITR-1 Filing</div>
+            <div class="inv-amount">₹1,200</div>
+            <div class="inv-status"><span class="badge badge-success">Paid</span></div>
+            <div class="inv-actions">
+              <button class="btn btn-ghost btn-sm">View</button>
+              <button class="btn btn-ghost btn-sm">
+                <svg width="12" height="12" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3v14M3 10l7 7 7-7"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ ACCOUNTING VIEW ══════════════ -->
+    <div class="view" id="view-accounting">
+      <div class="grid-2 section-gap">
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Monthly P&L — April 2026</div>
+              <div class="card-sub">Firm accounting summary</div>
+            </div>
+            <button class="btn btn-ghost btn-sm">Export</button>
+          </div>
+          <div class="pl-row header"><span>Income</span><span>Amount</span></div>
+          <div class="pl-row"><span>ITR Filing Fees</span><span class="pl-income">₹9,24,000</span></div>
+          <div class="pl-row"><span>Notice / Assessment Fees</span><span class="pl-income">₹2,40,000</span></div>
+          <div class="pl-row"><span>Appeal Fees — CIT(A)</span><span class="pl-income">₹90,000</span></div>
+          <div class="pl-row"><span>Advance Tax Computation</span><span class="pl-income">₹48,000</span></div>
+          <div class="pl-row" style="font-weight:600;border-top:1px solid var(--border);padding-top:10px;"><span>Total Income</span><span class="pl-income">₹13,02,000</span></div>
+          <div class="pl-row header" style="margin-top:8px;"><span>Expenses</span><span>Amount</span></div>
+          <div class="pl-row"><span>Office Rent</span><span class="pl-expense">₹35,000</span></div>
+          <div class="pl-row"><span>Staff Salaries</span><span class="pl-expense">₹80,000</span></div>
+          <div class="pl-row"><span>WhatsApp API (WATI)</span><span class="pl-expense">₹3,100</span></div>
+          <div class="pl-row"><span>Software / Subscriptions</span><span class="pl-expense">₹8,400</span></div>
+          <div class="pl-row"><span>Court & Filing Fees</span><span class="pl-expense">₹12,000</span></div>
+          <div class="pl-row"><span>Miscellaneous</span><span class="pl-expense">₹6,800</span></div>
+          <div class="pl-row" style="font-weight:600;border-top:1px solid var(--border);padding-top:10px;"><span>Total Expenses</span><span class="pl-expense">₹1,45,300</span></div>
+          <div class="pl-row total"><span>Net Profit</span><span class="pl-net">₹11,56,700</span></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Bank Register (Current)</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:8px;">
+                <div><div style="font-size:13px;font-weight:500;">HDFC — Current A/c</div><div style="font-size:11.5px;color:var(--text-muted);">XXXX 4821</div></div>
+                <div style="font-family:'Crimson Pro',serif;font-size:18px;font-weight:600;color:var(--success);">₹18,42,300</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--bg);border-radius:8px;">
+                <div><div style="font-size:13px;font-weight:500;">SBI — Savings A/c</div><div style="font-size:11.5px;color:var(--text-muted);">XXXX 7043</div></div>
+                <div style="font-family:'Crimson Pro',serif;font-size:18px;font-weight:600;color:var(--success);">₹4,11,200</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Partner Drawings — April</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:8px;font-size:13px;">
+                <span style="font-weight:500;">Adv. Prakash Mehta</span>
+                <span class="pl-expense" style="font-weight:600;">₹3,00,000</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--bg);border-radius:8px;font-size:13px;">
+                <span style="font-weight:500;">Adv. Smita Mehta</span>
+                <span class="pl-expense" style="font-weight:600;">₹1,50,000</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" style="margin-top:10px;width:100%;justify-content:center;">Record Drawing</button>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Revenue Trend (Last 6 Months)</div>
+            <div class="mini-bars">
+              <div class="mini-bar" style="height:40%;"></div>
+              <div class="mini-bar" style="height:55%;"></div>
+              <div class="mini-bar" style="height:35%;"></div>
+              <div class="mini-bar" style="height:62%;"></div>
+              <div class="mini-bar" style="height:78%;"></div>
+              <div class="mini-bar current" style="height:100%;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
+              <span>Nov</span><span>Dec</span><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ TASKS VIEW ══════════════ -->
+    <div class="view" id="view-tasks">
+      <div class="filter-bar">
+        <div class="search-input">
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="9" r="6"/><path d="m15 15-3-3"/></svg>
+          <input type="text" placeholder="Search tasks…">
+        </div>
+        <select class="filter-select">
+          <option>All Task Types</option>
+          <option>Document Collection</option>
+          <option>Reconciliation</option>
+          <option>Filing</option>
+          <option>Notice Response</option>
+        </select>
+        <select class="filter-select">
+          <option>All Priorities</option>
+          <option>Urgent</option>
+          <option>High</option>
+          <option>Normal</option>
+        </select>
+        <div style="margin-left:auto;">
+          <button class="btn btn-primary btn-sm">+ Add Task</button>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="task-col">
+          <div class="task-col-header">
+            <span>To Do</span>
+            <span class="badge badge-muted">8</span>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Suresh Kumar · ABCPK1234R</div>
+            <div class="task-title">Resolve 26AS vs AIS mismatch — TDS ₹34,500</div>
+            <div class="task-footer">
+              <span class="task-due overdue">Overdue: Apr 1</span>
+              <div class="task-priority urgent"></div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Anita Desai · DEFPA5678S</div>
+            <div class="task-title">Collect Form 16 Part B for FY 2024–25</div>
+            <div class="task-footer">
+              <span class="task-due">Due: Apr 8</span>
+              <div class="task-priority high"></div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Sunita Khanna · ABCSK5634N</div>
+            <div class="task-title">Prepare ground papers for 143(2) hearing</div>
+            <div class="task-footer">
+              <span class="task-due">Due: Apr 12</span>
+              <div class="task-priority high"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-col">
+          <div class="task-col-header">
+            <span>In Progress</span>
+            <span class="badge badge-info">11</span>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Priya Nair · QRSPN4521K</div>
+            <div class="task-title">Draft response to 143(1)(a) intimation</div>
+            <div class="task-footer">
+              <span class="task-due overdue">Due: Apr 18</span>
+              <div class="task-priority urgent"></div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Rohit Bansal · UVWRB7823L</div>
+            <div class="task-title">Compile documentation for Section 148 reply</div>
+            <div class="task-footer">
+              <span class="task-due">Due: Apr 22</span>
+              <div class="task-priority high"></div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Vikram Shah · GHIPV9012T</div>
+            <div class="task-title">Review SFT entries and high-value transactions</div>
+            <div class="task-footer">
+              <span class="task-due">Due: Apr 15</span>
+              <div class="task-priority normal"></div>
+            </div>
+          </div>
+          <div class="task-card">
+            <div class="task-client">Batch — 42 Clients</div>
+            <div class="task-title">ITR-4 review for 44AD/44ADA presumptive cases</div>
+            <div class="task-footer">
+              <span class="task-due">Due: Jul 15</span>
+              <div class="task-priority normal"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="task-col">
+          <div class="task-col-header">
+            <span>Done This Week</span>
+            <span class="badge badge-success">5</span>
+          </div>
+          <div class="task-card" style="opacity:0.7;">
+            <div class="task-client">Meena Agarwal · ABCMA3344R</div>
+            <div class="task-title">ITR-1 filed + e-verified + computation sent ✓</div>
+            <div class="task-footer">
+              <span class="task-due" style="color:var(--success);">Completed Apr 2</span>
+              <div class="task-priority" style="background:var(--success);"></div>
+            </div>
+          </div>
+          <div class="task-card" style="opacity:0.7;">
+            <div class="task-client">Ramesh Verma · DEFPV1122K</div>
+            <div class="task-title">ITR-2 filed — capital gains reviewed + submitted ✓</div>
+            <div class="task-footer">
+              <span class="task-due" style="color:var(--success);">Completed Apr 2</span>
+              <div class="task-priority" style="background:var(--success);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ REPORTS VIEW ══════════════ -->
+    <div class="view" id="view-reports">
+      <div class="grid-2 section-gap">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Available Reports</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--success-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📊</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">AY Completion Report</div><div style="font-size:12px;color:var(--text-muted);">Filed, pending, not started per client</div></div>
+              <button class="btn btn-secondary btn-sm">Excel</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--warning-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">⚠</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Notice Report</div><div style="font-size:12px;color:var(--text-muted);">All open notices, sections, deadlines</div></div>
+              <button class="btn btn-secondary btn-sm">Excel</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--gold-pale);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">💰</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Revenue Report</div><div style="font-size:12px;color:var(--text-muted);">Fees by month, service type, client</div></div>
+              <div style="display:flex;gap:6px;"><button class="btn btn-secondary btn-sm">PDF</button><button class="btn btn-secondary btn-sm">Excel</button></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--danger-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📋</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Outstanding Dues</div><div style="font-size:12px;color:var(--text-muted);">Unpaid fees with aging (30/60/90+ days)</div></div>
+              <button class="btn btn-secondary btn-sm">Excel</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--info-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🔄</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Sync Status Report</div><div style="font-size:12px;color:var(--text-muted);">Last sync dates, failures per client</div></div>
+              <button class="btn btn-secondary btn-sm">Excel</button>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:border-color 0.15s;" onmouseenter="this.style.borderColor='var(--gold)'" onmouseleave="this.style.borderColor='var(--border)'">
+              <div style="width:36px;height:36px;background:var(--success-bg);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📅</div>
+              <div style="flex:1;"><div style="font-size:13.5px;font-weight:500;">Advance Tax Report</div><div style="font-size:12px;color:var(--text-muted);">Client-wise advance tax paid vs payable</div></div>
+              <button class="btn btn-secondary btn-sm">Excel</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">AY 2025–26 Snapshot</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;">ITR-1 (Salaried)</span>
+              <div style="display:flex;align-items:center;gap:10px;width:220px;">
+                <div class="progress-bar" style="flex:1;"><div class="progress-fill gold" style="width:82%"></div></div>
+                <span style="font-size:12px;width:80px;text-align:right;">1,382 / 1,685</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;">ITR-2 (Capital Gains)</span>
+              <div style="display:flex;align-items:center;gap:10px;width:220px;">
+                <div class="progress-bar" style="flex:1;"><div class="progress-fill teal" style="width:71%"></div></div>
+                <span style="font-size:12px;width:80px;text-align:right;">647 / 912</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;">ITR-3 (Business)</span>
+              <div style="display:flex;align-items:center;gap:10px;width:220px;">
+                <div class="progress-bar" style="flex:1;"><div class="progress-fill blue" style="width:63%"></div></div>
+                <span style="font-size:12px;width:80px;text-align:right;">492 / 781</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;">ITR-4 (Presumptive)</span>
+              <div style="display:flex;align-items:center;gap:10px;width:220px;">
+                <div class="progress-bar" style="flex:1;"><div class="progress-fill gold" style="width:45%"></div></div>
+                <span style="font-size:12px;width:80px;text-align:right;">370 / 822</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px;border-top:1px solid var(--border);padding-top:16px;">
+            <div class="card-title" style="margin-bottom:12px;">Key Metrics</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <div style="background:var(--bg);border-radius:8px;padding:12px;">
+                <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Total Tax Filed</div>
+                <div style="font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;">₹84.2Cr</div>
+              </div>
+              <div style="background:var(--bg);border-radius:8px;padding:12px;">
+                <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Total Refund Claims</div>
+                <div style="font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;color:var(--success);">₹12.7Cr</div>
+              </div>
+              <div style="background:var(--bg);border-radius:8px;padding:12px;">
+                <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Avg Filing Time</div>
+                <div style="font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;">18 min</div>
+              </div>
+              <div style="background:var(--bg);border-radius:8px;padding:12px;">
+                <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">E-Verify Rate</div>
+                <div style="font-family:'Crimson Pro',serif;font-size:22px;font-weight:600;color:var(--accent-teal);">96.4%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ COMMUNICATION VIEW ══════════════ -->
+    <div class="view" id="view-communication">
+      <div class="grid-2 section-gap">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">WhatsApp Broadcast — New Message</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Template</label>
+            <select class="form-control">
+              <option>itr_filed — ITR filed confirmation with computation PDF</option>
+              <option>ev_reminder — E-verify pending reminder</option>
+              <option>doc_request — Document collection request</option>
+              <option>adv_tax_reminder — Advance tax installment reminder</option>
+              <option>itr_deadline_reminder — ITR deadline reminder (T-30/T-7/T-1)</option>
+              <option>notice_received — Notice detection alert</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Recipients</label>
+            <select class="form-control">
+              <option>All Active Clients (5,000)</option>
+              <option>E-Verify Pending (143)</option>
+              <option>Advance Tax Due (48)</option>
+              <option>Doc Pending (518)</option>
+              <option>Custom Selection…</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Preview Message</label>
+            <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;color:var(--text-primary);line-height:1.7;">
+              Dear <strong>{client_name}</strong>, your Income Tax Return for AY 2025–26 has been successfully filed! 🎉<br><br>
+              Acknowledgement No: <strong>{ack_number}</strong><br>
+              Filing Date: <strong>{filing_date}</strong><br><br>
+              Please find your computation sheet attached. For e-verification, please reply "OTP" to this message.<br><br>
+              — <strong>Mehta Tax Associates</strong>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary">Send Now</button>
+            <button class="btn btn-secondary">Schedule</button>
+            <button class="btn btn-ghost">Preview First</button>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card">
+            <div class="card-title" style="margin-bottom:14px;">Communication Channels</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:8px;">
+                <div><div style="font-size:13px;font-weight:600;">WhatsApp (WATI)</div><div style="font-size:12px;color:var(--text-muted);">Primary channel · 4,847 clients opted in</div></div>
+                <span class="badge badge-success badge-dot">Connected</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:8px;">
+                <div><div style="font-size:13px;font-weight:600;">Email (SendGrid)</div><div style="font-size:12px;color:var(--text-muted);">Fallback · 4,921 clients</div></div>
+                <span class="badge badge-success badge-dot">Connected</span>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--bg);border-radius:8px;">
+                <div><div style="font-size:13px;font-weight:600;">E-Verify OTP Bot</div><div style="font-size:12px;color:var(--text-muted);">Reply "OTP" → auto Aadhaar verification</div></div>
+                <span class="badge badge-success badge-dot">Active</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Recent Broadcasts</div>
+            <div class="activity-list">
+              <div class="activity-item">
+                <div class="activity-dot gold"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>Advance Tax Q4</strong> — 48 recipients</div>
+                  <div class="activity-time">Today 9:30 AM · 31 delivered, 17 pending</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot teal"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>ITR Filed confirmation</strong> — Ramesh Verma</div>
+                  <div class="activity-time">Today 9:14 AM · Delivered + Read</div>
+                </div>
+              </div>
+              <div class="activity-item">
+                <div class="activity-dot blue"></div>
+                <div class="activity-body">
+                  <div class="activity-text" style="font-size:13px;"><strong>E-Verify Reminder</strong> — 23 recipients</div>
+                  <div class="activity-time">Yesterday · 21 delivered, 2 failed</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- CLIENT DETAIL PANEL -->
+<div class="panel-overlay" id="panelOverlay" onclick="closeClientPanel()"></div>
+<div class="detail-panel" id="clientPanel">
+  <div class="panel-header">
+    <div class="client-av" id="panelAv">RV</div>
+    <div class="panel-info">
+      <div class="panel-name" id="panelName">Ramesh Verma</div>
+      <div class="panel-pan" id="panelPan">DEFPV1122K · Individual</div>
+    </div>
+    <button class="panel-close" onclick="closeClientPanel()">
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 5 5 15M5 5l10 10"/></svg>
+    </button>
+  </div>
+  <div class="panel-body">
+    <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+      <span class="badge badge-success badge-dot">AY 2025–26 Filed</span>
+      <span class="badge badge-info">E-Verified</span>
+      <span class="badge badge-muted">ITR-2</span>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Personal Details</div>
+      <div class="detail-row"><div class="detail-key">Full Name</div><div class="detail-val">Ramesh Verma</div></div>
+      <div class="detail-row"><div class="detail-key">PAN</div><div class="detail-val" style="font-family:'DM Mono',monospace;font-size:12.5px;">DEFPV1122K</div></div>
+      <div class="detail-row"><div class="detail-key">Date of Birth</div><div class="detail-val">14 March 1968 (Senior Citizen)</div></div>
+      <div class="detail-row"><div class="detail-key">Aadhaar</div><div class="detail-val" style="font-family:'DM Mono',monospace;font-size:12.5px;">XXXX XXXX 4421</div></div>
+      <div class="detail-row"><div class="detail-key">Mobile</div><div class="detail-val">+91 98765 43210</div></div>
+      <div class="detail-row"><div class="detail-key">Email</div><div class="detail-val">ramesh.verma@gmail.com</div></div>
+      <div class="detail-row"><div class="detail-key">Comm. Channel</div><div class="detail-val"><span class="badge badge-success" style="font-size:11px;">WhatsApp</span></div></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">AY 2025–26 Filing</div>
+      <div class="detail-row"><div class="detail-key">ITR Form</div><div class="detail-val">ITR-2 (Capital Gains + Salary)</div></div>
+      <div class="detail-row"><div class="detail-key">Filing Status</div><div class="detail-val"><span class="badge badge-success">Filed</span></div></div>
+      <div class="detail-row"><div class="detail-key">Filed On</div><div class="detail-val">April 2, 2026 at 9:12 AM</div></div>
+      <div class="detail-row"><div class="detail-key">Ack. Number</div><div class="detail-val" style="font-family:'DM Mono',monospace;font-size:12.5px;">932820251122034</div></div>
+      <div class="detail-row"><div class="detail-key">Total Income</div><div class="detail-val" style="font-weight:600;">₹18,42,000</div></div>
+      <div class="detail-row"><div class="detail-key">Tax Payable</div><div class="detail-val" style="font-weight:600;color:var(--danger);">₹3,24,800</div></div>
+      <div class="detail-row"><div class="detail-key">TDS Claimed</div><div class="detail-val" style="font-weight:600;color:var(--success);">₹3,18,400</div></div>
+      <div class="detail-row"><div class="detail-key">Refund / Due</div><div class="detail-val" style="font-weight:600;color:var(--accent-teal);">Refund: ₹28,600</div></div>
+      <div class="detail-row"><div class="detail-key">E-Verify</div><div class="detail-val"><span class="badge badge-success">Verified via Aadhaar OTP</span></div></div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-section-title">Billing</div>
+      <div class="detail-row"><div class="detail-key">Invoice</div><div class="detail-val">#INV-2849 · ₹6,500</div></div>
+      <div class="detail-row"><div class="detail-key">Status</div><div class="detail-val"><span class="badge badge-success">Paid</span></div></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button class="btn btn-secondary" style="width:100%;justify-content:center;">Download Computation</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;">Send WhatsApp</button>
+      <button class="btn btn-ghost" style="width:100%;justify-content:center;">View All AYs</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Navigation ───
+const pageMeta = {
+  dashboard: { title: 'Dashboard', sub: 'AY 2025–26 & 2026–27 · 5,000 Active Clients' },
+  clients: { title: 'Client Master', sub: '5,000 clients · AY 2025–26' },
+  filing: { title: 'ITR Filing', sub: '342 in progress · AY 2025–26' },
+  reconciliation: { title: 'Reconciliation', sub: '218 mismatches detected · 18 under review' },
+  sync: { title: 'ITD Portal Sync', sub: 'Playwright automation · AIS / TIS / 26AS' },
+  jobs: { title: 'Background Jobs', sub: '2 running · 1 queued · Spring Batch engine' },
+  notices: { title: 'Notice Management', sub: '31 active notices · 7 due this week' },
+  calendar: { title: 'Compliance Calendar', sub: 'April 2026 · Key deadlines & reminders' },
+  tasks: { title: 'Tasks & Work Queue', sub: '24 open tasks · 8 pending, 11 in progress' },
+  billing: { title: 'Billing & Fee Management', sub: '₹12.6L billed · ₹3.2L outstanding' },
+  accounting: { title: 'Firm Accounting', sub: 'Monthly P&L · Bank register · Partner drawings' },
+  reports: { title: 'Reports & Analytics', sub: 'AY completion, revenue, notices, sync status' },
+  communication: { title: 'Communication', sub: 'WhatsApp · Email · E-Verify OTP Bot' }
+};
+
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  const el = document.getElementById('view-' + id);
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("'" + id + "'")) n.classList.add('active');
+  });
+  const meta = pageMeta[id] || { title: id, sub: '' };
+  document.getElementById('pageTitle').textContent = meta.title;
+  document.getElementById('pageSub').textContent = meta.sub;
+  closeClientPanel();
+}
+
+// ─── Client data ───
+const clientTypes = ['Individual','Individual','Individual','HUF','Firm','Individual','Individual'];
+const filingStatuses = [
+  {label:'Filed',cls:'badge-success'},
+  {label:'In Progress',cls:'badge-info'},
+  {label:'Doc Pending',cls:'badge-warning'},
+  {label:'Mismatch',cls:'badge-danger'},
+  {label:'Ready to File',cls:'badge-gold'},
+  {label:'Filed',cls:'badge-success'},
+  {label:'Filed',cls:'badge-success'},
+  {label:'In Progress',cls:'badge-info'},
+];
+const evStatuses = [
+  {label:'Verified',cls:'badge-success'},
+  {label:'Pending',cls:'badge-warning'},
+  {label:'—',cls:'badge-muted'},
+  {label:'Pending',cls:'badge-warning'},
+  {label:'Verified',cls:'badge-success'},
+  {label:'Verified',cls:'badge-success'},
+  {label:'Pending',cls:'badge-warning'},
+  {label:'—',cls:'badge-muted'},
+];
+const clients = [
+  { name:'Ramesh Verma', pan:'DEFPV1122K', type:'Individual', mobile:'98765 43210', itr:'ITR-2', sync:'Apr 2', initials:'RV', filing:0, ev:0, watch:false },
+  { name:'Priya Nair', pan:'QRSPN4521K', type:'Individual', mobile:'87654 32109', itr:'ITR-1', sync:'Apr 1', initials:'PN', filing:1, ev:1, watch:true },
+  { name:'Suresh Kumar', pan:'ABCPK1234R', type:'Individual', mobile:'76543 21098', itr:'ITR-2', sync:'Mar 31', initials:'SK', filing:3, ev:2, watch:false },
+  { name:'Anita Desai', pan:'DEFPA5678S', type:'Individual', mobile:'65432 10987', itr:'ITR-3', sync:'Mar 30', initials:'AD', filing:2, ev:3, watch:false },
+  { name:'Vikram Shah', pan:'GHIPV9012T', type:'HUF', mobile:'54321 09876', itr:'ITR-2', sync:'Mar 29', initials:'VS', filing:4, ev:4, watch:true },
+  { name:'Meena Agarwal', pan:'ABCMA3344R', type:'Individual', mobile:'43210 98765', itr:'ITR-1', sync:'Apr 2', initials:'MA', filing:5, ev:5, watch:false },
+  { name:'Rohit Bansal', pan:'UVWRB7823L', type:'Individual', mobile:'32109 87654', itr:'ITR-3', sync:'Mar 28', initials:'RB', filing:6, ev:6, watch:true },
+  { name:'Kavya Reddy', pan:'JKLKR3456U', type:'Individual', mobile:'21098 76543', itr:'ITR-1', sync:'Mar 30', initials:'KR', filing:7, ev:7, watch:false },
+  { name:'Sunita Khanna', pan:'ABCSK5634N', type:'Individual', mobile:'10987 65432', itr:'ITR-2', sync:'Mar 27', initials:'SK', filing:1, ev:1, watch:true },
+  { name:'Deepak Joshi', pan:'XYZPJ0012M', type:'Firm', mobile:'09876 54321', itr:'ITR-4', sync:'Mar 26', initials:'DJ', filing:2, ev:2, watch:false },
+  { name:'Rajesh Patel', pan:'MNOPJ7890V', type:'Individual', mobile:'98760 11223', itr:'ITR-1', sync:'Apr 1', initials:'RP', filing:0, ev:0, watch:false },
+  { name:'Sonal Mehta', pan:'ABCSM2233Q', type:'Individual', mobile:'87651 22334', itr:'ITR-2', sync:'Apr 1', initials:'SM', filing:4, ev:4, watch:false },
+];
+
+function renderClientTable() {
+  const tbody = document.getElementById('clientTableBody');
+  tbody.innerHTML = clients.map((c, i) => {
+    const fs = filingStatuses[c.filing];
+    const ev = evStatuses[c.ev];
+    return `
+      <tr onclick="openClientPanel(${i})" style="cursor:pointer;">
+        <td><input type="checkbox" onclick="event.stopPropagation()" style="cursor:pointer;"></td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:30px;height:30px;border-radius:8px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-family:'Crimson Pro',serif;font-size:12px;color:var(--gold-light);font-weight:600;flex-shrink:0;">${c.initials}</div>
+            <div style="font-weight:500;">${c.name}</div>
+          </div>
+        </td>
+        <td class="td-mono">${c.pan}</td>
+        <td><span class="badge badge-muted">${c.type}</span></td>
+        <td class="td-muted">${c.mobile}</td>
+        <td><span class="badge badge-navy">${c.itr}</span></td>
+        <td class="td-muted">${c.sync}</td>
+        <td><span class="badge ${fs.cls}">${fs.label}</span></td>
+        <td><span class="badge ${ev.cls}">${ev.label}</span></td>
+        <td>${c.watch ? '<span class="badge badge-danger" style="font-size:10.5px;">⚠ Watch</span>' : '<span style="color:var(--text-muted);font-size:13px;">—</span>'}</td>
+        <td>
+          <div style="display:flex;gap:5px;">
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showView('filing')">File</button>
+            <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();showView('sync')">Sync</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ─── Filing table ───
+const filingClients = [
+  { name:'Suresh Kumar', pan:'ABCPK1234R', form:'ITR-2', sync:'Mar 31', recon:'Mismatch', stage:'Mismatch Review', tax:'₹1,24,500', refund:'—', ev:'—' },
+  { name:'Anita Desai', pan:'DEFPA5678S', form:'ITR-3', sync:'Mar 30', recon:'Pending', stage:'Reconciliation', tax:'—', refund:'—', ev:'—' },
+  { name:'Vikram Shah', pan:'GHIPV9012T', form:'ITR-2', sync:'Mar 29', recon:'Clean', stage:'Ready to File', tax:'₹2,14,000', refund:'—', ev:'—' },
+  { name:'Rohit Bansal', pan:'UVWRB7823L', form:'ITR-3', sync:'Mar 28', recon:'Pending', stage:'Doc Pending', tax:'—', refund:'—', ev:'—' },
+  { name:'Kavya Reddy', pan:'JKLKR3456U', form:'ITR-1', sync:'Mar 30', recon:'Mismatch', stage:'Mismatch Review', tax:'—', refund:'—', ev:'—' },
+  { name:'Sonal Mehta', pan:'ABCSM2233Q', form:'ITR-2', sync:'Apr 1', recon:'Clean', stage:'Ready to File', tax:'₹84,200', refund:'—', ev:'—' },
+  { name:'Deepak Joshi', pan:'XYZPJ0012M', form:'ITR-4', sync:'Mar 26', recon:'In Progress', stage:'Reconciliation', tax:'—', refund:'—', ev:'—' },
+];
+
+const reconBadge = {
+  'Clean':'<span class="badge badge-success">Clean</span>',
+  'Mismatch':'<span class="badge badge-danger">Mismatch</span>',
+  'Pending':'<span class="badge badge-muted">Pending</span>',
+  'In Progress':'<span class="badge badge-info">In Progress</span>',
+};
+const stageBadge = {
+  'Mismatch Review':'<span class="badge badge-danger">Mismatch Review</span>',
+  'Reconciliation':'<span class="badge badge-info">Reconciliation</span>',
+  'Ready to File':'<span class="badge badge-gold">Ready to File</span>',
+  'Doc Pending':'<span class="badge badge-warning">Doc Pending</span>',
+};
+
+function renderFilingTable() {
+  const tbody = document.getElementById('filingTableBody');
+  tbody.innerHTML = filingClients.map(c => `
+    <tr style="cursor:pointer;">
+      <td><div style="font-weight:500;">${c.name}</div></td>
+      <td class="td-mono">${c.pan}</td>
+      <td><span class="badge badge-navy">${c.form}</span></td>
+      <td class="td-muted">${c.sync}</td>
+      <td>${reconBadge[c.recon] || c.recon}</td>
+      <td>${stageBadge[c.stage] || c.stage}</td>
+      <td style="font-weight:600;${c.tax !== '—' ? 'color:var(--danger)' : 'color:var(--text-muted)'};">${c.tax}</td>
+      <td class="td-muted">${c.refund}</td>
+      <td class="td-muted">${c.ev}</td>
+      <td>
+        <div style="display:flex;gap:5px;">
+          <button class="btn btn-primary btn-sm">Open</button>
+          <button class="btn btn-ghost btn-sm">Sync</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+// ─── Panel ───
+function openClientPanel(i) {
+  const c = clients[i];
+  document.getElementById('panelAv').textContent = c.initials;
+  document.getElementById('panelName').textContent = c.name;
+  document.getElementById('panelPan').textContent = c.pan + ' · ' + c.type;
+  document.getElementById('clientPanel').classList.add('open');
+  document.getElementById('panelOverlay').classList.add('open');
+}
+function closeClientPanel() {
+  document.getElementById('clientPanel').classList.remove('open');
+  document.getElementById('panelOverlay').classList.remove('open');
+}
+
+// ─── Notification panel (simple toggle) ───
+function toggleNotifPanel() {
+  // Simple visual feedback — open client detail as a demo
+}
+
+// ─── Search filter ───
+document.getElementById('clientSearch').addEventListener('input', function(e) {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll('#clientTableBody tr').forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+});
+
+document.getElementById('globalSearch').addEventListener('input', function(e) {
+  const q = e.target.value.toLowerCase();
+  if (q.length > 1) {
+    showView('clients');
+    setTimeout(() => {
+      document.getElementById('clientSearch').value = q;
+      document.getElementById('clientSearch').dispatchEvent(new Event('input'));
+    }, 50);
+  }
+});
+
+// ─── Init ───
+renderClientTable();
+renderFilingTable();
+</script>
+
+</body>
+</html>
