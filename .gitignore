@@ -1,17 +1,6 @@
 # Node
-node_modules/
-dist/
-
-# Java / Maven
 target/
 *.jar
-
-# Env
+*.class
+node_modules/
 .env
-
-# Logs
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
