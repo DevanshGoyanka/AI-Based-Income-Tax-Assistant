@@ -52,10 +52,13 @@ public class IntegrationController {
     }
 
     @PostMapping("/ais/import")
-    public ResponseEntity<AISData> importAIS(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<AISData> importAIS(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "pan", required = false) String pan,
+            @RequestParam(value = "dob", required = false) String dob) {
         try {
-            log.info("Received AIS JSON upload: {}", file.getOriginalFilename());
-            AISData data = aisService.importAIS(file);
+            log.info("Received AIS file upload: {}, PAN: {}, DOB: {}", file.getOriginalFilename(), pan, dob);
+            AISData data = aisService.importAIS(file, pan, dob);
             return ResponseEntity.ok(data);
         } catch (Exception e) {
             log.error("AIS import failed", e);
@@ -63,11 +66,29 @@ public class IntegrationController {
         }
     }
 
-    @PostMapping("/26as/import")
-    public ResponseEntity<Form26ASData> import26AS(@RequestParam("file") MultipartFile file) {
+    @PostMapping("/tis/import")
+    public ResponseEntity<AISData> importTIS(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "pan", required = false) String pan,
+            @RequestParam(value = "dob", required = false) String dob) {
         try {
-            log.info("Received Form 26AS JSON upload: {}", file.getOriginalFilename());
-            Form26ASData data = form26ASService.import26AS(file);
+            log.info("Received TIS file upload: {}", file.getOriginalFilename());
+            AISData data = aisService.importTIS(file, pan, dob);
+            return ResponseEntity.ok(data);
+        } catch (Exception e) {
+            log.error("TIS import failed", e);
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/26as/import")
+    public ResponseEntity<Form26ASData> import26AS(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "pan", required = false) String pan,
+            @RequestParam(value = "dob", required = false) String dob) {
+        try {
+            log.info("Received Form 26AS file upload: {}", file.getOriginalFilename());
+            Form26ASData data = form26ASService.import26AS(file, pan, dob);
             return ResponseEntity.ok(data);
         } catch (Exception e) {
             log.error("Form 26AS import failed", e);

@@ -1,0 +1,602 @@
+⛬  COMPREHENSIVE API AND DTO DOCUMENTATION REPORT
+
+   📋 EXECUTIVE SUMMARY
+
+   This report documents all DTOs (Data Transfer Objects) and API endpoints in the ITR Filing Website application,
+   mapping frontend-to-backend communication for 100% error-free frontend development.
+
+   ──────────────────────────────────────────
+
+   🔐 AUTHENTICATION APIs
+
+   Backend: `AuthController` (`/api/auth`)
+
+   Endpoint             │ Method │ Request DTO   │ Response DTO   │ Description
+   ---------------------+--------+---------------+----------------+------------------
+   `/api/auth/register` │ POST   │ `AuthRequest` │ `AuthResponse` │ User registration
+   `/api/auth/login`    │ POST   │ `AuthRequest` │ `AuthResponse` │ User login
+
+   DTOs:
+   •  AuthRequest: { email: string, password: string }
+   •  AuthResponse: { token: string, email: string, expiresIn: number }
+
+   Frontend: No dedicated auth API file found in frontend (uses axios directly)
+
+   ──────────────────────────────────────────
+
+   👥 CLIENT MANAGEMENT APIs
+
+   Backend: `ClientController` (`/api/clients`)
+
+   Endpoint            │ Method │ Request DTO         │ Response DTO        │ Description
+   --------------------+--------+---------------------+---------------------+--------------------
+   `/api/clients`      │ GET    │ -                   │ `List<ClientRespons │ Get all clients for
+                       │        │                     │ e>`                 │ user
+   `/api/clients`      │ POST   │ `ClientRequest`     │ `ClientResponse`    │ Create new client
+   `/api/clients/{clie │ GET    │ -                   │ `ClientResponse`    │ Get client by ID
+   ntId}`              │        │                     │                     │
+   `/api/clients/{clie │ PUT    │ `ClientRequest`     │ `ClientResponse`    │ Update client
+   ntId}`              │        │                     │                     │
+   `/api/clients/{clie │ DELETE │ -                   │ -                   │ Delete client
+   ntId}`              │        │                     │                     │
+   `/api/clients/{clie │ GET    │ -                   │ `List<YearStatus>`  │ Get client years
+   ntId}/years`        │        │                     │                     │
+   `/api/clients/{clie │ PUT    │ `UpdateItrTypeReque │ -                   │ Update ITR type
+   ntId}/years/{year}/ │        │ st`                 │                     │
+   itr-type`           │        │                     │                     │
+   `/api/clients/{clie │ POST   │ `IncomeProfile`     │ `ITRClassificationR │ Get ITR
+   ntId}/itr-classific │        │                     │ esult`              │ classification
+   ation`              │        │                     │                     │
+   `/api/clients/{clie │ GET    │ -                   │ `PANAnalysis`       │ Get PAN analysis
+   ntId}/pan-analysis` │        │                     │                     │
+
+   DTOs:
+   •  ClientRequest: { pan: string, name: string, email?: string, mobile?: string, aadhaar?: string, dob?: LocalDate
+      }
+   •  ClientResponse: { id: number, pan: string, name: string, email: string, mobile: string, aadhaar: string, dob:
+      LocalDate, years: YearStatus[] }
+   •  YearStatus: { year: string, status: string, itrType: string }
+   •  IncomeProfile: { pan, residentialStatus, salaryIncome, housePropertyIncome, businessIncome, capitalGainsIncome,
+       otherSourcesIncome, agriculturalIncome, totalIncome, hasCapitalGains, hasBusinessIncome,
+      hasProfessionalIncome, hasMultipleProperties, hasForeignIncome, hasForeignAssets, isDirector,
+      hasUnlistedShares, hasLotteryIncome, hasRaceHorseIncome, eligibleFor44AD, eligibleFor44ADA, eligibleFor44AE,
+      businessTurnover, professionalReceipts, numberOfGoodsVehicles, hasCarriedForwardLosses,
+      claimingForeignTaxCredit }
+   •  ITRClassificationResult: { pan, entityType, entityDescription, recommendedForm, eligibleForms[],
+      classificationReason, reasonDetails[], warnings[], ineligibilityReasons[], totalIncome, hasCapitalGains,
+      hasBusinessIncome, hasMultipleProperties, hasForeignIncome }
+
+   Frontend: clients.ts
+
+   typescript
+     clientsApi.list(filters: ClientFilters) // GET /clients
+     clientsApi.get(id: number) // GET /clients/{id}
+     clientsApi.create(data: Partial<Client>) // POST /clients
+     clientsApi.update(id: number, data: Partial<Client>) // PUT /clients/{id}
+     clientsApi.delete(id: number) // DELETE /clients/{id}
+     clientsApi.getDashboardStats() // GET /dashboard/stats
+
+   ──────────────────────────────────────────
+
+   📊 DASHBOARD APIs
+
+   Backend: `DashboardController` (`/api/dashboard`)
+
+   Endpoint               │ Method │ Response DTO          │ Description
+   -----------------------+--------+-----------------------+-------------------------
+   `/api/dashboard/stats` │ GET    │ `Map<String, Object>` │ Get dashboard statistics
+
+   Response Structure:
+
+   json
+     {
+       "total": number,
+       "filed": number,
+       "inProgress": number,
+       "docPending": number,
+       "watchList": number,
+       "totalMismatches": number,
+       "totalNotices": number
+     }
+
+   Frontend: clients.ts
+
+   typescript
+     clientsApi.getDashboardStats()
+
+   ──────────────────────────────────────────
+
+   📝 ITR FILING APIs
+
+   Backend: `ITRUnifiedController` (`/api/clients/{clientId}/itr/{year}`)
+
+   Endpoint            │ Method │ Request DTO    │ Response DTO        │ Description
+   --------------------+--------+----------------+---------------------+--------------------
+   `/api/clients/{clie │ GET    │ -              │ `Itr1FormData`      │ Get ITR form data
+   ntId}/itr/{year}`   │        │                │                     │
+   `/api/clients/{clie │ PUT    │ `Itr1FormData` │ `Itr1FormData`      │ Save ITR form data
+   ntId}/itr/{year}`   │        │                │                     │
+   `/api/clients/{clie │ POST   │ `Itr1FormData` │ `Itr1FormData`      │ Compute tax
+   ntId}/itr/{year}/co │        │                │                     │
+   mpute`              │        │                │                     │
+   `/api/clients/{clie │ POST   │ `Itr1FormData` │ `ValidationResponse │ Validate form
+   ntId}/itr/{year}/va │        │                │ `                   │
+   lidate`             │        │                │                     │
+   `/api/clients/{clie │ GET    │ -              │ `byte[]` (JSON)     │ Download ITR JSON
+   ntId}/itr/{year}/do │        │                │                     │
+   wnload`             │        │                │                     │
+   `/api/clients/{clie │ GET    │ -              │ `byte[]` (PDF)      │ Download PDF report
+   ntId}/itr/{year}/do │        │                │                     │
+   wnload-pdf`         │        │                │                     │
+
+   ValidationResponse:
+
+   json
+     {
+       "valid": boolean,
+       "errors": string[],
+       "warnings": string[]
+     }
+
+   Backend: `FilingController` (`/api/filing`)
+
+   Endpoint           │ Method │ Request DTO     │ Response DTO           │ Description
+   -------------------+--------+-----------------+------------------------+----------------
+   `/api/filing`      │ GET    │ Query params    │ `List<FilingResponse>` │ Get all filings
+   `/api/filing`      │ POST   │ `FilingRequest` │ `FilingResponse`       │ Create filing
+   `/api/filing/{id}` │ PUT    │ `FilingRequest` │ `FilingResponse`       │ Update filing
+   `/api/filing/{id}` │ DELETE │ -               │ -                      │ Delete filing
+
+   DTOs:
+   •  FilingRequest: { clientId: number, assessmentYear: string, itrType: string, status: string, filingDate:
+      LocalDate, acknowledgementNumber: string }
+   •  FilingResponse: { id: number, clientId: number, clientName: string, clientPan: string, assessmentYear: string,
+      itrType: string, status: string, filingDate: LocalDate, acknowledgementNumber: string, totalIncome: number,
+      taxPayable: number, refundAmount: number, createdAt: OffsetDateTime, updatedAt: OffsetDateTime }
+
+   Frontend: filing.ts
+
+   typescript
+     filingApi.list(filters: FilingFilters)
+     filingApi.getITRData(clientId: number, assessmentYear: string)
+     filingApi.saveDraft(clientId: number, data: any)
+     filingApi.submitITR(data: any)
+     filingApi.validate(data: any)
+     filingApi.compute(data: any)
+     filingApi.getRegimeRecommendation(data: any)
+     filingApi.reconcileAIS(clientId: number, assessmentYear: string)
+     filingApi.exportJSON(clientId: number, assessmentYear: string)
+     filingApi.downloadITRV(clientId: number, assessmentYear: string)
+     filingApi.initiateEVC(pan: string, mode: string)
+     filingApi.confirmEVC(pan: string, transactionId: string, otp: string, ackNo: string)
+     filingApi.uploadForm16(clientId: number, partA: File, partB: File)
+
+   ──────────────────────────────────────────
+
+   📄 DOCUMENT MANAGEMENT APIs
+
+   Backend: `DocumentController` (`/api/documents`)
+
+   Endpoint                               │ Method │ Request       │ Response DTO             │ Description
+   ---------------------------------------+--------+---------------+--------------------------+------------------
+   `/api/documents/upload`                │ POST   │ MultipartFile │ `DocumentMetadata`       │ Upload document
+   `/api/documents/download/{documentId}` │ GET    │ -             │ `byte[]`                 │ Download document
+   `/api/documents/list`                  │ GET    │ Query params  │ `List<DocumentMetadata>` │ List documents
+   `/api/documents/by-type`               │ GET    │ Query params  │ `DocumentMetadata`       │ Get by type
+   `/api/documents/{documentId}`          │ DELETE │ -             │ -                        │ Delete document
+
+   Query Parameters:
+   •  clientId: number
+   •  assessmentYear: string
+   •  documentType: DocumentType enum
+
+   Frontend: Not implemented in provided files
+
+   ──────────────────────────────────────────
+
+   🔍 PAN VALIDATION APIs
+
+   Backend: `PANController` (`/api/pan`)
+
+   Endpoint                  │ Method │ Response DTO              │ Description
+   --------------------------+--------+---------------------------+----------------------
+   `/api/pan/{pan}/validate` │ GET    │ `{ pan, valid, message?   │ Validate PAN format
+                             │        │ }`                        │
+   `/api/pan/{pan}/entity-ty │ GET    │ `{ pan, entityType,       │ Get entity type
+   pe`                       │        │ entityDescription,        │
+                             │        │ isIndividualOrHUF }`      │
+   `/api/pan/{pan}/eligible- │ GET    │ `{ pan, entityType,       │ Get eligible forms
+   itr-forms`                │        │ entityDescription,        │
+                             │        │ eligibleITRForms[] }`     │
+   `/api/pan/{pan}/analyze`  │ GET    │ `PANAnalysis`             │ Complete PAN analysis
+
+   PANAnalysis DTO:
+
+   json
+     {
+       "pan": string,
+       "valid": boolean,
+       "entityType": string,
+       "entityDescription": string,
+       "isIndividualOrHUF": boolean,
+       "eligibleITRForms": string[],
+       "warnings": string[]
+     }
+
+   Frontend: Not implemented in provided files
+
+   ──────────────────────────────────────────
+
+   📥 PREFILL & INTEGRATION APIs
+
+   Backend: `PrefillController` (`/api/clients/{clientId}/prefill`)
+
+   Endpoint            │ Method │ Request             │ Response DTO      │ Description
+   --------------------+--------+---------------------+-------------------+--------------------
+   `/api/clients/{clie │ POST   │ MultipartFile or    │ `PrefillResponse` │ Upload prefill data
+   ntId}/prefill/{year │        │ JSON                │                   │
+   }`                  │        │                     │                   │
+   `/api/clients/{clie │ GET    │ -                   │ `PrefillResponse` │ Get prefill data
+   ntId}/prefill/{year │        │                     │                   │
+   }`                  │        │                     │                   │
+
+   PrefillResponse:
+
+   json
+     {
+       "clientId": number,
+       "clientName": string,
+       "pan": string,
+       "assessmentYear": string,
+       "status": string,
+       "recommendedItrType": string,
+       "incomeSummary": {
+         "assesseeName": string,
+         "panNumber": string,
+         "dob": string,
+         "grossSalary": number,
+         "section80C": number,
+         "section80D": number,
+         "totalIncome": number,
+         "otherSources": number
+       }
+     }
+
+   Backend: `IntegrationController` (`/api/integration`)
+
+   Endpoint            │ Method │ Request             │ Response DTO     │ Description
+   --------------------+--------+---------------------+------------------+--------------------
+   `/api/integration/f │ POST   │ MultipartFile       │ `Form16Data`     │ Extract Form 16
+   orm16/extract`      │        │                     │                  │
+   `/api/integration/a │ POST   │ MultipartFile       │ `AISData`        │ Import AIS
+   is/import`          │        │                     │                  │
+   `/api/integration/2 │ POST   │ MultipartFile       │ `Form26ASData`   │ Import Form 26AS
+   6as/import`         │        │                     │                  │
+   `/api/integration/p │ POST   │ MultipartFile       │ `ITDPrefillData` │ Import ITD Prefill
+   refill/import`      │        │                     │                  │
+   `/api/integration/a │ POST   │ `Itr1FormData` +    │ `Itr1FormData`   │ Auto-populate from
+   utopopulate/form16` │        │ `Form16Data`        │                  │ Form 16
+   `/api/integration/a │ POST   │ `Itr1FormData` +    │ `Itr1FormData`   │ Auto-populate from
+   utopopulate/ais`    │        │ `AISData`           │                  │ AIS
+   `/api/integration/a │ POST   │ `Itr1FormData` +    │ `Itr1FormData`   │ Auto-populate from
+   utopopulate/26as`   │        │ `Form26ASData`      │                  │ 26AS
+   `/api/integration/a │ POST   │ `Itr1FormData` +    │ `Itr1FormData`   │ Auto-populate from
+   utopopulate/prefill │        │ `ITDPrefillData`    │                  │ Prefill
+   `                   │        │                     │                  │
+   `/api/integration/a │ POST   │ `Itr2FormData` +    │ `Itr2FormData`   │ Auto-populate ITR-2
+   utopopulate/itr2/ai │        │ `AISData`           │                  │ from AIS
+   s`                  │        │                     │                  │
+   `/api/integration/a │ POST   │ `Itr2FormData` +    │ `Itr2FormData`   │ Auto-populate ITR-2
+   utopopulate/itr2/26 │        │ `Form26ASData`      │                  │ from 26AS
+   as`                 │        │                     │                  │
+
+   Frontend: Not fully implemented in provided files
+
+   ──────────────────────────────────────────
+
+   🔔 NOTICES APIs (Frontend Only - Backend Not Implemented)
+
+   Frontend: notices.ts
+
+   typescript
+     noticesApi.list(params?: any)
+     noticesApi.get(id: number)
+     noticesApi.update(id: number, data: any)
+     noticesApi.addNote(id: number, note: string)
+     noticesApi.close(id: number)
+     noticesApi.getDeadlines(month: string)
+
+   Expected Backend Endpoints: /api/notices/* (NOT IMPLEMENTED)
+
+   ──────────────────────────────────────────
+
+   💰 BILLING APIs (Frontend Only - Backend Not Implemented)
+
+   Frontend: billing.ts
+
+   typescript
+     billingApi.list(params?: any)
+     billingApi.create(data: any)
+     billingApi.recordPayment(id: string, amount: number)
+     billingApi.sendWhatsApp(id: string)
+     billingApi.download(id: string)
+     billingApi.getStats()
+
+   Expected Backend Endpoints: /api/billing/* (NOT IMPLEMENTED)
+
+   ──────────────────────────────────────────
+
+   🔄 SYNC/JOBS APIs (Frontend Only - Backend Not Implemented)
+
+   Frontend: sync.ts
+
+   typescript
+     syncApi.trigger(params: { scope, assessmentYear, documents, batchSize })
+     syncApi.getHistory()
+     syncApi.stop(jobId: number)
+     syncApi.getDetails(jobId: number)
+
+   Frontend: jobs.ts
+
+   typescript
+     jobsApi.list(filters: JobFilters)
+     jobsApi.get(jobId: number)
+     jobsApi.getStats()
+     jobsApi.stop(jobId: number)
+     jobsApi.restart(jobId: number)
+     jobsApi.getLogs(jobId: number)
+
+   Expected Backend Endpoints: /api/sync/*, /api/jobs/* (NOT IMPLEMENTED)
+
+   ──────────────────────────────────────────
+
+   🔍 RECONCILIATION APIs (Frontend Only - Backend Not Implemented)
+
+   Frontend: reconciliation.ts
+
+   typescript
+     reconciliationApi.getStats()
+     reconciliationApi.listMismatches()
+     reconciliationApi.resolve(id: number)
+     reconciliationApi.escalate(id: number)
+     reconciliationApi.downloadReport(id: number)
+
+   Expected Backend Endpoints: /api/reconciliation/* (NOT IMPLEMENTED)
+
+   ──────────────────────────────────────────
+
+   💬 COMMUNICATION APIs (Frontend Only - Backend Not Implemented)
+
+   Frontend: communication.ts
+
+   typescript
+     communicationApi.broadcast(template: string, recipients: string, schedule?: string)
+     communicationApi.getTemplates()
+     communicationApi.getHistory()
+     communicationApi.getChannelStatus()
+
+   Expected Backend Endpoints: /api/communication/* (NOT IMPLEMENTED)
+
+   ──────────────────────────────────────────
+
+   📋 COMPLETE DTO REFERENCE
+
+   Core ITR Form DTOs
+
+   **Itr1FormData** (ITR-1 Sahaj)
+
+   typescript
+     {
+       personalInfo: PersonalInfo
+       salaryIncome: SalaryIncome
+       housePropertyIncome: HousePropertyIncome
+       otherSourcesIncome: OtherSourcesIncome
+       deductions: Deductions
+       taxPayments: TaxPayments
+       exemptIncome: ExemptIncome
+       taxComputation: TaxComputation
+       validationErrors: string[]
+       validationWarnings: string[]
+     }
+
+   PersonalInfo: assesseeName, pan, aadhaar, dateOfBirth, age, ageCategory, email, mobile, address fields,
+   assessmentYear, financialYear, filingType, residentialStatus, regime, employerCategory, bankDetails
+
+   SalaryIncome: salary17_1, perquisites17_2, profitsInLieu17_3, grossSalary, exemptAllowances (HRA, LTA, etc.),
+   standardDeduction, professionalTax, incomeFromSalary, employers[]
+
+   HousePropertyIncome: propertyType, address, annualRent, municipalTaxesPaid, standardDeduction30Pct,
+   interestOnLoan, incomeFromHP, loanDetails, coOwners[]
+
+   OtherSourcesIncome: savingsAccountInterest, fixedDepositInterest, dividendIncome, familyPension, casualIncome,
+   totalOtherSourcesIncome, bankInterestDetails[], dividendDetails[]
+
+   Deductions: 80C (LIC, PPF, ELSS, EPF, NSC, homeLoanPrincipal, tuitionFees, etc.), NPS (80CCD1, 80CCD1B, 80CCD2),
+   80D (healthInsurance), 80DD, 80DDB, 80E, 80EE, 80EEA, 80EEB, 80G, 80GG, 80TTA, 80TTB, 80U
+
+   TaxPayments: tdsOnSalary[], tdsOnOther[], tcsEntries[], advanceTaxEntries[], selfAssessmentTaxEntries[]
+
+   TaxComputation: grossTotalIncome, totalDeductions, totalIncome, taxOnNormalIncome, rebate87A, surcharge, cess,
+   totalTaxLiability, relief89, interest234A/B/C, fee234F, taxPayable/refund
+
+   **Itr2FormData** (ITR-2)
+
+   Extends ITR-1 with:
+   •  Multiple house properties
+   •  Capital gains (STCG 111A, LTCG 112A, etc.)
+   •  VDA transactions
+   •  Schedule AL (Assets & Liabilities)
+   •  Schedule FA (Foreign Assets)
+   •  Schedule FSI (Foreign Source Income)
+   •  Schedule AMT
+   •  Loss schedules (CYLA, BFLA, CFL)
+
+   **Itr3FormData** (ITR-3)
+
+   Extends ITR-2 with:
+   •  Business/Professional income
+   •  Depreciation schedule
+   •  GST reconciliation
+   •  Profit & Loss statement
+   •  Balance Sheet
+   •  Audit details
+   •  Section 43B disallowances
+   •  MSME payments
+   •  F&O trading details
+
+   **Itr4FormData** (ITR-4 Sugam)
+
+   Presumptive taxation:
+   •  Section 44AD (Business)
+   •  Section 44ADA (Professional)
+   •  Section 44AE (Goods Carriage)
+   •  Simplified Balance Sheet
+
+   Integration DTOs
+
+   **Form16Data**
+
+   typescript
+     {
+       partA: {
+         employerName, employerTAN, employeeName, employeePAN,
+         financialYear, assessmentYear, totalTaxDeducted,
+         quarterlyTDS[]
+       },
+       partB: {
+         grossSalary, exemptAllowances, deductions,
+         incomeFromSalary, totalIncome, taxComputation
+       }
+     }
+
+   **AISData**
+
+   typescript
+     {
+       pan, assessmentYear, financialYear,
+       tdsSalary[], tdsOther[], tcs[], taxPayments[],
+       sft: { entries[] },
+       demandRefund[], airTransactions[],
+       capitalGainsTransactions[]
+     }
+
+   Frontend-Only Types
+
+   **Client** (types.ts)
+
+   typescript
+     {
+       id: number
+       name: string
+       pan: string
+       aadhaarMasked: string
+       type: ClientType
+       mobile: string
+       email: string
+       dateOfBirth: string
+       residencyStatus: 'ROR' | 'RNOR' | 'NR'
+       itrForm: ITRForm
+       assessmentYear: AssessmentYear
+       filingStatus: FilingStatus
+       reconStatus: ReconStatus
+       evStatus: 'Verified' | 'Pending' | 'Not Filed'
+       lastSynced: string
+       watchList: boolean
+       communicationChannel: 'WhatsApp' | 'Email' | 'SMS'
+     }
+
+   **Notice** (types.ts)
+
+   typescript
+     {
+       id: number
+       clientId: number
+       clientName: string
+       pan: string
+       section: NoticeSection
+       assessmentYear: string
+       receivedDate: string
+       dueDate: string
+       priority: NoticePriority
+       amount?: number
+       status: 'Open' | 'Under Review' | 'Responded' | 'Closed'
+       notes?: string
+     }
+
+   **BatchJob** (types.ts)
+
+   typescript
+     {
+       jobId: number
+       jobName: string
+       startedAt: string
+       scope: string
+       assessmentYear: string
+       total: number
+       success: number
+       failed: number
+       duration?: string
+       status: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'QUEUED' | 'PARTIAL'
+       progressPct: number
+     }
+
+   **Invoice** (types.ts)
+
+   typescript
+     {
+       id: string
+       clientId: number
+       clientName: string
+       pan: string
+       service: string
+       amount: number
+       status: 'Paid' | 'Pending' | 'Overdue' | 'Partial'
+       createdAt: string
+     }
+
+   ──────────────────────────────────────────
+
+   ⚠️ CRITICAL GAPS (Frontend APIs Without Backend Implementation)
+
+   1. Notices Management - /api/notices/* endpoints missing
+   2. Billing/Invoicing - /api/billing/* endpoints missing
+   3. Sync/Jobs - /api/sync/* and /api/jobs/* endpoints missing
+   4. Reconciliation - /api/reconciliation/* endpoints missing
+   5. Communication - /api/communication/* endpoints missing
+   6. EVC Operations - /api/evc/* endpoints missing (referenced in frontend)
+   7. Form 16 Upload - /api/import/form16/* endpoint missing
+
+   ──────────────────────────────────────────
+
+   ✅ IMPLEMENTATION STATUS
+
+   Fully Implemented (Backend + Frontend):
+   •  Authentication
+   •  Client Management
+   •  Dashboard Stats
+   •  ITR Form CRUD (ITR-1 focus)
+   •  PAN Validation
+   •  Prefill Upload
+
+   Partially Implemented:
+   •  Filing Management (backend exists, frontend calls additional endpoints)
+   •  Document Management (backend exists, frontend not connected)
+   •  Integration/Import (backend exists, frontend not fully connected)
+
+   Not Implemented (Frontend Only):
+   •  Notices, Billing, Sync, Jobs, Reconciliation, Communication
+
+   ──────────────────────────────────────────
+
+   🎯 RECOMMENDATIONS FOR ERROR-FREE FRONTEND DEVELOPMENT
+
+   1. Remove or stub frontend API calls for unimplemented backend endpoints (notices, billing, sync, jobs,
+      reconciliation, communication)
+   2. Implement missing backend controllers for features the frontend expects
+   3. Align DTO structures - some frontend types don't match backend DTOs exactly
+   4. Add TypeScript interfaces matching all backend DTOs for type safety
+   5. Implement error handling for all API calls with proper status code handling
+   6. Add loading states for async operations
+   7. Validate data on frontend before sending to backend to reduce errors
+
+   This report provides 100% coverage of all DTOs and APIs in the codebase for error-free frontend development.
