@@ -9,6 +9,7 @@ import { EmployerEntryManager } from '../components/EmployerEntryManager';
 import { CapitalGainsEntryManager } from '../components/CapitalGainsEntryManager';
 import { BankInterestEntryManager } from '../components/BankInterestEntryManager';
 import { DonationEntryManager } from '../components/DonationEntryManager';
+import { HousePropertyEntryManager } from '../components/HousePropertyEntryManager';
 import EmployerReconciliationModal from '../components/EmployerReconciliationModal';
 
 import { 
@@ -856,7 +857,7 @@ export default function ITRComputationPage() {
       }}>
         {activeTab === 0 && <PersonalInfoTab formData={formData} setFormData={setFormData} />}
         {activeTab === 1 && <SalaryTab formData={formData} setFormData={setFormData} taxResult={taxResult} ayParam={ayParam} />}
-        {activeTab === 2 && <HousePropertyTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
+        {activeTab === 2 && <HousePropertyTab formData={formData} setFormData={setFormData} taxResult={taxResult} itrForm={itrForm} />}
         {activeTab === 3 && <CapitalGainsTab formData={formData} setFormData={setFormData} taxResult={taxResult} year={year!} />}
         {activeTab === 4 && <BusinessTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
         {activeTab === 5 && <OtherSourcesTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
@@ -1243,76 +1244,26 @@ function SalaryTab({ formData, setFormData, ayParam }: any) {
   );
 }
 
-function HousePropertyTab({ formData, setFormData, taxResult }: any) {
+function HousePropertyTab({ formData, setFormData, taxResult, itrForm }: any) {
   return (
     <div>
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
         Income from House Property (CBDT Schedule HP - Section 22-27)
       </h3>
-      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-        Property Details (CBDT Mandatory)
-      </h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Field label="Property Address" value={formData.hpAddress || ''} onChange={(v: any) => setFormData({ ...formData, hpAddress: v })} type="text" prefix="" required />
-        <Field label="City" value={formData.hpCity || ''} onChange={(v: any) => setFormData({ ...formData, hpCity: v })} type="text" prefix="" required />
-        <Field label="PIN Code" value={formData.hpPincode || ''} onChange={(v: any) => setFormData({ ...formData, hpPincode: v })} type="text" prefix="" required />
-        <Field label="Ownership %" value={formData.hpOwnershipPct || 100} onChange={(v: any) => setFormData({ ...formData, hpOwnershipPct: v })} prefix="" required />
-      </div>
+      
+      {/* Multi-Property Entry Manager */}
+      <HousePropertyEntryManager
+        entries={formData.housePropertyEntries || []}
+        onChange={(entries) => setFormData({ ...formData, housePropertyEntries: entries })}
+        itrForm={itrForm}
+      />
 
-      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-        Property Type & Income
-      </h4>
-      <div style={{ marginBottom: 16 }}>
-        <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 500 }}>Property Type</label>
-        <div style={{ display: 'flex', gap: 12 }}>
-          {['self', 'letout'].map(type => (
-            <button
-              key={type}
-              onClick={() => setFormData({ ...formData, hpType: type })}
-              style={{
-                padding: '8px 16px',
-                background: formData.hpType === type ? 'var(--gold)' : 'var(--bg)',
-                color: formData.hpType === type ? 'white' : 'var(--text-primary)',
-                border: '1px solid var(--border)',
-                borderRadius: 6,
-                fontSize: 13,
-                cursor: 'pointer'
-              }}
-            >
-              {type === 'self' ? 'Self Occupied' : 'Let Out'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
-        {formData.hpType === 'letout' ? (
-          <>
-            <Field label="Gross Annual Rent" value={formData.grossRent} onChange={(v: any) => setFormData({ ...formData, grossRent: v })} />
-            <Field label="Municipal Tax Paid" value={formData.munTax} onChange={(v: any) => setFormData({ ...formData, munTax: v })} />
-            <Field label="Home Loan Interest" value={formData.homeLoanInt} onChange={(v: any) => setFormData({ ...formData, homeLoanInt: v })} />
-            <Field label="Tenant Name" value={formData.hpTenantName || ''} onChange={(v: any) => setFormData({ ...formData, hpTenantName: v })} type="text" prefix="" />
-            <Field label="Tenant PAN" value={formData.hpTenantPAN || ''} onChange={(v: any) => setFormData({ ...formData, hpTenantPAN: v })} type="text" prefix="" />
-          </>
-        ) : (
-          <Field label="SOP Loan Interest (max 2L)" value={formData.sopLoanInt} onChange={(v: any) => setFormData({ ...formData, sopLoanInt: v })} />
-        )}
-        <Field label="Net HP Income" value={taxResult.hpIncome} computed />
-      </div>
-
-      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+      {/* Brought Forward Losses */}
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)' }}>
         Brought Forward Losses - House Property
       </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
         <Field label="HP Loss B/F (max 2L set-off)" value={formData.bfLossHP || 0} onChange={(v: any) => setFormData({ ...formData, bfLossHP: v })} />
-      </div>
-
-      <h4 style={{ fontSize: 13, fontWeight: 600, marginTop: 24, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Lender Details (if loan exists)
-      </h4>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        <Field label="Lender Name" value={formData.hpLenderName || ''} onChange={(v: any) => setFormData({ ...formData, hpLenderName: v })} type="text" prefix="" />
-        <Field label="Lender PAN" value={formData.hpLenderPAN || ''} onChange={(v: any) => setFormData({ ...formData, hpLenderPAN: v })} type="text" prefix="" />
       </div>
     </div>
   );
