@@ -24,7 +24,7 @@ public class RebateCalculator {
     private static final BigDecimal OLD_REGIME_THRESHOLD = new BigDecimal("500000");
     private static final BigDecimal OLD_REGIME_MAX_REBATE = new BigDecimal("12500");
 
-    // New regime AY 2025-26
+    // New regime AY 2025-26 (CORRECTED per Finance Act 2024)
     private static final BigDecimal NEW_2025_26_THRESHOLD = new BigDecimal("700000");
     private static final BigDecimal NEW_2025_26_MAX_REBATE = new BigDecimal("25000");
 

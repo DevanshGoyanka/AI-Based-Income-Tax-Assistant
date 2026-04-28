@@ -106,6 +106,26 @@ public class Section50CValidatorService {
         return fairMarketValueOnTransferDate;
     }
 
+    /**
+     * Validate method for REST API
+     */
+    public Section50CResult validate(Section50CInput input) {
+        return validatePropertyTransaction(
+            input.getSalePrice(),
+            input.getStampDutyValue(),
+            input.isSellerTransaction()
+        );
+    }
+
+    @Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class Section50CInput {
+        private double salePrice;
+        private double stampDutyValue;
+        private boolean sellerTransaction;
+    }
+
     @Data
     public static class Section50CResult {
         private double salePrice;

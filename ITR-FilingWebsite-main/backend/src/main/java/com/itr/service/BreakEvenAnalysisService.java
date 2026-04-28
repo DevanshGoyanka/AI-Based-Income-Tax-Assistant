@@ -75,6 +75,14 @@ public class BreakEvenAnalysisService {
     }
 
     @Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class BreakEvenInput {
+        private double grossIncome;
+        private double currentDeductions;
+    }
+
+    @Data
     public static class BreakEvenResult {
         private double grossIncome;
         private double currentDeductions;

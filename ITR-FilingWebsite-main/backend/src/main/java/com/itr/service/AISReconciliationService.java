@@ -39,8 +39,10 @@ public class AISReconciliationService {
         double aisTotalTDS = aisData.getTdsSalary().stream()
             .mapToDouble(AISData.TDSSalary::getTotalTaxDeducted).sum();
         
-        double form26ASTotalTDS = form26AS != null && form26AS.getPartA() != null
-            ? form26AS.getPartA().stream().mapToDouble(Form26ASData.PartA::getTotalTaxDeducted).sum()
+        double form26ASTotalTDS = form26AS != null && form26AS.getPartIEntries() != null
+            ? form26AS.getPartIEntries().stream()
+                .filter(e -> "192".equals(e.getSection()))
+                .mapToDouble(e -> e.getTaxDeducted().doubleValue()).sum()
             : 0;
         
         double declaredTDS = declaredData.getTaxPayments() != null

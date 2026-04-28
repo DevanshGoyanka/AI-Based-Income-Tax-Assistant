@@ -236,6 +236,8 @@ function ClientModal({ client, onClose, onSave }: any) {
   });
   const [panStatus, setPanStatus] = useState<'valid' | 'invalid' | null>(null);
   const [entityType, setEntityType] = useState('');
+  const [recommendedITR, setRecommendedITR] = useState('');
+  const [itrReason, setItrReason] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handlePanBlur = async () => {
@@ -246,6 +248,38 @@ function ClientModal({ client, onClose, onSave }: any) {
       setEntityType(result.entityType);
       if (result.warnings.length) {
         toast(result.warnings.join(', '), { icon: '⚠️' });
+      }
+      
+      // Auto-classify ITR form
+      if (result.valid) {
+        try {
+          const incomeProfile = {
+            pan: formData.pan,
+            totalIncome: 0,
+            hasCapitalGains: false,
+            hasBusinessIncome: false,
+            hasMultipleProperties: false,
+            hasForeignIncome: false,
+            hasProfessionalIncome: false,
+            residentialStatus: 'RES',
+            isDirector: false,
+            hasUnlistedShares: false,
+            agriculturalIncome: 0,
+            hasLotteryIncome: false,
+            hasRaceHorseIncome: false,
+            eligibleFor44AD: false,
+            eligibleFor44ADA: false,
+            eligibleFor44AE: false
+          };
+          
+          // Use a temporary client ID of 0 for new clients
+          const classification = await clientsApi.classifyITR(client?.id || 0, incomeProfile);
+          setRecommendedITR(classification.recommendedForm);
+          setItrReason(classification.classificationReason);
+          toast.success(`Recommended ITR: ${classification.recommendedForm}`);
+        } catch (err) {
+          console.error('ITR classification failed:', err);
+        }
       }
     } catch {
       setPanStatus('invalid');
@@ -327,11 +361,27 @@ function ClientModal({ client, onClose, onSave }: any) {
             {entityType && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
               Entity: {entityType}
             </div>}
+            {recommendedITR && (
+              <div style={{ 
+                fontSize: 11, 
+                color: 'var(--accent-blue)', 
+                marginTop: 4,
+                padding: '4px 8px',
+                background: 'var(--accent-blue-bg)',
+                borderRadius: 4,
+                fontWeight: 500
+              }}>
+                Recommended ITR: {recommendedITR}
+                {itrReason && <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {itrReason}
+                </div>}
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>
-              Name *
+              Name * (CBDT Mandatory)
             </label>
             <input
               type="text"
@@ -407,12 +457,13 @@ function ClientModal({ client, onClose, onSave }: any) {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>
-                Date of Birth
+                Date of Birth * (CBDT Mandatory)
               </label>
               <input
                 type="date"
                 value={formData.dob}
                 onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                required
                 style={{
                   width: '100%',
                   padding: '8px 12px',

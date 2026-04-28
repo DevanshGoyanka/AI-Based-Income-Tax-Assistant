@@ -23,5 +23,6 @@ public class ClientRequest {
     @Pattern(regexp = "^$|^[0-9]{12}$", message = "Aadhaar must be exactly 12 numeric digits")
     private String aadhaar;
 
+    @NotNull(message = "Date of Birth is mandatory as per CBDT ITR filing requirements")
     private LocalDate dob;
 }

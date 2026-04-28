@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.itr.dto.Itr1FormData;
 import com.itr.dto.itd.*;
 import com.itr.util.ITDDateFormatter;
-import com.itr.util.SHA256DigestUtil;
+import com.itr.util.DigestCalculator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,22 +27,41 @@ public class ITDJSONExportService {
     
     private final ObjectMapper objectMapper;
     
-    private static final String SW_VERSION = "SW101";
-    private static final String SW_CREATED_BY = "ITR Filing Assistant v1.0";
+    // CBDT Assigned Software Credentials
+    private static final String SW_VERSION = "1.0";
+    private static final String SW_CREATED_BY = "SW20014242";
+    private static final String JSON_CREATED_BY = "SW20014242";
+    private static final String USER_ID = "ERIP013181";
+    private static final String SECRET_KEY = "4448ffc0cec1a25d";
+    private static final int ITERATIONS = 1344;
     private static final String CREATED_BY = "TP"; // Taxpayer
     
     public String exportITR1ToITDJson(Itr1FormData formData) {
         try {
             log.info("Starting ITR-1 JSON export for PAN: {}", formData.getPersonalInfo().getPan());
             
+            // Step 1: Build output structure without digest
             ITR1Output output = mapToITR1Output(formData);
             
             ObjectMapper mapper = new ObjectMapper();
             mapper.enable(SerializationFeature.INDENT_OUTPUT);
-            String jsonString = mapper.writeValueAsString(output);
             
-            log.info("ITR-1 JSON export completed successfully");
-            return jsonString;
+            // Step 2: Generate JSON without digest
+            String jsonWithoutDigest = mapper.writeValueAsString(output);
+            log.debug("Generated JSON without digest, length: {} bytes", jsonWithoutDigest.length());
+            
+            // Step 3: Calculate HMAC-SHA256 digest with iterations
+            String digest = DigestCalculator.generateDigest(jsonWithoutDigest, SECRET_KEY, ITERATIONS);
+            log.info("Calculated digest: {}", digest);
+            
+            // Step 4: Update CreationInfo with computed digest
+            output.getItr().getItr1().getCreationInfo().setDigest(digest);
+            
+            // Step 5: Generate final JSON with digest
+            String finalJson = mapper.writeValueAsString(output);
+            log.info("ITR-1 JSON export completed successfully with digest");
+            
+            return finalJson;
             
         } catch (Exception e) {
             log.error("Error exporting ITR-1 to ITD JSON", e);
@@ -207,8 +226,10 @@ public class ITDJSONExportService {
         Itr1FormData.TaxComputation tax = formData.getTaxComputation();
         if (tax == null) return null;
         
+        double totalTax = tax.getTaxOnNormalIncome() + tax.getTotalCGTax();
+        
         return ITR1Output.TaxComputation.builder()
-            .taxPayableOnTI(toInteger(tax.getTaxOnNormalIncome()))
+            .taxPayableOnTI(toInteger(totalTax))
             .rebateUs87A(toInteger(tax.getRebate87A()))
             .taxAfterRebate(toInteger(tax.getTaxAfterRebate()))
             .surcharge25(toInteger(tax.getSurcharge()))

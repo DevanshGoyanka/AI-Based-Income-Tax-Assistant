@@ -35,6 +35,7 @@ public class Client {
     @Column(length = 12)
     private String aadhaar;
 
+    @Column(nullable = false)
     private LocalDate dob;
 
     @Column(name = "created_at")

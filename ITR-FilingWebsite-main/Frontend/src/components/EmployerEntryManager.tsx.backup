@@ -1,0 +1,740 @@
+// Multiple Employer Entry Manager - CBDT Compliant
+import React from 'react';
+
+interface EmployerEntry {
+  employerName: string;
+  employerTAN: string;
+  employerPAN?: string;
+  employerAddress?: string;
+  employerCity?: string;
+  employerState?: string;
+  employerPincode?: string;
+  natureOfEmployment?: 'GOV' | 'NGOV' | 'PSU' | 'PENSIONER' | 'NA';
+  periodFrom?: string;
+  periodTo?: string;
+  
+  // Section 17(1) - Salary Components
+  basic: number;
+  da: number;
+  hra: number;
+  bonus: number;
+  allowances: number;
+  lta: number;
+  pension: number;
+  commutedPension: number;
+  uncommutedPension: number;
+  gratuity: number;
+  leaveEncashment: number;
+  arrearsOfSalary: number;
+  
+  // Section 17(2) - Perquisites (detailed breakdown)
+  perquisites: number;
+  perqRentFreeAccommodation: number;
+  perqConcessionalRent: number;
+  perqMotorCar: number;
+  perqSweeper: number;
+  perqGasElectricityWater: number;
+  perqInterestFreeLoan: number;
+  perqHolidayExpenses: number;
+  perqFreeEducation: number;
+  perqGiftsVouchers: number;
+  perqCreditCard: number;
+  perqClubExpenses: number;
+  perqMovableAssets: number;
+  perqOthers: number;
+  
+  // Section 17(3) - Profits in Lieu of Salary
+  profitsCompensationTermination: number;
+  profitsNonCompete: number;
+  
+  // Exemptions u/s 10
+  hraExempt: number;
+  ltaExempt: number;
+  gratuityExempt: number;
+  leaveEncashmentExempt: number;
+  otherExemptions: number;
+  
+  // Deductions u/s 16
+  professionalTax: number;
+  entertainmentAllowance: number;
+  
+  tdsDeducted: number;
+  grossSalary: number;
+  netSalary: number;
+}
+
+interface EmployerEntryManagerProps {
+  entries: EmployerEntry[];
+  onChange: (entries: EmployerEntry[]) => void;
+  assessmentYear: string;
+}
+
+export const EmployerEntryManager: React.FC<EmployerEntryManagerProps> = ({ entries, onChange, assessmentYear }) => {
+  const [expandedSections, setExpandedSections] = React.useState<{[key: number]: {[key: string]: boolean}}>({});
+  
+  const getStandardDeduction = () => assessmentYear === '2026-27' ? 75000 : 50000;
+
+  const toggleSection = (entryIndex: number, section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [entryIndex]: {
+        ...prev[entryIndex],
+        [section]: !prev[entryIndex]?.[section]
+      }
+    }));
+  };
+
+  const addEntry = () => {
+    const newEntry: EmployerEntry = {
+      employerName: '',
+      employerTAN: '',
+      employerPAN: '',
+      employerAddress: '',
+      employerCity: '',
+      employerState: '',
+      employerPincode: '',
+      natureOfEmployment: 'NGOV',
+      periodFrom: '',
+      periodTo: '',
+      basic: 0,
+      da: 0,
+      hra: 0,
+      bonus: 0,
+      allowances: 0,
+      lta: 0,
+      pension: 0,
+      commutedPension: 0,
+      uncommutedPension: 0,
+      gratuity: 0,
+      leaveEncashment: 0,
+      arrearsOfSalary: 0,
+      perquisites: 0,
+      perqRentFreeAccommodation: 0,
+      perqConcessionalRent: 0,
+      perqMotorCar: 0,
+      perqSweeper: 0,
+      perqGasElectricityWater: 0,
+      perqInterestFreeLoan: 0,
+      perqHolidayExpenses: 0,
+      perqFreeEducation: 0,
+      perqGiftsVouchers: 0,
+      perqCreditCard: 0,
+      perqClubExpenses: 0,
+      perqMovableAssets: 0,
+      perqOthers: 0,
+      profitsCompensationTermination: 0,
+      profitsNonCompete: 0,
+      hraExempt: 0,
+      ltaExempt: 0,
+      gratuityExempt: 0,
+      leaveEncashmentExempt: 0,
+      otherExemptions: 0,
+      professionalTax: 0,
+      entertainmentAllowance: 0,
+      tdsDeducted: 0,
+      grossSalary: 0,
+      netSalary: 0,
+    };
+    onChange([...entries, newEntry]);
+  };
+
+  const removeEntry = (index: number) => {
+    onChange(entries.filter((_, i) => i !== index));
+  };
+
+  const updateEntry = (index: number, field: keyof EmployerEntry, value: any) => {
+    const updated = [...entries];
+    updated[index] = { ...updated[index], [field]: value };
+    
+    const entry = updated[index];
+    
+    // Calculate total perquisites from breakdown
+    const totalPerquisites = 
+      entry.perqRentFreeAccommodation +
+      entry.perqConcessionalRent +
+      entry.perqMotorCar +
+      entry.perqSweeper +
+      entry.perqGasElectricityWater +
+      entry.perqInterestFreeLoan +
+      entry.perqHolidayExpenses +
+      entry.perqFreeEducation +
+      entry.perqGiftsVouchers +
+      entry.perqCreditCard +
+      entry.perqClubExpenses +
+      entry.perqMovableAssets +
+      entry.perqOthers;
+    
+    // Update perquisites if breakdown is used
+    if (totalPerquisites > 0) {
+      entry.perquisites = totalPerquisites;
+    }
+    
+    // Calculate gross salary (Section 17(1) + 17(2) + 17(3))
+    entry.grossSalary = 
+      entry.basic + 
+      entry.da + 
+      entry.hra + 
+      entry.bonus + 
+      entry.allowances + 
+      entry.lta +
+      entry.pension +
+      entry.commutedPension +
+      entry.uncommutedPension +
+      entry.gratuity +
+      entry.leaveEncashment +
+      entry.arrearsOfSalary +
+      entry.perquisites +
+      entry.profitsCompensationTermination +
+      entry.profitsNonCompete;
+    
+    // Calculate total exemptions
+    const totalExemptions = 
+      entry.hraExempt + 
+      entry.ltaExempt + 
+      entry.gratuityExempt + 
+      entry.leaveEncashmentExempt + 
+      entry.otherExemptions;
+    
+    // Calculate net salary (Gross - Exemptions - Standard Deduction - Deductions u/s 16)
+    const stdDed = getStandardDeduction();
+    entry.netSalary = 
+      entry.grossSalary - 
+      totalExemptions - 
+      stdDed - 
+      entry.professionalTax - 
+      entry.entertainmentAllowance;
+    
+    onChange(updated);
+  };
+
+  const getTotalGross = () => entries.reduce((sum, e) => sum + e.grossSalary, 0);
+  const getTotalNet = () => entries.reduce((sum, e) => sum + e.netSalary, 0);
+  const getTotalTDS = () => entries.reduce((sum, e) => sum + e.tdsDeducted, 0);
+
+  return (
+    <div style={{ marginBottom: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#64748b' }}>
+          Salary from Multiple Employers
+        </h3>
+        <button
+          onClick={addEntry}
+          style={{
+            padding: '8px 16px',
+            background: '#c9943a',
+            color: 'white',
+            border: 'none',
+            borderRadius: 6,
+            fontSize: 13,
+            fontWeight: 500,
+            cursor: 'pointer'
+          }}
+        >
+          + Add Employer
+        </button>
+      </div>
+
+      {entries.length === 0 && (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: 40, 
+          color: '#94a3b8',
+          background: '#f8fafc',
+          borderRadius: 8,
+          border: '1px dashed #cbd5e1'
+        }}>
+          Click "Add Employer" to add salary details from each employer
+        </div>
+      )}
+
+      {entries.map((entry, index) => (
+        <div key={index} style={{ 
+          background: 'white', 
+          border: '1px solid #e2e8f0', 
+          borderRadius: 8, 
+          padding: 20, 
+          marginBottom: 16,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span style={{ 
+              background: '#c9943a', 
+              color: 'white', 
+              padding: '6px 12px', 
+              borderRadius: 6, 
+              fontSize: 13,
+              fontWeight: 500
+            }}>
+              Employer {index + 1}
+            </span>
+            <button 
+              onClick={() => removeEntry(index)} 
+              style={{ 
+                background: '#ef4444', 
+                color: 'white', 
+                border: 'none', 
+                width: 32, 
+                height: 32, 
+                borderRadius: '50%', 
+                cursor: 'pointer', 
+                fontSize: 18,
+                fontWeight: 600
+              }}
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Basic Employer Details */}
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Employer Details</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>
+                Employer Name *
+              </label>
+              <input
+                type="text"
+                value={entry.employerName}
+                onChange={(e) => updateEntry(index, 'employerName', e.target.value)}
+                placeholder="e.g., ABC Pvt Ltd"
+                style={{ 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: 6, 
+                  fontSize: 13
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>
+                Employer TAN *
+              </label>
+              <input
+                type="text"
+                value={entry.employerTAN}
+                onChange={(e) => updateEntry(index, 'employerTAN', e.target.value.toUpperCase())}
+                placeholder="e.g., MUMS89569E"
+                maxLength={10}
+                style={{ 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: 6, 
+                  fontSize: 13
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>
+                Employer PAN
+              </label>
+              <input
+                type="text"
+                value={entry.employerPAN || ''}
+                onChange={(e) => updateEntry(index, 'employerPAN', e.target.value.toUpperCase())}
+                placeholder="e.g., AAAAA1234A"
+                maxLength={10}
+                style={{ 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: 6, 
+                  fontSize: 13
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>
+                Nature of Employment
+              </label>
+              <select
+                value={entry.natureOfEmployment || 'NGOV'}
+                onChange={(e) => updateEntry(index, 'natureOfEmployment', e.target.value)}
+                style={{ 
+                  width: '100%', 
+                  padding: '8px 12px', 
+                  border: '1px solid #cbd5e1', 
+                  borderRadius: 6, 
+                  fontSize: 13
+                }}
+              >
+                <option value="GOV">Government</option>
+                <option value="PSU">PSU</option>
+                <option value="NGOV">Non-Government</option>
+                <option value="PENSIONER">Pensioner</option>
+                <option value="NA">Not Applicable</option>
+              </select>
+            </div>
+          </div>
+
+
+
+          {/* Basic Salary Components */}
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Section 17(1) - Salary Components</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Basic Salary</label>
+              <input type="number" value={entry.basic} onChange={(e) => updateEntry(index, 'basic', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>DA</label>
+              <input type="number" value={entry.da} onChange={(e) => updateEntry(index, 'da', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>HRA</label>
+              <input type="number" value={entry.hra} onChange={(e) => updateEntry(index, 'hra', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Bonus</label>
+              <input type="number" value={entry.bonus} onChange={(e) => updateEntry(index, 'bonus', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Other Allowances</label>
+              <input type="number" value={entry.allowances} onChange={(e) => updateEntry(index, 'allowances', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>LTA</label>
+              <input type="number" value={entry.lta} onChange={(e) => updateEntry(index, 'lta', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+          </div>
+
+          {/* Expandable: Pension & Retirement Benefits */}
+          <button
+            onClick={() => toggleSection(index, 'pension')}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#64748b',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <span>Pension & Retirement Benefits (Optional)</span>
+            <span>{expandedSections[index]?.pension ? '▼' : '▶'}</span>
+          </button>
+          
+          {expandedSections[index]?.pension && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Pension</label>
+                <input type="number" value={entry.pension} onChange={(e) => updateEntry(index, 'pension', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Commuted Pension</label>
+                <input type="number" value={entry.commutedPension} onChange={(e) => updateEntry(index, 'commutedPension', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Uncommuted Pension</label>
+                <input type="number" value={entry.uncommutedPension} onChange={(e) => updateEntry(index, 'uncommutedPension', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Gratuity</label>
+                <input type="number" value={entry.gratuity} onChange={(e) => updateEntry(index, 'gratuity', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Leave Encashment</label>
+                <input type="number" value={entry.leaveEncashment} onChange={(e) => updateEntry(index, 'leaveEncashment', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Arrears of Salary</label>
+                <input type="number" value={entry.arrearsOfSalary} onChange={(e) => updateEntry(index, 'arrearsOfSalary', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+            </div>
+          )}
+
+          {/* Expandable: Section 17(2) - Perquisites Breakdown */}
+          <button
+            onClick={() => toggleSection(index, 'perquisites')}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#64748b',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <span>Section 17(2) - Perquisites Breakdown (Optional)</span>
+            <span>{expandedSections[index]?.perquisites ? '▼' : '▶'}</span>
+          </button>
+          
+          {expandedSections[index]?.perquisites && (
+            <div>
+              <div style={{ marginBottom: 12, padding: 10, background: '#fef3e2', borderRadius: 6, fontSize: 11, color: '#64748b' }}>
+                Enter detailed perquisites breakdown. Total will auto-calculate and update the main Perquisites field.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Rent-free Accommodation</label>
+                  <input type="number" value={entry.perqRentFreeAccommodation} onChange={(e) => updateEntry(index, 'perqRentFreeAccommodation', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Concessional Rent</label>
+                  <input type="number" value={entry.perqConcessionalRent} onChange={(e) => updateEntry(index, 'perqConcessionalRent', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Motor Car Facility</label>
+                  <input type="number" value={entry.perqMotorCar} onChange={(e) => updateEntry(index, 'perqMotorCar', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Sweeper/Gardener/Watchman</label>
+                  <input type="number" value={entry.perqSweeper} onChange={(e) => updateEntry(index, 'perqSweeper', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Gas/Electricity/Water</label>
+                  <input type="number" value={entry.perqGasElectricityWater} onChange={(e) => updateEntry(index, 'perqGasElectricityWater', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Interest-free/Concessional Loan</label>
+                  <input type="number" value={entry.perqInterestFreeLoan} onChange={(e) => updateEntry(index, 'perqInterestFreeLoan', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Holiday Expenses</label>
+                  <input type="number" value={entry.perqHolidayExpenses} onChange={(e) => updateEntry(index, 'perqHolidayExpenses', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Free/Concessional Education</label>
+                  <input type="number" value={entry.perqFreeEducation} onChange={(e) => updateEntry(index, 'perqFreeEducation', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Gifts/Vouchers/Tokens</label>
+                  <input type="number" value={entry.perqGiftsVouchers} onChange={(e) => updateEntry(index, 'perqGiftsVouchers', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Credit Card Expenses</label>
+                  <input type="number" value={entry.perqCreditCard} onChange={(e) => updateEntry(index, 'perqCreditCard', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Club Expenses</label>
+                  <input type="number" value={entry.perqClubExpenses} onChange={(e) => updateEntry(index, 'perqClubExpenses', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Use of Movable Assets</label>
+                  <input type="number" value={entry.perqMovableAssets} onChange={(e) => updateEntry(index, 'perqMovableAssets', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Other Perquisites</label>
+                  <input type="number" value={entry.perqOthers} onChange={(e) => updateEntry(index, 'perqOthers', parseFloat(e.target.value) || 0)} 
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Perquisites Field (auto-calculated or manual) */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>
+              Total Perquisites (auto-calculated from breakdown or enter manually)
+            </label>
+            <input 
+              type="number" 
+              value={entry.perquisites} 
+              onChange={(e) => updateEntry(index, 'perquisites', parseFloat(e.target.value) || 0)} 
+              style={{ 
+                width: '100%', 
+                padding: '8px 12px', 
+                border: '1px solid #cbd5e1', 
+                borderRadius: 6, 
+                fontSize: 13,
+                background: '#fef3e2'
+              }} 
+            />
+          </div>
+
+          {/* Expandable: Section 17(3) - Profits in Lieu of Salary */}
+          <button
+            onClick={() => toggleSection(index, 'profits')}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#64748b',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <span>Section 17(3) - Profits in Lieu of Salary (Optional)</span>
+            <span>{expandedSections[index]?.profits ? '▼' : '▶'}</span>
+          </button>
+          
+          {expandedSections[index]?.profits && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Compensation on Termination</label>
+                <input type="number" value={entry.profitsCompensationTermination} onChange={(e) => updateEntry(index, 'profitsCompensationTermination', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Payment for Non-Compete Agreement</label>
+                <input type="number" value={entry.profitsNonCompete} onChange={(e) => updateEntry(index, 'profitsNonCompete', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+            </div>
+          )}
+
+          {/* Expandable: Exemptions u/s 10 */}
+          <button
+            onClick={() => toggleSection(index, 'exemptions')}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              color: '#64748b',
+              cursor: 'pointer',
+              textAlign: 'left',
+              marginBottom: 12,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+            <span>Exemptions u/s 10</span>
+            <span>{expandedSections[index]?.exemptions ? '▼' : '▶'}</span>
+          </button>
+          
+          {expandedSections[index]?.exemptions && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>HRA Exempt u/s 10(13A)</label>
+                <input type="number" value={entry.hraExempt} onChange={(e) => updateEntry(index, 'hraExempt', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>LTA Exempt u/s 10(5)</label>
+                <input type="number" value={entry.ltaExempt} onChange={(e) => updateEntry(index, 'ltaExempt', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Gratuity Exempt u/s 10(10)</label>
+                <input type="number" value={entry.gratuityExempt} onChange={(e) => updateEntry(index, 'gratuityExempt', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Leave Encashment Exempt u/s 10(10AA)</label>
+                <input type="number" value={entry.leaveEncashmentExempt} onChange={(e) => updateEntry(index, 'leaveEncashmentExempt', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Other Exemptions u/s 10</label>
+                <input type="number" value={entry.otherExemptions} onChange={(e) => updateEntry(index, 'otherExemptions', parseFloat(e.target.value) || 0)} 
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+              </div>
+            </div>
+          )}
+
+          {/* Deductions u/s 16 & TDS */}
+          <h4 style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 12 }}>Deductions u/s 16 & TDS</h4>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Professional Tax</label>
+              <input type="number" value={entry.professionalTax} onChange={(e) => updateEntry(index, 'professionalTax', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>Entertainment Allowance (Govt only)</label>
+              <input type="number" value={entry.entertainmentAllowance} onChange={(e) => updateEntry(index, 'entertainmentAllowance', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: '#64748b' }}>TDS Deducted (192)</label>
+              <input type="number" value={entry.tdsDeducted} onChange={(e) => updateEntry(index, 'tdsDeducted', parseFloat(e.target.value) || 0)} 
+                style={{ width: '100%', padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 13 }} />
+            </div>
+          </div>
+
+          <div style={{ marginTop: 16, padding: 12, background: '#fef3e2', borderRadius: 6, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>Gross Salary</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#1e293b' }}>₹{entry.grossSalary.toLocaleString('en-IN')}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, color: '#64748b' }}>Net Taxable Salary</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#1e293b' }}>₹{entry.netSalary.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {entries.length > 0 && (
+        <div style={{ 
+          padding: 16, 
+          background: 'linear-gradient(135deg, #fef3e2 0%, #fef9f0 100%)', 
+          borderRadius: 8,
+          border: '1px solid #f3d9a8'
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Total Gross Salary</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#1e293b' }}>₹{getTotalGross().toLocaleString('en-IN')}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Total Net Salary</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#1e293b' }}>₹{getTotalNet().toLocaleString('en-IN')}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Total TDS</div>
+              <div style={{ fontSize: 20, fontWeight: 600, color: '#1e293b' }}>₹{getTotalTDS().toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

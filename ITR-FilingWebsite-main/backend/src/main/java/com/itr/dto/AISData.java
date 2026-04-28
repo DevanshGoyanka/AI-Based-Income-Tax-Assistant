@@ -5,11 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * AIS (Annual Information Statement) Data DTO
- * 101% CBDT Compliant - Matches ITD AIS JSON schema
+ * Part 2: Comprehensive structure for AIS, 26AS, TIS import
  */
 @Data
 @Builder
@@ -21,29 +24,115 @@ public class AISData {
     private String assessmentYear;
     private String financialYear;
     
-    // Part A - TDS on Salary
+    // Part A: General Information
+    private AISGeneralInfo generalInfo;
+    
+    // Part B1: TDS/TCS Information
+    private AISPartB1Data partB1;
+    
+    // Part B2: Specified Financial Transactions
+    private AISPartB2Data partB2;
+    
+    // Part B3: Tax Payments
+    private List<TaxPaymentAIS> partB3;
+    
+    // Legacy fields for backward compatibility
     private List<TDSSalary> tdsSalary;
-    
-    // Part B - TDS on Other than Salary
     private List<TDSOther> tdsOther;
-    
-    // Part C - TCS (Tax Collected at Source)
     private List<TCSEntry> tcs;
-    
-    // Part D - Tax Payments (Advance Tax, Self-Assessment)
     private List<TaxPayment> taxPayments;
-    
-    // Part E - Specified Financial Transactions (SFT)
     private SFTData sft;
-    
-    // Part F - Demand and Refund
     private List<DemandRefund> demandRefund;
-    
-    // Part G - AIR Transactions
     private List<AIRTransaction> airTransactions;
-    
-    // Part H - Capital Gains Transactions (from SFT)
     private List<CapitalGainsTransaction> capitalGainsTransactions;
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AISGeneralInfo {
+        private String pan;
+        private String aadhaar;
+        private String name;
+        private LocalDate dob;
+        private String mobile;
+        private String email;
+        private String address;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AISPartB1Data {
+        private List<AISTDSEntry> tdsEntries = new ArrayList<>();
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AISTDSEntry {
+        private String section;
+        private String deductorName;
+        private String deductorTAN;
+        private long totalAmountPaid;
+        private long totalTDSDeducted;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class AISPartB2Data {
+        private long dividendIncome;
+        private List<SFTSaleEntry> securitiesSale = new ArrayList<>();
+        private long securitiesPurchaseAmount;
+        private List<MFPurchase> mutualFundPurchase = new ArrayList<>();
+        private long interestOnSecurities;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SFTSaleEntry {
+        private LocalDate transferDate;
+        private String securityName;
+        private String assetType;
+        private BigDecimal quantity;
+        private BigDecimal salePricePerUnit;
+        private BigDecimal salesConsideration;
+        private BigDecimal costOfAcquisition;
+        private BigDecimal fmvPerUnit;
+        private BigDecimal indexedCostOfAcquisition;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MFPurchase {
+        private String amcName;
+        private long totalPurchase;
+        private long totalSales;
+    }
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TaxPaymentAIS {
+        private String financialYear;
+        private String minorHead;
+        private long taxAmount;
+        private long surcharge;
+        private long educationCess;
+        private long totalAmount;
+        private String bsrCode;
+        private LocalDate depositDate;
+        private String challanSerialNo;
+    }
     
     @Data
     @Builder
@@ -145,21 +234,21 @@ public class AISData {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class CapitalGainsTransaction {
-        private String assetType; // EQUITY_LISTED, EQUITY_UNLISTED, PROPERTY, DEBT_MF, GOLD, BONDS
+        private String assetType;
         private String assetDescription;
-        private String isin; // For securities
+        private String isin;
         private String dateOfAcquisition;
         private String dateOfSale;
         private Double purchasePrice;
         private Double salePrice;
         private Double expenditureOnTransfer;
-        private String gainType; // STCG, LTCG
-        private String section; // 111A, 112A, 112, NORMAL
+        private String gainType;
+        private String section;
         private Double sttPaid;
         private String brokerName;
         private String brokerPAN;
         private Integer quantity;
         private Double indexedCost;
-        private Double grandfatheredCost; // For 112A pre-Jan 31, 2018 assets
+        private Double grandfatheredCost;
     }
 }

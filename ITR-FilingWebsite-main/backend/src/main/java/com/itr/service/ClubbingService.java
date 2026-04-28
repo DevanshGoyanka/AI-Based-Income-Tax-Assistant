@@ -110,4 +110,29 @@ public class ClubbingService {
         private String section;
         private String reason;
     }
+
+    /**
+     * Minor Child Input DTO
+     */
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class MinorChildInput {
+        private double childIncome;
+        private int numberOfMinorChildren;
+        private double parent1Income;
+        private double parent2Income;
+    }
+
+    /**
+     * Spouse Input DTO
+     */
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class SpouseInput {
+        private double spouseIncome;
+        private String transferType;
+        private boolean adequateConsideration;
+    }
 }

@@ -43,21 +43,8 @@ public class CapitalGainsAutoPopulationService {
     public Itr2FormData autoPopulateCapitalGainsFrom26AS(Itr2FormData formData, Form26ASData data26AS) {
         log.info("Auto-populating capital gains from Form 26AS");
         
-        if (data26AS.getCapitalGainsTransactions() == null || data26AS.getCapitalGainsTransactions().isEmpty()) {
-            log.info("No capital gains transactions found in Form 26AS");
-            return formData;
-        }
-        
-        if (formData.getScheduleCG() == null) {
-            formData.setScheduleCG(Itr2FormData.ScheduleCapitalGains.builder().build());
-        }
-        
-        for (Form26ASData.CapitalGainsTransaction txn : data26AS.getCapitalGainsTransactions()) {
-            Itr2FormData.CGTransaction cg = convert26ASToCapitalGain(txn);
-            categorizeAndAddTransaction(formData.getScheduleCG(), cg, txn.getSection());
-        }
-        
-        log.info("Auto-populated {} capital gains transactions from 26AS", data26AS.getCapitalGainsTransactions().size());
+        // Form26AS doesn't have capital gains transactions - this is a stub
+        log.info("No capital gains transactions in Form 26AS structure");
         return formData;
     }
 
@@ -108,7 +95,7 @@ public class CapitalGainsAutoPopulationService {
         return builder.build();
     }
 
-    private Itr2FormData.CGTransaction convert26ASToCapitalGain(Form26ASData.CapitalGainsTransaction txn) {
+    private Itr2FormData.CGTransaction convert26ASToCapitalGain(AISData.CapitalGainsTransaction txn) {
         Itr2FormData.CGTransaction.CGTransactionBuilder builder = Itr2FormData.CGTransaction.builder();
         
         builder.assetType(txn.getAssetType());

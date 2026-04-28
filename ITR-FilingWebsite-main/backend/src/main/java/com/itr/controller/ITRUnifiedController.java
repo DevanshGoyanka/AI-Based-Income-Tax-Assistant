@@ -30,24 +30,24 @@ public class ITRUnifiedController {
             @PathVariable String year,
             Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
-        String itrType = determineITRType(clientId, year, userId);
-        
-        switch (itrType) {
-            case "ITR-1":
-                return ResponseEntity.ok(itr1FormService.getFormData(clientId, year, userId));
-            default:
-                return ResponseEntity.ok(itr1FormService.getFormData(clientId, year, userId));
-        }
+        // Return FlatFormData for frontend compatibility
+        return ResponseEntity.ok(itr1FormService.getFlatFormData(clientId, year, userId));
     }
 
     @PutMapping
     public ResponseEntity<?> saveFormData(
             @PathVariable Long clientId,
             @PathVariable String year,
-            @RequestBody Object formData,
+            @RequestBody FlatFormData formData,
             Authentication auth) {
         Long userId = (Long) auth.getPrincipal();
-        return ResponseEntity.ok(formData);
+        log.info("Saving ITR form data for client {} year {} by user {}", clientId, year, userId);
+        
+        // Save the form data
+        FlatFormData saved = itr1FormService.saveFormData(clientId, year, formData, userId);
+        
+        log.info("Form data saved successfully for client {}", clientId);
+        return ResponseEntity.ok(saved);
     }
 
     @PostMapping("/compute")
@@ -147,6 +147,8 @@ public class ITRUnifiedController {
         try {
             Long userId = (Long) auth.getPrincipal();
             Itr1FormData formData = itr1FormService.getFormData(clientId, year, userId);
+            // Compute tax before generating PDF
+            formData = itr1FormService.computeForm(clientId, year, formData, userId);
             byte[] pdfBytes = itr1ReportService.generatePdfReport(formData);
 
             String filename = buildFilename(

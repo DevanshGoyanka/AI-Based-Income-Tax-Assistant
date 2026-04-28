@@ -1,17 +1,20 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAY } from '../contexts/AYContext';
 import { itrApi } from '../lib/api/itr';
 import { clientsApi } from '../lib/api/clients';
 import { Spinner } from '../components/ui/Spinner';
 import toast from 'react-hot-toast';
+import { EmployerEntryManager } from '../components/EmployerEntryManager';
+import { CapitalGainsEntryManager } from '../components/CapitalGainsEntryManager';
+import { BankInterestEntryManager } from '../components/BankInterestEntryManager';
+import { DonationEntryManager } from '../components/DonationEntryManager';
+import EmployerReconciliationModal from '../components/EmployerReconciliationModal';
 
 import { 
   BusinessTab, 
   OtherSourcesTab, 
-  VDATab, 
   DeductionsTab, 
-  LossesTab, 
   TDSTab, 
   TaxComputationTab,
   computeTax 
@@ -28,17 +31,50 @@ export default function ITRComputationPage() {
   const [itrForm, setItrForm] = useState('ITR-1');
   const [showImportMenu, setShowImportMenu] = useState(false);
   const [clientData, setClientData] = useState<any>(null);
+  
+  // Part 2: Import document state
+  const [importedAIS, setImportedAIS] = useState<any>(null);
+  const [imported26AS, setImported26AS] = useState<any>(null);
+  const [importedTIS, setImportedTIS] = useState<any>(null);
+  
+  // Employer reconciliation state
+  const [showReconciliationModal, setShowReconciliationModal] = useState(false);
+  const [reconciliationResult, setReconciliationResult] = useState<any>(null);
   const [formData, setFormData] = useState<any>({
-    basic: 0, da: 0, hra: 0, bonus: 0, allowances: 0, perquisites: 0,
+    // Personal Info - CBDT Mandatory Fields
+    gender: 'M', fatherName: '', maritalStatus: 'SINGLE', nationality: 'INDIA', residentialStatus: 'ROR',
+    isDirector: false, holdsUnlistedShares: false, agriculturalIncome: 0,
+    // Salary Income - Comprehensive fields
+    basic: 0, da: 0, hra: 0, bonus: 0, commission: 0, lta: 0, cea: 0, 
+    allowances: 0, perquisites: 0, profitsInLieu: 0,
     hraRent: 0, hraMetro: false, profTax: 0,
+    ltaExempt: 0, ceaExempt: 0, entertainmentAllowance: 0, otherExempt: 0,
+    // House Property
     hpType: 'self', grossRent: 0, munTax: 0, homeLoanInt: 0, sopLoanInt: 0,
-    stcgPre: 0, stcgPost: 0, stcgOther: 0, ltcgPre: 0, ltcgPost: 0, ltcgOther: 0,
+    // Capital Gains
+    stcgEquityPre: 0, stcgEquityPost: 0, stcgOtherSlab: 0, 
+    ltcg112APre: 0, ltcg112APost: 0, ltcgOtherPre: 0, ltcgOtherPost: 0,
+    // Business Income
     bizPresumptive: '44AD', bizTurnover: 0, bizDeclared: 0, bpNetProfit: 0,
+    // Other Sources
     interestSB: 0, interestFD: 0, dividends: 0, familyPension: 0, otherMisc: 0,
     vdaGains: 0,
+    // Deductions
     s80C_epf: 0, s80C_ppf: 0, s80C_elss: 0, s80C_lic: 0, s80C_home: 0,
     s80CCD1B: 0, s80CCD2: 0, s80D_self: 0, s80D_parent: 0, s80E: 0, s80TTA: 0, s80G: 0,
-    bfLoss: 0,
+    // Losses - CBDT Compliant
+    bfLossHP: 0, bfLossBusiness: 0, bfLossSTCG: 0, bfLossLTCG: 0, bfLossSpeculation: 0,
+    // Phase 1 Multi-Entry Structures (CBDT Compliant)
+    employerEntries: [],
+    capitalGainTransactions: [],
+    bankInterestEntries: [],
+    donationEntries: [],
+    // Tax Payments - Multi-entry structures
+    tdsEntries: [],
+    advanceTaxEntries: [],
+    selfAssessmentTaxEntries: [],
+    bankAccountDetails: [],
+    // Legacy single-value fields (for backward compatibility)
     tdsS192: 0, tds194A: 0, tdsOther: 0,
     adv15Jun: 0, adv15Sep: 0, adv15Dec: 0, adv15Mar: 0, selfTax: 0,
     age: 30
@@ -53,15 +89,29 @@ export default function ITRComputationPage() {
     ])
       .then(([client, itrData]) => {
         setClientData(client);
+        // Prioritize saved form data over client master data
+        // Map address fields from backend names to frontend names
         setFormData((prev: any) => ({ 
-          ...prev, 
-          ...itrData,
-          name: client.name,
-          pan: client.pan,
-          email: client.email,
-          mobile: client.mobile,
-          aadhaar: client.aadhaar,
-          dob: client.dob
+          ...prev,
+          // Use client data as fallback only if form data doesn't have it
+          name: itrData.name || client.name,
+          pan: itrData.pan || client.pan,
+          email: itrData.email || client.email,
+          mobile: itrData.mobile || client.mobile,
+          aadhaar: itrData.aadhaar || client.aadhaar,
+          dob: itrData.dob || client.dob,
+          fatherName: itrData.fatherName,
+          age: itrData.age,
+          // Address field mapping: backend -> frontend
+          flatNo: itrData.flatDoorNo || itrData.flatNo,
+          premises: itrData.premisesName || itrData.premises,
+          road: itrData.roadStreet || itrData.road,
+          area: itrData.area,
+          city: itrData.townCity || itrData.city,
+          state: itrData.state,
+          pincode: itrData.pinCode || itrData.pincode,
+          // Spread all other form data
+          ...itrData
         }));
       })
       .catch(err => toast.error(err.message))
@@ -72,12 +122,78 @@ export default function ITRComputationPage() {
 
   useEffect(() => {
     autoDetectITRForm();
-  }, [formData.basic, formData.bizTurnover, formData.bpNetProfit, formData.stcgPre, formData.stcgPost, formData.ltcgPre, formData.ltcgPost, formData.grossRent, formData.interestFD, formData.dividends]);
+  }, [
+    formData.basic, 
+    formData.bizTurnover, 
+    formData.bpNetProfit, 
+    formData.bizPresumptive,
+    formData.stcgPre, 
+    formData.stcgPost, 
+    formData.stcgOther,
+    formData.ltcgPre, 
+    formData.ltcgPost, 
+    formData.ltcgOther,
+    formData.vdaGains,
+    formData.grossRent, 
+    formData.interestFD, 
+    formData.dividends,
+    formData.isDirector,
+    formData.holdsUnlistedShares,
+    formData.agriculturalIncome,
+    formData.residentialStatus,
+    formData.bfLossHP,
+    formData.bfLossBusiness,
+    formData.bfLossSTCG,
+    formData.bfLossLTCG
+  ]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await itrApi.saveFormData(Number(clientId), year!, formData);
+      // Clear legacy fields if using new array-based system
+      const dataToSave = { ...formData };
+      
+      // Clear legacy TDS/SAT fields
+      if (dataToSave.tdsEntries && dataToSave.tdsEntries.length >= 0) {
+        dataToSave.tdsS192 = 0;
+        dataToSave.tds194A = 0;
+        dataToSave.tdsOther = 0;
+      }
+      if (dataToSave.selfAssessmentTaxEntries && dataToSave.selfAssessmentTaxEntries.length >= 0) {
+        dataToSave.selfTax = 0;
+      }
+      
+      // Clear legacy salary fields if using multi-employer
+      if (dataToSave.employerEntries && dataToSave.employerEntries.length > 0) {
+        dataToSave.basic = 0;
+        dataToSave.da = 0;
+        dataToSave.hra = 0;
+        dataToSave.bonus = 0;
+      }
+      
+      // Clear legacy CG fields if using transaction-based
+      if (dataToSave.capitalGainTransactions && dataToSave.capitalGainTransactions.length > 0) {
+        dataToSave.stcgEquityPre = 0;
+        dataToSave.stcgEquityPost = 0;
+        dataToSave.stcgOtherSlab = 0;
+        dataToSave.ltcg112APre = 0;
+        dataToSave.ltcg112APost = 0;
+        dataToSave.ltcgOtherPre = 0;
+        dataToSave.ltcgOtherPost = 0;
+      }
+      
+      // Clear legacy interest fields if using bank-wise
+      if (dataToSave.bankInterestEntries && dataToSave.bankInterestEntries.length > 0) {
+        dataToSave.interestSB = 0;
+        dataToSave.interestFD = 0;
+      }
+      
+      // Clear legacy 80G field if using donation entries
+      if (dataToSave.donationEntries && dataToSave.donationEntries.length > 0) {
+        dataToSave.s80G = 0;
+      }
+      
+      await itrApi.saveFormData(Number(clientId), year!, dataToSave);
       toast.success('Saved ✓');
     } catch (err: any) {
       toast.error(err.message);
@@ -109,29 +225,35 @@ export default function ITRComputationPage() {
         setFormData((prev: any) => ({ ...prev, ...populated }));
         toast.dismiss();
         toast.success('Form 16 imported and auto-populated');
-      } else if (type === 'ais-pdf' || type === 'tis-pdf' || type === '26as' || type === 'prefill') {
-        let data;
-        
-        // Format DOB for PDF decryption (DDMMYYYY)
-        const formatDobForDecryption = (dob: string) => {
-          // Assuming dob is in YYYY-MM-DD format from backend
-          const [year, month, day] = dob.split('-');
-          return `${day}${month}${year}`;
-        };
+      } else if (type === 'ais-pdf' || type === 'tis-pdf' || type === '26as-pdf' || type === 'prefill') {
+        let data: any;
         
         const pan = clientData?.pan;
-        const dob = clientData?.dob ? formatDobForDecryption(clientData.dob) : undefined;
+        const dob = clientData?.dob; // YYYY-MM-DD format
+        
+        // Validate PAN and DOB are available for encrypted PDFs
+        if ((type === 'ais-pdf' || type === 'tis-pdf' || type === '26as-pdf') && (!pan || !dob)) {
+          toast.dismiss();
+          toast.error('Client PAN and Date of Birth are required for importing encrypted ITD documents');
+          setShowImportMenu(false);
+          return;
+        }
         
         if (type === 'prefill') {
-          // For prefill, parse JSON directly on frontend to avoid backend DTO mismatch
           const text = await file.text();
           data = JSON.parse(text);
         } else if (type === 'ais-pdf') {
-          data = await import('../lib/api/integration').then(m => m.integrationApi.importAIS(file, pan, dob));
+          const { integrationApi } = await import('../lib/api/integration');
+          data = await integrationApi.importAIS(file, pan!, dob!);
+          setImportedAIS(data);
         } else if (type === 'tis-pdf') {
-          data = await import('../lib/api/integration').then(m => m.integrationApi.importTIS(file, pan, dob));
-        } else if (type === '26as') {
-          data = await import('../lib/api/integration').then(m => m.integrationApi.import26AS(file, pan, dob));
+          const { integrationApi } = await import('../lib/api/integration');
+          data = await integrationApi.importTIS(file, pan!, dob!);
+          setImportedTIS(data);
+        } else if (type === '26as-pdf') {
+          const { integrationApi } = await import('../lib/api/integration');
+          data = await integrationApi.import26AS(file, pan!, dob!);
+          setImported26AS(data);
         }
         
         // Validate PAN matches
@@ -143,85 +265,99 @@ export default function ITRComputationPage() {
           return;
         }
         
-        // Auto-populate personal info and income data
-        if (type === 'ais-pdf' || type === 'tis-pdf') {
-          const populated = await import('../lib/api/integration').then(m => m.integrationApi.autoPopulateFromAIS(formData, data));
+        // Auto-populate from all available documents
+        if (type === 'ais-pdf' || type === 'tis-pdf' || type === '26as-pdf') {
+          const { integrationApi } = await import('../lib/api/integration');
+          
+          // Auto-populate from all available documents
+          const populated = await integrationApi.autoPopulateAll(
+            Number(clientId),
+            year!,
+            type === 'ais-pdf' ? data : importedAIS,
+            type === '26as-pdf' ? data : imported26AS,
+            type === 'tis-pdf' ? data : importedTIS
+          );
+          
           setFormData((prev: any) => ({ ...prev, ...populated }));
+          
+          // If both AIS and 26AS available, check reconciliation
+          const ais = type === 'ais-pdf' ? data : importedAIS;
+          const f26as = type === '26as-pdf' ? data : imported26AS;
+          const tis = type === 'tis-pdf' ? data : importedTIS;
+          
+          if (ais && f26as) {
+            const report = await integrationApi.getReconciliationReport(ais, f26as, tis);
+            if (report.hasDiscrepancies) {
+              toast.dismiss();
+              toast.error(`${type.toUpperCase()} imported. Reconciliation needed - ${report.items.length} discrepancies found.`);
+              setShowImportMenu(false);
+              return;
+            }
+          }
+          
+          await itrApi.saveFormData(Number(clientId), year!, { ...formData, ...populated });
+          toast.dismiss();
+          toast.success(`${type.toUpperCase()} imported and auto-populated successfully!`);
         } else if (type === 'prefill') {
-          // ITD Prefill - map actual JSON structure
+          // ITD Prefill - use backend auto-populate API
           console.log('Prefill data received:', data);
           
-          const mappedData: any = {};
+          const { integrationApi } = await import('../lib/api/integration');
+          const populated = await integrationApi.autoPopulateFromPrefill(formData, data);
           
-          // Personal Info
-          if (data.personalInfo) {
-            const pi = data.personalInfo;
-            mappedData.pan = pi.pan || pi.assesseVerPan || formData.pan;
-            mappedData.name = pi.assesseeVerName || pi.assesseeName?.firstName + ' ' + pi.assesseeName?.surNameOrOrgName || formData.name;
-            mappedData.dob = pi.dob || formData.dob;
-            mappedData.email = pi.address?.emailAddress || formData.email;
-            mappedData.mobile = pi.address?.mobileNo?.toString() || formData.mobile;
+          console.log('Auto-populated data:', populated);
+          
+          // Check for reconciliation result
+          if (populated.reconciliationResult) {
+            setReconciliationResult(populated.reconciliationResult);
             
-            // Decode base64 aadhaar
-            if (pi.aadhaarCardNo) {
-              try {
-                const decoded = atob(pi.aadhaarCardNo);
-                mappedData.aadhaar = decoded.replace(/\D/g, '').slice(0, 12);
-              } catch {
-                mappedData.aadhaar = pi.aadhaarCardNo;
-              }
-            }
-            
-            // Address fields
-            if (pi.address) {
-              mappedData.flatNo = pi.address.residenceNo || '';
-              mappedData.premises = pi.address.residenceName || '';
-              mappedData.road = pi.address.roadOrStreet || '';
-              mappedData.area = pi.address.localityOrArea || '';
-              mappedData.city = pi.address.cityOrTownOrDistrict || '';
-              mappedData.pincode = pi.address.pinCode?.toString() || '';
+            // If there are discrepancies, show modal
+            if (populated.reconciliationResult.discrepancies && 
+                populated.reconciliationResult.discrepancies.length > 0) {
+              toast.dismiss();
+              toast(`Import complete with ${populated.reconciliationResult.discrepancies.length} discrepancy(ies) - review required`, { icon: '⚠️' });
+              setShowReconciliationModal(true);
             }
           }
           
-          // Income from insights section
-          if (data.insights) {
-            mappedData.interestSB = data.insights.intrstFrmSavingBank || 0;
-            mappedData.interestFD = data.insights.intrstFrmTermDeposit || 0;
-            
-            if (data.insights.scheduleOS?.incOthThanOwnRaceHorse) {
-              mappedData.dividends = data.insights.scheduleOS.incOthThanOwnRaceHorse.dividendGross || 0;
-            }
-            
-            // Deductions
-            if (data.insights.UsrDeductUndChapVIAType) {
-              mappedData.s80TTA = data.insights.UsrDeductUndChapVIAType.Section80TTB || 0;
-            }
-          }
+          // Map backend field names to frontend field names for Personal Info tab
+          const updatedFormData = {
+            ...formData,
+            ...populated,
+            // Personal Info - overwrite all fields from prefill
+            name: populated.name || formData.name,
+            pan: populated.pan || formData.pan,
+            aadhaar: populated.aadhaar || formData.aadhaar,
+            dob: populated.dob || formData.dob,
+            age: populated.age || formData.age,
+            fatherName: populated.fatherName || formData.fatherName,
+            // Contact details
+            email: populated.email || formData.email,
+            mobile: populated.mobile || formData.mobile,
+            // Address mapping: backend uses flatDoorNo, roadStreet, etc. -> frontend uses flatNo, road, etc.
+            flatNo: populated.flatDoorNo || populated.flatNo || formData.flatNo,
+            premises: populated.premisesName || populated.premises || formData.premises,
+            road: populated.roadStreet || populated.road || formData.road,
+            area: populated.area || formData.area,
+            city: populated.townCity || populated.city || formData.city,
+            state: populated.state || formData.state,
+            pincode: populated.pinCode || populated.pincode || formData.pincode,
+            // Residential status
+            residentialStatus: populated.residentialStatus || formData.residentialStatus,
+            // Employer details
+            employerName: populated.employerName || (populated.salaryIncome?.employers?.[0]?.employerName),
+            employerTAN: populated.employerTAN || (populated.salaryIncome?.employers?.[0]?.employerTAN),
+            // TDS entries
+            tdsEntries: populated.tdsEntries || populated.taxPayments?.tdsOnSalary || [],
+            // Self assessment tax entries
+            selfAssessmentTaxEntries: populated.selfAssessmentTaxEntries || [],
+            // Bank account details
+            bankAccountDetails: populated.bankAccountDetails || []
+          };
           
-          // TDS from form26as
-          if (data.form26as) {
-            if (data.form26as.tdsOnOthThanSals?.tdSonOthThanSal) {
-              const tds = data.form26as.tdsOnOthThanSals.tdSonOthThanSal[0];
-              if (tds) {
-                mappedData.tds194A = tds.taxDeductCreditDtls?.taxClaimedOwnHands || 0;
-              }
-            }
-            
-            // Tax payments
-            if (data.form26as.taxPayments?.taxPayment) {
-              const payment = data.form26as.taxPayments.taxPayment[0];
-              if (payment) {
-                mappedData.selfTax = payment.amt || 0;
-              }
-            }
-          }
+          setFormData(updatedFormData);
           
-          console.log('Mapped data:', mappedData);
-          
-          setFormData((prev: any) => ({ 
-            ...prev, 
-            ...mappedData
-          }));
+          await itrApi.saveFormData(Number(clientId), year!, updatedFormData);
         } else {
           setFormData((prev: any) => ({ ...prev, ...data }));
         }
@@ -236,27 +372,194 @@ export default function ITRComputationPage() {
     }
   };
 
+  const handleReconciliationResolve = (discrepancy: any, action: 'KEEP_EXISTING' | 'USE_NEW' | 'MANUAL') => {
+    if (action === 'MANUAL') {
+      toast('Please review and update employer details manually in the Salary tab', { icon: 'ℹ️' });
+      setShowReconciliationModal(false);
+      return;
+    }
+
+    // Update employer entries based on action
+    const updatedEntries = formData.employerEntries.map((entry: any) => {
+      const matchingDiscrepancy = reconciliationResult?.discrepancies?.find(
+        (d: any) => d.employerTAN === entry.employerTAN
+      );
+      
+      if (matchingDiscrepancy && matchingDiscrepancy.employerTAN === discrepancy.employerTAN) {
+        if (action === 'USE_NEW') {
+          // Apply new values from discrepancy
+          const updated = { ...entry };
+          matchingDiscrepancy.fieldDiscrepancies.forEach((field: any) => {
+            const fieldKey = field.fieldName.toLowerCase().replace(/\s+/g, '');
+            if (fieldKey === 'basicsalary') updated.basic = field.newValue;
+            else if (fieldKey === 'da') updated.da = field.newValue;
+            else if (fieldKey === 'hra') updated.hra = field.newValue;
+            else if (fieldKey === 'bonus') updated.bonus = field.newValue;
+            else if (fieldKey === 'allowances') updated.allowances = field.newValue;
+            else if (fieldKey === 'perquisites') updated.perquisites = field.newValue;
+            else if (fieldKey === 'professionaltax') updated.professionalTax = field.newValue;
+            else if (fieldKey === 'tdsdeducted') updated.tdsDeducted = field.newValue;
+            else if (fieldKey === 'grosssalary') updated.grossSalary = field.newValue;
+            else if (fieldKey === 'netsalary') updated.netSalary = field.newValue;
+          });
+          return updated;
+        }
+        // KEEP_EXISTING - no changes needed
+      }
+      return entry;
+    });
+
+    setFormData({ ...formData, employerEntries: updatedEntries });
+    toast.success(`Applied ${action === 'USE_NEW' ? 'new' : 'existing'} values for ${discrepancy.employerName}`);
+    
+    // Remove resolved discrepancy
+    const remainingDiscrepancies = reconciliationResult.discrepancies.filter(
+      (d: any) => d.employerTAN !== discrepancy.employerTAN
+    );
+    
+    if (remainingDiscrepancies.length === 0) {
+      setShowReconciliationModal(false);
+      toast.success('All discrepancies resolved!');
+    } else {
+      setReconciliationResult({ ...reconciliationResult, discrepancies: remainingDiscrepancies });
+    }
+  };
+
   const autoDetectITRForm = () => {
-    // Auto-detect based on income sources
-    const hasBusinessIncome = formData.bizTurnover > 0 || formData.bpNetProfit > 0;
-    const hasCapitalGains = formData.stcgPre > 0 || formData.stcgPost > 0 || formData.ltcgPre > 0 || formData.ltcgPost > 0;
-    const hasHouseProperty = formData.hpType === 'letout' && formData.grossRent > 0;
-    const totalIncome = formData.basic + formData.interestFD + formData.dividends;
+    // Comprehensive ITR form detection based on CBDT rules
+    const hasBusinessIncome = (formData.bizTurnover || 0) > 0 || (formData.bpNetProfit || 0) > 0;
+    const hasPresumptiveIncome = hasBusinessIncome && formData.bizPresumptive && formData.bizPresumptive !== 'Regular';
+    
+    const hasCapitalGains = 
+      (formData.stcgPre || 0) > 0 || 
+      (formData.stcgPost || 0) > 0 || 
+      (formData.stcgOther || 0) > 0 ||
+      (formData.ltcgPre || 0) > 0 || 
+      (formData.ltcgPost || 0) > 0 || 
+      (formData.ltcgOther || 0) > 0 ||
+      (formData.vdaGains || 0) > 0;
+    
+    const hasMultipleProperties = formData.hpType === 'letout' && (formData.grossRent || 0) > 0;
+    const hasForeignIncome = (formData.foreignIncome || 0) > 0;
+    const totalIncome = taxResult.totalIncome || 0;
+    const agriculturalIncome = formData.agriculturalIncome || 0;
+    const isDirector = formData.isDirector || false;
+    const hasUnlistedShares = formData.holdsUnlistedShares || false;
+    const isNonResident = formData.residentialStatus && formData.residentialStatus !== 'ROR';
+    const hasBFLoss = (formData.bfLossHP || 0) > 0 || (formData.bfLossBusiness || 0) > 0 || 
+                      (formData.bfLossSTCG || 0) > 0 || (formData.bfLossLTCG || 0) > 0;
 
     let detectedForm = 'ITR-1';
-    if (hasBusinessIncome && formData.bizPresumptive !== 'Regular') {
+    let reason = '';
+
+    // Priority 1: ITR-4 (Presumptive taxation)
+    if (hasPresumptiveIncome) {
       detectedForm = 'ITR-4';
-    } else if (hasBusinessIncome) {
+      reason = 'Presumptive income under 44AD/44ADA';
+    }
+    // Priority 2: ITR-3 (Business/Professional income - non-presumptive)
+    else if (hasBusinessIncome) {
       detectedForm = 'ITR-3';
-    } else if (hasCapitalGains || hasHouseProperty || totalIncome > 5000000) {
+      reason = 'Business or professional income';
+    }
+    // Priority 3-10: ITR-2 conditions
+    else if (hasCapitalGains) {
       detectedForm = 'ITR-2';
+      reason = 'Capital gains from investments';
+    }
+    else if (hasMultipleProperties) {
+      detectedForm = 'ITR-2';
+      reason = 'Multiple house properties';
+    }
+    else if (hasForeignIncome) {
+      detectedForm = 'ITR-2';
+      reason = 'Foreign income or assets';
+    }
+    else if (totalIncome > 5000000) {
+      detectedForm = 'ITR-2';
+      reason = 'Total income exceeds ₹50 lakhs';
+    }
+    else if (isNonResident) {
+      detectedForm = 'ITR-2';
+      reason = 'Non-resident or RNOR status';
+    }
+    else if (isDirector) {
+      detectedForm = 'ITR-2';
+      reason = 'Director in a company';
+    }
+    else if (hasUnlistedShares) {
+      detectedForm = 'ITR-2';
+      reason = 'Holds unlisted equity shares';
+    }
+    else if (agriculturalIncome > 5000) {
+      detectedForm = 'ITR-2';
+      reason = 'Agricultural income exceeds ₹5,000';
+    }
+    else if (hasBFLoss) {
+      detectedForm = 'ITR-2';
+      reason = 'Brought forward losses';
+    }
+    else {
+      reason = 'Salary with simple income structure';
     }
 
-    // Only show toast if form actually changed
+    // Only update if form changed
     if (detectedForm !== itrForm) {
       setItrForm(detectedForm);
-      toast(`Auto-detected: ${detectedForm}`, { icon: '🔍' });
+      toast(`Auto-detected: ${detectedForm} - ${reason}`, { icon: '🔍', duration: 4000 });
     }
+  };
+
+  const validateITRFormSelection = (selectedForm: string) => {
+    // Validate if manually selected form is eligible
+    const hasBusinessIncome = (formData.bizTurnover || 0) > 0 || (formData.bpNetProfit || 0) > 0;
+    const hasPresumptiveIncome = hasBusinessIncome && formData.bizPresumptive && formData.bizPresumptive !== 'Regular';
+    
+    const hasCapitalGains = 
+      (formData.stcgPre || 0) > 0 || 
+      (formData.stcgPost || 0) > 0 || 
+      (formData.stcgOther || 0) > 0 ||
+      (formData.ltcgPre || 0) > 0 || 
+      (formData.ltcgPost || 0) > 0 || 
+      (formData.ltcgOther || 0) > 0 ||
+      (formData.vdaGains || 0) > 0;
+    
+    const totalIncome = taxResult.totalIncome || 0;
+    const agriculturalIncome = formData.agriculturalIncome || 0;
+    const isDirector = formData.isDirector || false;
+    const hasUnlistedShares = formData.holdsUnlistedShares || false;
+    const isNonResident = formData.residentialStatus && formData.residentialStatus !== 'ROR';
+    const hasBFLoss = (formData.bfLossHP || 0) > 0 || (formData.bfLossBusiness || 0) > 0 || 
+                      (formData.bfLossSTCG || 0) > 0 || (formData.bfLossLTCG || 0) > 0;
+
+    const errors: string[] = [];
+
+    if (selectedForm === 'ITR-1') {
+      if (totalIncome > 5000000) errors.push('Total income exceeds ₹50 lakhs');
+      if (hasCapitalGains) errors.push('Capital gains not allowed in ITR-1');
+      if (hasBusinessIncome) errors.push('Business income not allowed in ITR-1');
+      if (agriculturalIncome > 5000) errors.push('Agricultural income exceeds ₹5,000');
+      if (isDirector) errors.push('Directors must file ITR-2 or higher');
+      if (hasUnlistedShares) errors.push('Unlisted shares holders must file ITR-2');
+      if (isNonResident) errors.push('Non-residents must file ITR-2');
+      if (hasBFLoss) errors.push('Brought forward losses not allowed in ITR-1');
+    }
+    else if (selectedForm === 'ITR-2') {
+      if (hasBusinessIncome) errors.push('Business income requires ITR-3 or ITR-4');
+    }
+    else if (selectedForm === 'ITR-3') {
+      if (!hasBusinessIncome) errors.push('ITR-3 is only for business/professional income');
+      if (hasPresumptiveIncome) errors.push('Presumptive income should use ITR-4');
+    }
+    else if (selectedForm === 'ITR-4') {
+      if (!hasPresumptiveIncome) errors.push('ITR-4 is only for presumptive taxation (44AD/44ADA)');
+    }
+
+    if (errors.length > 0) {
+      toast.error(`ITR-${selectedForm.split('-')[1]} not eligible:\n${errors.join('\n')}`, { duration: 6000 });
+      return false;
+    }
+    return true;
   };
 
   if (loading) {
@@ -272,11 +575,9 @@ export default function ITRComputationPage() {
     '💼 Salary Income',
     '🏠 House Property',
     '📈 Capital Gains',
-    '🏪 Business',
+    '🏪 Business or Profession',
     '💰 Other Sources',
-    '₿ VDA / Crypto',
     '➖ Deductions',
-    '📉 Losses B/F',
     '🧾 TDS & Advance Tax',
     '🧮 Tax Computation'
   ];
@@ -318,7 +619,15 @@ export default function ITRComputationPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <select
               value={itrForm}
-              onChange={(e) => setItrForm(e.target.value)}
+              onChange={(e) => {
+                const newForm = e.target.value;
+                if (validateITRFormSelection(newForm)) {
+                  setItrForm(newForm);
+                } else {
+                  // Revert to previous value if validation fails
+                  e.target.value = itrForm;
+                }
+              }}
               style={{
                 padding: '6px 12px',
                 border: '1px solid var(--border)',
@@ -546,26 +855,120 @@ export default function ITRComputationPage() {
         border: '1px solid var(--border)'
       }}>
         {activeTab === 0 && <PersonalInfoTab formData={formData} setFormData={setFormData} />}
-        {activeTab === 1 && <SalaryTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
+        {activeTab === 1 && <SalaryTab formData={formData} setFormData={setFormData} taxResult={taxResult} ayParam={ayParam} />}
         {activeTab === 2 && <HousePropertyTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
         {activeTab === 3 && <CapitalGainsTab formData={formData} setFormData={setFormData} taxResult={taxResult} year={year!} />}
         {activeTab === 4 && <BusinessTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
         {activeTab === 5 && <OtherSourcesTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
-        {activeTab === 6 && <VDATab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
-        {activeTab === 7 && <DeductionsTab formData={formData} setFormData={setFormData} regime={regime} taxResult={taxResult} />}
-        {activeTab === 8 && <LossesTab formData={formData} setFormData={setFormData} />}
-        {activeTab === 9 && <TDSTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
-        {activeTab === 10 && <TaxComputationTab taxResult={taxResult} regime={regime} />}
+        {activeTab === 6 && <DeductionsTab formData={formData} setFormData={setFormData} regime={regime} taxResult={taxResult} />}
+        {activeTab === 7 && <TDSTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
+        {activeTab === 8 && <TaxComputationTab taxResult={taxResult} regime={regime} itrForm={itrForm} />}
       </div>
+
+      {/* Employer Reconciliation Modal */}
+      <EmployerReconciliationModal
+        show={showReconciliationModal}
+        result={reconciliationResult}
+        onClose={() => setShowReconciliationModal(false)}
+        onResolve={handleReconciliationResolve}
+      />
     </div>
   );
 }
 
-function Field({ label, value, onChange, computed, prefix = '₹', type = 'number' }: any) {
+function Field({ label, value, onChange, computed, prefix = '₹', type = 'number', required = false }: any) {
+  const [displayValue, setDisplayValue] = React.useState('');
+  const [isFocused, setIsFocused] = React.useState(false);
+
+  // Format number with Indian comma style (lakhs/crores)
+  const formatIndianNumber = (num: number) => {
+    if (num == null || num === 0) return '0';
+    // Round to integer to avoid floating point precision issues
+    const rounded = Math.round(num);
+    const numStr = rounded.toString();
+    
+    // Indian formatting: last 3 digits, then groups of 2
+    let formatted = '';
+    const len = numStr.length;
+    
+    if (len <= 3) {
+      formatted = numStr;
+    } else {
+      formatted = numStr.slice(-3);
+      let remaining = numStr.slice(0, -3);
+      
+      while (remaining.length > 0) {
+        if (remaining.length <= 2) {
+          formatted = remaining + ',' + formatted;
+          remaining = '';
+        } else {
+          formatted = remaining.slice(-2) + ',' + formatted;
+          remaining = remaining.slice(0, -2);
+        }
+      }
+    }
+    
+    return formatted;
+  };
+
+  // Remove commas for parsing
+  const parseIndianNumber = (str: string) => {
+    return str.replace(/,/g, '');
+  };
+
+  React.useEffect(() => {
+    if (type === 'number' && !isFocused) {
+      setDisplayValue(value == null || value === 0 ? '' : formatIndianNumber(value));
+    } else if (type !== 'number') {
+      setDisplayValue(value || '');
+    }
+  }, [value, type, isFocused]);
+
+  const handleFocus = (e: any) => {
+    setIsFocused(true);
+    if (type === 'number') {
+      // Clear the field if it's 0 or empty
+      if (value === 0 || value === '') {
+        setDisplayValue('');
+        e.target.value = '';
+      } else {
+        // Show raw number without commas for editing
+        setDisplayValue(value.toString());
+        e.target.value = value.toString();
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+    if (type === 'number') {
+      // Reformat with commas when focus is lost
+      setDisplayValue(value === 0 ? '' : formatIndianNumber(value));
+    }
+  };
+
+  const handleChange = (e: any) => {
+    if (computed) return;
+    
+    if (type === 'number') {
+      const rawValue = parseIndianNumber(e.target.value);
+      // Only allow integers, no decimals
+      const numValue = rawValue === '' ? 0 : Math.round(Number(rawValue));
+      
+      if (!isNaN(numValue)) {
+        setDisplayValue(e.target.value);
+        onChange(numValue);
+      }
+    } else {
+      setDisplayValue(e.target.value);
+      onChange(e.target.value);
+    }
+  };
+
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
-        {label}
+        {label}{required && ' *'}
       </label>
       <div style={{ position: 'relative' }}>
         {prefix && !computed && (
@@ -581,10 +984,13 @@ function Field({ label, value, onChange, computed, prefix = '₹', type = 'numbe
           </span>
         )}
         <input
-          type={type}
-          value={value}
-          onChange={(e) => !computed && onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
+          type="text"
+          value={computed ? (type === 'number' ? formatIndianNumber(value) : value) : displayValue}
+          onChange={handleChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           readOnly={computed}
+          placeholder={type === 'number' && !computed ? '0' : ''}
           style={{
             width: '100%',
             padding: '8px 12px',
@@ -632,6 +1038,94 @@ function PersonalInfoTab({ formData, setFormData }: any) {
         <Field label="Date of Birth / Formation" value={formData.dob || ''} onChange={handleDobChange} type="date" prefix="" />
         <Field label="Age as on 31/03" value={formData.age} computed prefix="" />
         <Field label="Status" value={formData.status || 'Individual'} onChange={(v: any) => setFormData({ ...formData, status: v })} type="text" prefix="" />
+      </div>
+
+      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
+        CBDT Mandatory Fields
+      </h3>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+        <Field label="Father's Name *" value={formData.fatherName || ''} onChange={(v: any) => setFormData({ ...formData, fatherName: v })} type="text" prefix="" required />
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            Gender *
+          </label>
+          <select
+            value={formData.gender || 'M'}
+            onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              fontSize: 13
+            }}
+          >
+            <option value="M">Male</option>
+            <option value="F">Female</option>
+            <option value="T">Transgender</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            Marital Status *
+          </label>
+          <select
+            value={formData.maritalStatus || 'SINGLE'}
+            onChange={(e) => setFormData({ ...formData, maritalStatus: e.target.value })}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              fontSize: 13
+            }}
+          >
+            <option value="SINGLE">Single</option>
+            <option value="MARRIED">Married</option>
+            <option value="DIVORCED">Divorced</option>
+            <option value="WIDOWED">Widowed</option>
+          </select>
+        </div>
+        <Field label="Nationality *" value={formData.nationality || 'INDIA'} onChange={(v: any) => setFormData({ ...formData, nationality: v })} type="text" prefix="" required />
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            Director in Company?
+          </label>
+          <select
+            value={formData.isDirector ? 'Y' : 'N'}
+            onChange={(e) => setFormData({ ...formData, isDirector: e.target.value === 'Y' })}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              fontSize: 13
+            }}
+          >
+            <option value="N">No</option>
+            <option value="Y">Yes (Triggers ITR-2)</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            Holds Unlisted Shares?
+          </label>
+          <select
+            value={formData.holdsUnlistedShares ? 'Y' : 'N'}
+            onChange={(e) => setFormData({ ...formData, holdsUnlistedShares: e.target.value === 'Y' })}
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              fontSize: 13
+            }}
+          >
+            <option value="N">No</option>
+            <option value="Y">Yes (Triggers ITR-2)</option>
+          </select>
+        </div>
+        <Field label="Agricultural Income (>₹5,000 triggers ITR-2)" value={formData.agriculturalIncome || 0} onChange={(v: any) => setFormData({ ...formData, agriculturalIncome: v })} />
       </div>
 
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
@@ -732,66 +1226,19 @@ function PersonalInfoTab({ formData, setFormData }: any) {
   );
 }
 
-function SalaryTab({ formData, setFormData, taxResult }: any) {
+function SalaryTab({ formData, setFormData, ayParam }: any) {
   return (
     <div>
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Employer Details (CBDT Mandatory)
+        Income from Salary (CBDT Schedule S - Section 15-17)
       </h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Field label="Employer Name *" value={formData.employerName || ''} onChange={(v: any) => setFormData({ ...formData, employerName: v })} type="text" prefix="" />
-        <Field label="Employer TAN *" value={formData.employerTAN || ''} onChange={(v: any) => setFormData({ ...formData, employerTAN: v })} type="text" prefix="" />
-        <Field label="Employer Address *" value={formData.employerAddress || ''} onChange={(v: any) => setFormData({ ...formData, employerAddress: v })} type="text" prefix="" />
-        <div>
-          <label style={{ display: 'block', marginBottom: 6, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
-            Nature of Employment *
-          </label>
-          <select
-            value={formData.natureOfEmployment || 'OTH'}
-            onChange={(e) => setFormData({ ...formData, natureOfEmployment: e.target.value })}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              fontSize: 13
-            }}
-          >
-            <option value="GOV">Government</option>
-            <option value="PSU">PSU</option>
-            <option value="PE">Pensioners</option>
-            <option value="OTH">Others</option>
-          </select>
-        </div>
-      </div>
-
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Salary Components
-      </h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
-        <Field label="Basic Salary" value={formData.basic} onChange={(v: any) => setFormData({ ...formData, basic: v })} />
-        <Field label="DA" value={formData.da} onChange={(v: any) => setFormData({ ...formData, da: v })} />
-        <Field label="HRA Received" value={formData.hra} onChange={(v: any) => setFormData({ ...formData, hra: v })} />
-        <Field label="Bonus/Incentives" value={formData.bonus} onChange={(v: any) => setFormData({ ...formData, bonus: v })} />
-        <Field label="Special Allowances" value={formData.allowances} onChange={(v: any) => setFormData({ ...formData, allowances: v })} />
-        <Field label="Perquisites" value={formData.perquisites} onChange={(v: any) => setFormData({ ...formData, perquisites: v })} />
-        <Field label="Gross Salary" value={taxResult.grossSalary} computed />
-        <Field label="HRA Rent Paid p.a." value={formData.hraRent} onChange={(v: any) => setFormData({ ...formData, hraRent: v })} />
-        <Field label="Professional Tax" value={formData.profTax} onChange={(v: any) => setFormData({ ...formData, profTax: v })} />
-        <Field label="HRA Exempt" value={taxResult.hraExempt} computed />
-        <Field label="Standard Deduction" value={75000} computed />
-        <Field label="Net Taxable Salary" value={taxResult.netSalary} computed />
-      </div>
-      <div style={{ marginTop: 12 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-          <input
-            type="checkbox"
-            checked={formData.hraMetro}
-            onChange={(e) => setFormData({ ...formData, hraMetro: e.target.checked })}
-          />
-          Metro City (50% exemption)
-        </label>
-      </div>
+      
+      {/* Multi-Employer Entry Manager */}
+      <EmployerEntryManager
+        entries={formData.employerEntries || []}
+        onChange={(entries) => setFormData({ ...formData, employerEntries: entries })}
+        assessmentYear={ayParam || '2025-26'}
+      />
     </div>
   );
 }
@@ -800,27 +1247,21 @@ function HousePropertyTab({ formData, setFormData, taxResult }: any) {
   return (
     <div>
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
+        Income from House Property (CBDT Schedule HP - Section 22-27)
+      </h3>
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
         Property Details (CBDT Mandatory)
-      </h3>
+      </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Field label="Property Address *" value={formData.hpAddress || ''} onChange={(v: any) => setFormData({ ...formData, hpAddress: v })} type="text" prefix="" />
-        <Field label="City *" value={formData.hpCity || ''} onChange={(v: any) => setFormData({ ...formData, hpCity: v })} type="text" prefix="" />
-        <Field label="PIN Code *" value={formData.hpPincode || ''} onChange={(v: any) => setFormData({ ...formData, hpPincode: v })} type="text" prefix="" />
-        <Field label="Ownership % *" value={formData.hpOwnershipPct || 100} onChange={(v: any) => setFormData({ ...formData, hpOwnershipPct: v })} prefix="" />
+        <Field label="Property Address" value={formData.hpAddress || ''} onChange={(v: any) => setFormData({ ...formData, hpAddress: v })} type="text" prefix="" required />
+        <Field label="City" value={formData.hpCity || ''} onChange={(v: any) => setFormData({ ...formData, hpCity: v })} type="text" prefix="" required />
+        <Field label="PIN Code" value={formData.hpPincode || ''} onChange={(v: any) => setFormData({ ...formData, hpPincode: v })} type="text" prefix="" required />
+        <Field label="Ownership %" value={formData.hpOwnershipPct || 100} onChange={(v: any) => setFormData({ ...formData, hpOwnershipPct: v })} prefix="" required />
       </div>
 
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Co-owner Details (if applicable)
-      </h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
-        <Field label="Co-owner Name" value={formData.hpCoOwnerName || ''} onChange={(v: any) => setFormData({ ...formData, hpCoOwnerName: v })} type="text" prefix="" />
-        <Field label="Co-owner PAN" value={formData.hpCoOwnerPAN || ''} onChange={(v: any) => setFormData({ ...formData, hpCoOwnerPAN: v })} type="text" prefix="" />
-        <Field label="Co-owner Share %" value={formData.hpCoOwnerPct || 0} onChange={(v: any) => setFormData({ ...formData, hpCoOwnerPct: v })} prefix="" />
-      </div>
-
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
         Property Type & Income
-      </h3>
+      </h4>
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 500 }}>Property Type</label>
         <div style={{ display: 'flex', gap: 12 }}>
@@ -844,7 +1285,7 @@ function HousePropertyTab({ formData, setFormData, taxResult }: any) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
         {formData.hpType === 'letout' ? (
           <>
             <Field label="Gross Annual Rent" value={formData.grossRent} onChange={(v: any) => setFormData({ ...formData, grossRent: v })} />
@@ -854,14 +1295,21 @@ function HousePropertyTab({ formData, setFormData, taxResult }: any) {
             <Field label="Tenant PAN" value={formData.hpTenantPAN || ''} onChange={(v: any) => setFormData({ ...formData, hpTenantPAN: v })} type="text" prefix="" />
           </>
         ) : (
-          <Field label="SOP Loan Interest (max ₹2L)" value={formData.sopLoanInt} onChange={(v: any) => setFormData({ ...formData, sopLoanInt: v })} />
+          <Field label="SOP Loan Interest (max 2L)" value={formData.sopLoanInt} onChange={(v: any) => setFormData({ ...formData, sopLoanInt: v })} />
         )}
         <Field label="Net HP Income" value={taxResult.hpIncome} computed />
       </div>
 
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginTop: 24, marginBottom: 16, color: 'var(--text-secondary)' }}>
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+        Brought Forward Losses - House Property
+      </h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+        <Field label="HP Loss B/F (max 2L set-off)" value={formData.bfLossHP || 0} onChange={(v: any) => setFormData({ ...formData, bfLossHP: v })} />
+      </div>
+
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginTop: 24, marginBottom: 16, color: 'var(--text-secondary)' }}>
         Lender Details (if loan exists)
-      </h3>
+      </h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <Field label="Lender Name" value={formData.hpLenderName || ''} onChange={(v: any) => setFormData({ ...formData, hpLenderName: v })} type="text" prefix="" />
         <Field label="Lender PAN" value={formData.hpLenderPAN || ''} onChange={(v: any) => setFormData({ ...formData, hpLenderPAN: v })} type="text" prefix="" />
@@ -873,18 +1321,51 @@ function HousePropertyTab({ formData, setFormData, taxResult }: any) {
 function CapitalGainsTab({ formData, setFormData, taxResult }: any) {
   return (
     <div>
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Short Term Capital Gains</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
+        Income from Capital Gains (CBDT Schedule CG - Section 45-55)
+      </h3>
+      
+      {/* Capital Gains Transaction Manager */}
+      <CapitalGainsEntryManager
+        entries={formData.capitalGainTransactions || []}
+        onChange={(entries) => setFormData({ ...formData, capitalGainTransactions: entries })}
+      />
+      
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginTop: 24, marginBottom: 12, color: 'var(--text-secondary)' }}>
+        Legacy Aggregated Fields (Use transaction-based entry above for CBDT compliance)
+      </h4>
+      
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Short Term Capital Gains</h4>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
         <Field label="Pre 23 Jul 2024 (15%)" value={formData.stcgPre} onChange={(v: any) => setFormData({ ...formData, stcgPre: v })} />
         <Field label="Post 23 Jul 2024 (20%)" value={formData.stcgPost} onChange={(v: any) => setFormData({ ...formData, stcgPost: v })} />
         <Field label="Other Assets (20%)" value={formData.stcgOther} onChange={(v: any) => setFormData({ ...formData, stcgOther: v })} />
       </div>
 
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>Long Term Capital Gains</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Long Term Capital Gains</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
         <Field label="Pre 23 Jul 2024" value={formData.ltcgPre} onChange={(v: any) => setFormData({ ...formData, ltcgPre: v })} />
         <Field label="Post 23 Jul 2024" value={formData.ltcgPost} onChange={(v: any) => setFormData({ ...formData, ltcgPost: v })} />
         <Field label="Other Assets" value={formData.ltcgOther} onChange={(v: any) => setFormData({ ...formData, ltcgOther: v })} />
+      </div>
+
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+        Virtual Digital Assets (Section 115BBH)
+      </h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 20 }}>
+        <Field label="Net VDA Gains" value={formData.vdaGains} onChange={(v: any) => setFormData({ ...formData, vdaGains: v })} />
+        <Field label="VDA Tax @ 30%" value={taxResult.vdaTax} computed />
+      </div>
+      <div style={{ padding: 12, background: 'var(--info-bg)', borderRadius: 6, fontSize: 12, color: 'var(--info)', marginBottom: 20 }}>
+        ℹ️ VDA transactions are taxed at flat 30% with no deductions or set-off allowed as per CBDT rules
+      </div>
+
+      <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
+        Brought Forward Losses - Capital Gains
+      </h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <Field label="STCG Loss B/F" value={formData.bfLossSTCG || 0} onChange={(v: any) => setFormData({ ...formData, bfLossSTCG: v })} />
+        <Field label="LTCG Loss B/F" value={formData.bfLossLTCG || 0} onChange={(v: any) => setFormData({ ...formData, bfLossLTCG: v })} />
         <Field label="Total CG Tax" value={taxResult.cgTax} computed />
       </div>
     </div>

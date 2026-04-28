@@ -9,16 +9,7 @@ import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import FilingPage from './pages/FilingPage';
 import ITRComputationPage from './pages/ITRComputationPage';
-import ReconciliationPage from './pages/ReconciliationPage';
-import SyncPage from './pages/SyncPage';
-import JobsPage from './pages/JobsPage';
-import NoticesPage from './pages/NoticesPage';
-import CalendarPage from './pages/CalendarPage';
-import TasksPage from './pages/TasksPage';
-import BillingPage from './pages/BillingPage';
-import AccountingPage from './pages/AccountingPage';
-import ReportsPage from './pages/ReportsPage';
-import CommunicationPage from './pages/CommunicationPage';
+import AdvancedTaxPage from './pages/AdvancedTaxPage';
 
 export default function App() {
   return (
@@ -35,16 +26,7 @@ export default function App() {
               <Route path="/clients" element={<ClientsPage />} />
               <Route path="/filing" element={<FilingPage />} />
               <Route path="/filing/:clientId/:year" element={<ITRComputationPage />} />
-              <Route path="/reconciliation" element={<ReconciliationPage />} />
-              <Route path="/sync" element={<SyncPage />} />
-              <Route path="/jobs" element={<JobsPage />} />
-              <Route path="/notices" element={<NoticesPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/tasks" element={<TasksPage />} />
-              <Route path="/billing" element={<BillingPage />} />
-              <Route path="/accounting" element={<AccountingPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/communication" element={<CommunicationPage />} />
+              <Route path="/advanced-tax" element={<AdvancedTaxPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -18,44 +18,20 @@ export const Sidebar = () => {
     {
       title: 'Overview',
       items: [
-        { path: '/dashboard', label: 'Dashboard', icon: '📊' }
+        { path: '/dashboard', label: 'Dashboard', icon: '📊', badge: null as number | null }
       ]
     },
     {
       title: 'Clients & Filing',
       items: [
-        { path: '/clients', label: 'Client Master', icon: '👥', badge: null },
-        { path: '/filing', label: 'ITR Filing', icon: '📄', badge: null },
-        { path: '/reconciliation', label: 'Reconciliation', icon: '🔄', badge: null }
+        { path: '/clients', label: 'Client Master', icon: '👥', badge: null as number | null },
+        { path: '/filing', label: 'ITR Filing', icon: '📄', badge: null as number | null }
       ]
     },
     {
-      title: 'Automation',
+      title: 'Tools',
       items: [
-        { path: '/sync', label: 'ITD Portal Sync', icon: '🔗' },
-        { path: '/jobs', label: 'Background Jobs', icon: '⚙️', badge: null }
-      ]
-    },
-    {
-      title: 'Compliance',
-      items: [
-        { path: '/notices', label: 'Notice Management', icon: '⚠️', badge: null },
-        { path: '/calendar', label: 'Compliance Calendar', icon: '📅' },
-        { path: '/tasks', label: 'Tasks & Work Queue', icon: '✓', badge: null }
-      ]
-    },
-    {
-      title: 'Finance',
-      items: [
-        { path: '/billing', label: 'Billing & Fees', icon: '💰' },
-        { path: '/accounting', label: 'Firm Accounting', icon: '📊' }
-      ]
-    },
-    {
-      title: 'Analytics',
-      items: [
-        { path: '/reports', label: 'Reports & Analytics', icon: '📈' },
-        { path: '/communication', label: 'Communication', icon: '💬' }
+        { path: '/advanced-tax', label: 'Advanced Tax Tools', icon: '🧮', badge: null as number | null }
       ]
     }
   ];

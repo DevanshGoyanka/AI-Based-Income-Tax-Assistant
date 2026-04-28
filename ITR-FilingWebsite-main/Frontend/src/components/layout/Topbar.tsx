@@ -58,19 +58,6 @@ export const Topbar = () => {
           <option value="AY 2026–27">AY 2026–27</option>
           <option value="Both AYs">Both AYs</option>
         </select>
-
-        <button style={{
-          padding: '8px 16px',
-          background: 'var(--gold)',
-          color: 'white',
-          border: 'none',
-          borderRadius: 6,
-          fontSize: 13,
-          fontWeight: 500,
-          cursor: 'pointer'
-        }}>
-          Run Bulk Sync
-        </button>
       </div>
     </div>
   );

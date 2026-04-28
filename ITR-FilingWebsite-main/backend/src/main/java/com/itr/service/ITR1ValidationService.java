@@ -42,6 +42,18 @@ public class ITR1ValidationService {
             errors.add("Invalid Aadhaar format");
         if (!info.isPanAadhaarLinked())
             warnings.add("PAN-Aadhaar linkage not verified");
+        
+        // CBDT Mandatory Fields
+        if (info.getGender() == null || info.getGender().isEmpty())
+            errors.add("Gender is mandatory as per CBDT");
+        
+        // ITR-1 Eligibility Checks
+        if (info.isDirector())
+            errors.add("ITR-1 not applicable: Director in company (use ITR-2)");
+        if (info.isHoldsUnlistedShares())
+            errors.add("ITR-1 not applicable: Holds unlisted equity shares (use ITR-2)");
+        if (info.getAgriculturalIncome() > 5000)
+            errors.add("ITR-1 not applicable: Agricultural income exceeds ₹5,000 (use ITR-2)");
     }
 
     private void validateSalaryIncome(Itr1FormData.SalaryIncome salary, List<String> errors) {

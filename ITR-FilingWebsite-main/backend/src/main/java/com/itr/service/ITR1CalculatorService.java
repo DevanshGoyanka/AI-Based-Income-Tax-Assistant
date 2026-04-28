@@ -105,7 +105,8 @@ public class ITR1CalculatorService {
         double exemptAllowances = calculateExemptAllowances(formData);
         double netSalary = grossSalary - exemptAllowances;
         
-        double stdDed = "NEW".equals(regime) ? 75000 : 50000;
+        // Standard deduction u/s 16(ia) - AY 2025-26: ₹75,000 for BOTH regimes
+        double stdDed = 75000;
         
         double entertainmentAlw = 0;
         if (salary.isGovernmentEmployee() && "OLD".equals(regime)) {
@@ -210,9 +211,8 @@ public class ITR1CalculatorService {
         
         double totalDividend = os.getDividendFromShares() + os.getDividendFromMutualFunds();
         
-        double familyPensionDed = "NEW".equals(regime) ? 
-                                Math.min(os.getFamilyPensionReceived() / 3, 25000) :
-                                Math.min(os.getFamilyPensionReceived() / 3, 15000);
+        // Section 57(iia): max Rs.15,000 for BOTH regimes
+        double familyPensionDed = Math.min(os.getFamilyPensionReceived() / 3, 15000);
         double familyPensionTaxable = os.getFamilyPensionReceived() - familyPensionDed;
         
         double totalOS = totalInterest + totalDividend + familyPensionTaxable +
@@ -337,9 +337,21 @@ public class ITR1CalculatorService {
                 .totalIncome(java.math.BigDecimal.valueOf(totalIncome))
                 .normalIncome(java.math.BigDecimal.valueOf(totalIncome))
                 .isHUF(false)
+                .tdsPaid(java.math.BigDecimal.ZERO)
+                .tcsPaid(java.math.BigDecimal.ZERO)
+                .advanceTaxPaid(java.math.BigDecimal.ZERO)
+                .selfAssessmentTaxPaid(java.math.BigDecimal.ZERO)
                 .build();
         
         var result = taxEngine.computeTax(input);
+        
+        log.info("Tax Computation for PAN {} - Income: ₹{}", info.getPan(), totalIncome);
+        log.info("  Tax on Normal Income: ₹{}", result.getTaxOnNormalIncome());
+        log.info("  Rebate 87A: ₹{}", result.getRebate87A().getRebateAmount());
+        log.info("  Tax After Rebate: ₹{}", result.getTaxAfterRebate());
+        log.info("  Surcharge: ₹{}", result.getSurcharge().getEffectiveSurcharge());
+        log.info("  Cess @ 4%: ₹{}", result.getCess());
+        log.info("  Total Tax Liability: ₹{}", result.getTotalTaxLiability());
         
         computation.setTaxOnNormalIncome(result.getTaxOnNormalIncome().doubleValue());
         computation.setRebate87A(result.getRebate87A().getRebateAmount().doubleValue());
@@ -349,6 +361,9 @@ public class ITR1CalculatorService {
                 result.getSurcharge().getMarginalReliefAmount().doubleValue() : 0);
         computation.setCess(result.getCess().doubleValue());
         computation.setTotalTaxLiability(result.getTotalTaxLiability().doubleValue());
+        
+        log.info("Tax computation values set in formData - Cess: {}, Surcharge: {}, Total: {}", 
+            computation.getCess(), computation.getSurcharge(), computation.getTotalTaxLiability());
     }
 
     private void calculateInterestAndFees(Itr1FormData formData) {
@@ -361,13 +376,18 @@ public class ITR1CalculatorService {
             formData.setTaxPayments(payments);
         }
         
+        // Total taxes paid includes self-assessment tax for display purposes
         double totalTaxesPaid = payments.getTotalTDSOnSalary() + payments.getTotalTDSOnOther() +
                                payments.getTotalTCS() + payments.getTotalAdvanceTax() +
                                payments.getTotalSelfAssessmentTax();
         
+        // But balance tax should only consider taxes paid BEFORE filing
+        double taxesPaidBeforeFiling = payments.getTotalTDSOnSalary() + payments.getTotalTDSOnOther() +
+                                      payments.getTotalTCS() + payments.getTotalAdvanceTax();
+        
         payments.setTotalTaxesPaid(totalTaxesPaid);
         computation.setTotalTaxesPaid(totalTaxesPaid);
-        computation.setBalanceTax(computation.getTotalTaxLiability() - totalTaxesPaid);
+        computation.setBalanceTax(computation.getTotalTaxLiability() - taxesPaidBeforeFiling);
         
         LocalDate dueDate = LocalDate.of(Integer.parseInt(info.getFinancialYear().split("-")[0]), 7, 31);
         LocalDate filingDate = info.getOriginalFilingDate() != null ? 
@@ -402,17 +422,39 @@ public class ITR1CalculatorService {
 
     private void calculateRefundOrDemand(Itr1FormData formData) {
         var computation = formData.getTaxComputation();
+        var payments = formData.getTaxPayments();
+        
+        // Only consider TDS/TCS/Advance Tax for demand calculation
+        // Self-assessment tax is paid AFTER filing, so exclude it
+        double taxesPaidBeforeFiling = payments.getTotalTDSOnSalary() + 
+                                      payments.getTotalTDSOnOther() + 
+                                      payments.getTotalTCS() + 
+                                      payments.getTotalAdvanceTax();
+        
+        log.info("=== REFUND/DEMAND CALCULATION ===");
+        log.info("Total Tax Liability: {}", computation.getTotalTaxLiability());
+        log.info("Total Interest & Fees: {}", computation.getTotalInterestAndFees());
+        log.info("TDS on Salary: {}", payments.getTotalTDSOnSalary());
+        log.info("TDS on Other: {}", payments.getTotalTDSOnOther());
+        log.info("TCS: {}", payments.getTotalTCS());
+        log.info("Advance Tax: {}", payments.getTotalAdvanceTax());
+        log.info("Self Assessment Tax (excluded): {}", payments.getTotalSelfAssessmentTax());
+        log.info("Taxes Paid Before Filing: {}", taxesPaidBeforeFiling);
         
         double totalDemand = computation.getTotalTaxLiability() + 
                            computation.getTotalInterestAndFees() -
-                           computation.getTotalTaxesPaid();
+                           taxesPaidBeforeFiling;
+        
+        log.info("Total Demand: {}", totalDemand);
         
         if (totalDemand > 0) {
             computation.setTaxPayable(totalDemand);
             computation.setRefund(0);
+            log.info("Tax Payable: {}", totalDemand);
         } else {
             computation.setTaxPayable(0);
             computation.setRefund(Math.abs(totalDemand));
+            log.info("Refund: {}", Math.abs(totalDemand));
         }
     }
 

@@ -1,4 +1,5 @@
 import axiosInstance from './axiosInstance';
+import type { AISData, Form26ASData, TISData, ReconciliationReport } from '../../types/import.types';
 
 const multipartPost = async (endpoint: string, file: File, params?: Record<string, string>) => {
   const fd = new FormData();
@@ -12,30 +13,75 @@ const multipartPost = async (endpoint: string, file: File, params?: Record<strin
 
 export const integrationApi = {
   extractForm16: (file: File) => multipartPost('/integration/form16/extract', file),
-  importAIS: (file: File, pan?: string, dob?: string) => 
-    multipartPost('/integration/ais/import', file, pan && dob ? { pan, dob } : undefined),
-  importTIS: (file: File, pan?: string, dob?: string) => 
-    multipartPost('/integration/tis/import', file, pan && dob ? { pan, dob } : undefined),
-  import26AS: (file: File, pan?: string, dob?: string) => 
-    multipartPost('/integration/26as/import', file, pan && dob ? { pan, dob } : undefined),
+  
+  importAIS: async (file: File, pan: string, dob: string): Promise<AISData> => {
+    return multipartPost('/integration/ais/import', file, { pan, dob });
+  },
+  
+  importTIS: async (file: File, pan: string, dob: string): Promise<TISData> => {
+    return multipartPost('/integration/tis/import', file, { pan, dob });
+  },
+  
+  import26AS: async (file: File, pan: string, dob: string): Promise<Form26ASData> => {
+    return multipartPost('/integration/26as/import', file, { pan, dob });
+  },
+  
   importITDPrefill: (file: File) => multipartPost('/integration/prefill/import', file),
+  
   autoPopulateFromForm16: async (itrData: any, form16Data: any) => {
-    const { data } = await axiosInstance.post('/integration/autopopulate/form16', itrData, {
-      params: { form16: form16Data }
+    const { data } = await axiosInstance.post('/integration/autopopulate/form16', {
+      formData: itrData,
+      form16Data: form16Data
     });
     return data;
   },
+  
   autoPopulateFromAIS: async (itrData: any, aisData: any) => {
-    const { data } = await axiosInstance.post('/integration/autopopulate/ais', itrData, {
-      params: { ais: aisData }
+    const { data } = await axiosInstance.post('/integration/autopopulate/ais', {
+      formData: itrData,
+      aisData: aisData
     });
     return data;
   },
+  
+  autoPopulateAll: async (
+    clientId: number,
+    year: string,
+    aisData?: AISData,
+    form26ASData?: Form26ASData,
+    tisData?: TISData
+  ) => {
+    const { data } = await axiosInstance.post('/integration/autopopulate/all', {
+      clientId,
+      year,
+      aisData,
+      form26ASData,
+      tisData,
+      itrType: 'ITR-1'
+    });
+    return data;
+  },
+  
+  getReconciliationReport: async (
+    aisData: AISData,
+    data26AS: Form26ASData,
+    tisData?: TISData
+  ): Promise<ReconciliationReport> => {
+    const { data } = await axiosInstance.post('/integration/reconciliation', {
+      aisData,
+      data26AS,
+      tisData
+    });
+    return data;
+  },
+  
   autoPopulateFromPrefill: async (itrData: any, prefillData: any) => {
-    // Backend expects form data as body and prefill as query param
-    const { data } = await axiosInstance.post('/integration/autopopulate/prefill', itrData, {
-      params: { prefill: JSON.stringify(prefillData) }
+    const { data } = await axiosInstance.post('/integration/autopopulate/prefill', {
+      itrType: 'ITR-1',
+      flatFormData: itrData,  // Send as flat form data for frontend compatibility
+      prefillData: prefillData
     });
     return data;
   },
 };
+

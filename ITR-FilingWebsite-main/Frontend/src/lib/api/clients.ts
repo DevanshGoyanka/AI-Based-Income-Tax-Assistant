@@ -28,4 +28,8 @@ export const clientsApi = {
     const { data } = await axiosInstance.get(`/clients/${id}/pan-analysis`);
     return data;
   },
+  classifyITR: async (id: number, incomeProfile: any) => {
+    const { data } = await axiosInstance.post(`/clients/${id}/itr-classification`, incomeProfile);
+    return data;
+  },
 };

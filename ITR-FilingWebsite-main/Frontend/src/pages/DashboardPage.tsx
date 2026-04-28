@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAY } from '../contexts/AYContext';
 import { dashboardApi } from '../lib/api/dashboard';
+import { clientsApi } from '../lib/api/clients';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 
@@ -9,12 +10,19 @@ import toast from 'react-hot-toast';
 export default function DashboardPage() {
   const { ayParam } = useAY();
   const [stats, setStats] = useState<any>(null);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    dashboardApi.getStats(ayParam || undefined)
-      .then(setStats)
+    Promise.all([
+      dashboardApi.getStats(ayParam || undefined),
+      clientsApi.list({ assessmentYear: ayParam || undefined })
+    ])
+      .then(([statsData, clientsData]) => {
+        setStats(statsData);
+        setClients(clientsData);
+      })
       .catch(err => toast.error(err.message))
       .finally(() => setLoading(false));
   }, [ayParam]);
@@ -28,6 +36,52 @@ export default function DashboardPage() {
   }
 
   const progress = stats ? (stats.filed / stats.total) * 100 : 0;
+
+  // Get ITR type breakdown from real client data
+  const itrBreakdown = clients.reduce((acc: any, client: any) => {
+    const itrType = client.itrType || 'ITR-1';
+    acc[itrType] = (acc[itrType] || 0) + 1;
+    return acc;
+  }, {});
+
+  // Get recent activity from clients (sorted by last updated)
+  const recentActivity = clients
+    .filter((c: any) => c.updatedAt)
+    .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5)
+    .map((client: any) => {
+      const timeDiff = Date.now() - new Date(client.updatedAt).getTime();
+      const minutes = Math.floor(timeDiff / 60000);
+      const hours = Math.floor(timeDiff / 3600000);
+      const days = Math.floor(timeDiff / 86400000);
+      
+      let timeAgo = '';
+      if (days > 0) timeAgo = `${days} day${days > 1 ? 's' : ''} ago`;
+      else if (hours > 0) timeAgo = `${hours} hour${hours > 1 ? 's' : ''} ago`;
+      else if (minutes > 0) timeAgo = `${minutes} min ago`;
+      else timeAgo = 'Just now';
+
+      let action = 'Updated';
+      let color = 'var(--info)';
+      
+      if (client.status === 'FILED') {
+        action = `${client.itrType || 'ITR'} filed successfully`;
+        color = 'var(--success)';
+      } else if (client.status === 'IN_PROGRESS') {
+        action = 'Filing in progress';
+        color = 'var(--info)';
+      } else if (client.status === 'DOC_PENDING') {
+        action = 'Documents pending';
+        color = 'var(--warning)';
+      }
+
+      return {
+        client: client.name || 'Unknown Client',
+        action,
+        time: timeAgo,
+        color
+      };
+    });
 
   return (
     <div>
@@ -119,11 +173,7 @@ export default function DashboardPage() {
         }}>
           <h3 className="crimson" style={{ fontSize: 18, marginBottom: 16 }}>Recent Activity</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {[
-              { client: 'Rajesh Kumar', action: 'ITR-1 filed successfully', time: '2 min ago', color: 'var(--success)' },
-              { client: 'Priya Sharma', action: 'Documents uploaded', time: '15 min ago', color: 'var(--info)' },
-              { client: 'Amit Patel', action: 'AIS mismatch detected', time: '1 hour ago', color: 'var(--warning)' }
-            ].map((item, idx) => (
+            {recentActivity.length > 0 ? recentActivity.map((item, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{
                   width: 8,
@@ -137,7 +187,11 @@ export default function DashboardPage() {
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.time}</div>
               </div>
-            ))}
+            )) : (
+              <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
+                No recent activity
+              </div>
+            )}
           </div>
         </div>
 
@@ -150,25 +204,26 @@ export default function DashboardPage() {
           }}>
             <h3 className="crimson" style={{ fontSize: 16, marginBottom: 16 }}>ITR Type Breakdown</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[
-                { type: 'ITR-1', count: 45, color: 'var(--accent-blue)' },
-                { type: 'ITR-2', count: 28, color: 'var(--accent-teal)' },
-                { type: 'ITR-3', count: 15, color: 'var(--gold)' },
-                { type: 'ITR-4', count: 8, color: 'var(--accent-rose)' }
-              ].map((item) => (
-                <div key={item.type}>
+              {Object.keys(itrBreakdown).length > 0 ? Object.entries(itrBreakdown).map(([type, count]: [string, any]) => (
+                <div key={type}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4, fontSize: 12 }}>
-                    <span>{item.type}</span>
-                    <span className="mono">{item.count}</span>
+                    <span>{type}</span>
+                    <span className="mono">{count}</span>
                   </div>
                   <div className="progress-bar">
                     <div className="progress-fill" style={{
-                      width: `${(item.count / 96) * 100}%`,
-                      background: item.color
+                      width: `${(count / clients.length) * 100}%`,
+                      background: type === 'ITR-1' ? 'var(--accent-blue)' : 
+                                 type === 'ITR-2' ? 'var(--accent-teal)' : 
+                                 type === 'ITR-3' ? 'var(--gold)' : 'var(--accent-rose)'
                     }} />
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
+                  No ITR data available
+                </div>
+              )}
             </div>
           </div>
 

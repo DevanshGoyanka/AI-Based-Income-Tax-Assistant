@@ -99,8 +99,9 @@ public class TaxSlabEngine {
     }
 
     /**
-     * New Regime Tax Calculation - AY 2025-26
+     * New Regime Tax Calculation - AY 2025-26 (Finance Act 2024)
      * 0-3L (0%), 3L-7L (5%), 7L-10L (10%), 10L-12L (15%), 12L-15L (20%), >15L (30%)
+     * Rebate 87A: Income ≤ 7L → Full tax rebate (max ₹25,000)
      */
     private BigDecimal calculateNewRegimeTax_AY2025_26(BigDecimal income) {
         BigDecimal tax = BigDecimal.ZERO;
@@ -197,12 +198,27 @@ public class TaxSlabEngine {
             }
         } else if (NEW_REGIME.equals(regime)) {
             if (AY_2025_26.equals(assessmentYear)) {
-                return new BigDecimal("300000");
+                return new BigDecimal("300000"); // correct: 3L for AY 2025-26
             } else if (AY_2026_27.equals(assessmentYear)) {
-                return new BigDecimal("400000");
+                return new BigDecimal("400000"); // correct: 4L for AY 2026-27
             }
         }
 
         return new BigDecimal("250000"); // Default
+    }
+    
+    /**
+     * Standard Deduction u/s 16(ia) - AY 2025-26
+     * Both old and new regime: ₹75,000 for salaried/pensioners
+     */
+    public static final BigDecimal STANDARD_DEDUCTION_AY2526 = new BigDecimal("75000");
+    
+    /**
+     * Family Pension Deduction u/s 57(iia)
+     * Lower of ₹15,000 or 1/3rd of family pension
+     */
+    public BigDecimal calculateFamilyPensionDeduction(BigDecimal familyPensionAmount) {
+        BigDecimal oneThird = familyPensionAmount.divide(new BigDecimal("3"), 0, RoundingMode.DOWN);
+        return oneThird.min(new BigDecimal("15000"));
     }
 }

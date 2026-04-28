@@ -20,6 +20,8 @@ public class Itr2FormData {
 
     private CommonFormData.PartA partA;
     private CommonFormData.ScheduleSalary scheduleSalary;
+    
+    // ITR-2 allows MULTIPLE house properties (CBDT MANDATORY)
     @Builder.Default
     private List<HouseProperty> houseProperties = new ArrayList<>();
     private CommonFormData.ScheduleOtherSources scheduleOS;

@@ -2,6 +2,9 @@ package com.itr.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 
 @Entity
@@ -43,8 +46,27 @@ public class ClientYearData {
         createdAt = OffsetDateTime.now();
     }
 
-
     @Column(name = "hp_loss_carry_forward")
     @Builder.Default
     private Long hpLossCarryForward = 0L;
+
+    // Section 10: Imported document storage for reconciliation
+    @Column(name = "ais_data", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String aisDataJson;
+
+    @Column(name = "form26as_data", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String form26ASDataJson;
+
+    @Column(name = "tis_data", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String tisDataJson;
+
+    @Column(name = "import_timestamp")
+    private LocalDateTime importTimestamp;
+
+    @Column(name = "reconciliation_report", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private String reconciliationReportJson;
 }
