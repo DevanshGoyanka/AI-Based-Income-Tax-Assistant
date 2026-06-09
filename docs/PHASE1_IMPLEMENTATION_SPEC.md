@@ -3,8 +3,8 @@
 > **Application:** ITR Filing Assistant — AY 2026-27 (FY 2025-26)
 > **Target:** ITR-1 (Sahaj), ITR-2, ITR-3, ITR-4 (Sugam) — Filing Ready
 > **Branch:** `restructure/cleanup-v1`
-> **Current State:** Backend compiles (0 errors), frontend builds (0 errors). Login works. All pages return 500 — NO REST controllers exist except AuthController.
-> **Goal:** Working application where user can manage clients, import AIS/26AS/TIS via ITD ERI-2 API, import Form16 PDF, auto-populate, compute taxes, reconcile, download computation PDF + ITD-schema JSON.
+> **Current State:** Backend compiles (0 errors), frontend builds (0 errors). Login works. All other pages return 500 — NO REST controllers exist except AuthController.
+> **Testing Priority:** CORE TAX CALCULATION must be verified 100% correct before integrating ITD API keys and browser automation. Those are Phase 1 last steps.
 
 ---
 
@@ -15,34 +15,35 @@
 | Action | Allowed? |
 |---|---|
 | **CREATE new files** | ✅ YES — all new controller/service/frontend files |
-| **EDIT existing backend files** | ✅ YES — see "Can Edit" list |
+| **EDIT existing backend files** | ✅ YES — see "Can Edit" list below |
 | **EDIT existing frontend files** | ✅ YES — to connect to real endpoints |
 | **DELETE files** | ❌ NO — never delete anything |
 | **RENAME files** | ❌ NO — never rename anything |
-| **Modify pom.xml** | ❌ NO — dependencies are sufficient |
-| **Modify application.properties** | ❌ NO |
-| **Modify SecurityConfig.java** | ⚠️ Only to add new public endpoint routes |
+| **Modify pom.xml** | ⚠️ YES — only for Playwright (Step 11) |
+| **Modify application.properties** | ⚠️ YES — only for ITD API config (Step 12) |
+| **Modify SecurityConfig.java** | ⚠️ YES — only to add new public endpoint routes |
 | **Touch infrastructure/security/** | ❌ NO — JwtTokenProvider works |
 | **Touch model/ package** | ❌ NO — dead code, leave alone |
 | **Modify any `_stubs.ts` file** | ❌ NO |
 
 ### 1.2 Golden Rules for ALL Code Written
 
-1. **EVERY backend controller MUST have `@RequestMapping("/api/v1/...")`** — the frontend `axiosInstance.ts` points to `http://localhost:8080/api/v1/` as base URL.
-2. **EVERY controller method MUST extract userId from SecurityContextHolder** — use this helper:
+1. **EVERY backend controller MUST have `@RequestMapping("/api/v1/...")`** — frontend `axiosInstance.ts` has base URL `http://localhost:8080/api/v1/`.
+2. **EVERY controller method MUST extract userId from SecurityContextHolder:**
    ```java
-   private String getUserId() {
-       return SecurityContextHolder.getContext().getAuthentication().getName();
+   private Long getUserId() {
+       String email = SecurityContextHolder.getContext().getAuthentication().getName();
+       return Long.parseLong(email); // User ID stored as numeric string in token
    }
    ```
 3. **EVERY DTO must use Lombok** (`@Data`, `@Builder`, `@NoArgsConstructor`, `@AllArgsConstructor`).
-4. **EVERY endpoint that returns a List must return `List<T>` wrapped in `ResponseEntity<List<T>>`** — never an array.
+4. **EVERY endpoint that returns a List must return `ResponseEntity<List<T>>`** — never an array.
 5. **EVERY service method must accept `Long userId`** — to scope data per authenticated user.
 6. **NEVER use `@Autowired`** — always constructor injection via `@RequiredArgsConstructor`.
-7. **NEVER truncate code** — always write the complete, runnable implementation.
+7. **NEVER truncate code** — always write complete, runnable implementation.
 8. **ALWAYS add Google-style docstrings** to every class and public method.
 9. **NEVER skip error handling** — every catch block must log and return appropriate HTTP status.
-10. **Frontend API calls must use the existing `api/*.ts` pattern** — never create a new axios instance.
+10. **Frontend API calls must use existing `api/*.ts` pattern** — never create a new axios instance.
 
 ---
 
@@ -55,17 +56,17 @@ com/itr/
 ├── ItrFilingAssistantApplication.java           // Entry point — NO TOUCH
 ├── config/
 │   ├── AsyncConfig.java                          // Thread pool — NO TOUCH
-│   ├── AuthController.java                       // Auth REST — in use, OK
+│   ├── AuthController.java                       // Auth REST — WORKS
 │   ├── CacheConfig.java                          // Cache — NO TOUCH
 │   ├── DataCleanupRunner.java                    // Startup cleanup — NO TOUCH
 │   ├── DataInitializer.java                      // Test users — NO TOUCH
-│   ├── JwtAuthenticationFilter.java              // JWT filter — NO TOUCH
+│   ├── JwtAuthenticationFilter.java             // JWT filter — NO TOUCH
 │   ├── OpenAPIConfig.java                        // Swagger — NO TOUCH
-│   ├── SecurityConfig.java                       // CAN EDIT — add new public routes
+│   ├── SecurityConfig.java                       // CAN EDIT — add public routes
 │   └── SessionTimeoutHandler.java                // Session mgmt — NO TOUCH
-├── domain/
+├── domain/                                       // CAN USE — all domain engines work
 │   ├── advancetax/
-│   │   ├── Section234AComputer.java              // CAN USE — static utilities
+│   │   ├── Section234AComputer.java
 │   │   ├── Section234BComputer.java
 │   │   ├── Section234CComputer.java
 │   │   └── Section234FComputer.java
@@ -115,7 +116,7 @@ com/itr/
 │       ├── MultiEmployerConsolidator.java
 │       ├── SalaryComputationResult.java
 │       └── SalaryScheduleComputer.java
-├── dto/                                         // CAN EDIT — add new DTOs as needed
+├── dto/                                         // CAN ADD NEW — never change existing
 │   ├── AISData.java
 │   ├── AuthRequest.java
 │   ├── AuthResponse.java
@@ -123,7 +124,7 @@ com/itr/
 │   ├── BusinessIncomeResponse.java
 │   ├── ClientRequest.java
 │   ├── ClientResponse.java
-│   ├── DocumentMetadata.java                    // DTO version
+│   ├── DocumentMetadata.java
 │   ├── ErrorResponse.java
 │   ├── FilingRequest.java
 │   ├── FilingResponse.java
@@ -157,7 +158,7 @@ com/itr/
 │   ├── GlobalExceptionHandler.java
 │   └── ResourceNotFoundException.java
 ├── infrastructure/security/JwtTokenProvider.java // NO TOUCH
-├── model/                                        // NO TOUCH — dead code, leave it
+├── model/                                        // NO TOUCH — dead code
 ├── repository/                                   // NO TOUCH — all repositories work
 │   ├── AuditTrailRepository.java
 │   ├── ClientRepository.java
@@ -170,28 +171,28 @@ com/itr/
 │   ├── TDSDeductorRepository.java
 │   └── UserRepository.java
 ├── service/                                      // CAN EDIT + CREATE NEW
-│   ├── AISReconciliationService.java            // STUB — CAN EDIT to implement
+│   ├── AISReconciliationService.java             // STUB — CAN EDIT
 │   ├── AuditLogHashChainService.java
-│   ├── AuthService.java                         // Works
+│   ├── AuthService.java                        // WORKS
 │   ├── CapitalGainsExemptionService.java
-│   ├── ClientService.java                       // Works — needs controller
+│   ├── ClientService.java                      // WORKS — needs controller
 │   ├── DeductionCalculatorService.java
-│   ├── DocumentManagementService.java           // Works — needs controller
+│   ├── DocumentManagementService.java           // WORKS — needs controller
 │   ├── DocumentStorageService.java
 │   ├── EncryptionService.java
 │   ├── Form16PartAParser.java
 │   ├── Form16PartBParser.java
-│   ├── ITRFilingService.java                    // Works — needs controller
+│   ├── ITRFilingService.java                   // WORKS — needs controller
 │   ├── LossCarryForwardService.java
 │   ├── LossSetOffEngine.java
 │   ├── LTCG112AGrandfatheringService.java
-│   ├── PrefillService.java                      // Works — needs controller
+│   ├── PrefillService.java                     // WORKS — needs controller
 │   ├── SalaryExemptionService.java
 │   ├── integration/
-│   │   ├── AISImportService.java
-│   │   ├── AISJsonImportService.java
-│   │   ├── Form26ASImportService.java
-│   │   └── TISImportService.java
+│   │   ├── AISImportService.java               // WORKS — PDF parsing
+│   │   ├── AISJsonImportService.java           // WORKS — JSON decrypt
+│   │   ├── Form26ASImportService.java          // WORKS — PDF parsing
+│   │   └── TISImportService.java               // WORKS — PDF parsing
 │   └── taxengine/
 │       └── InterestCalculator.java
 └── util/
@@ -211,352 +212,871 @@ src/
 ├── App.tsx                               // Router — CAN EDIT to add routes
 ├── App.css                               // NO TOUCH
 ├── index.css                             // NO TOUCH
-├── api/                                  // CAN EDIT to connect to real endpoints
+├── api/
 │   ├── _stubs.ts                         // NO TOUCH
-│   ├── advancedTax.ts
-│   ├── apiError.ts
-│   ├── auth.ts                           // Works
-│   ├── axiosInstance.ts                  // Works
-│   ├── billing.ts → uses _stubs          // EDIT to connect
-│   ├── clients.ts                        // Already correct
-│   ├── communication.ts → uses _stubs    // Phase 2
-│   ├── dashboard.ts                      // Already correct
-│   ├── documents.ts                      // Already correct
-│   ├── filing.ts                         // Already correct
-│   ├── integration.ts                    // Already correct
-│   ├── itr.ts                            // Already correct
-│   ├── jobs.ts → uses _stubs             // Phase 2
-│   ├── notices.ts → uses _stubs          // Phase 2
-│   ├── pan.ts                            // Already correct
-│   ├── reconciliation.ts → uses _stubs   // EDIT
-│   └── sync.ts → uses _stubs             // Phase 2
-├── components/                           // Works — NO TOUCH
-├── contexts/AYContext.tsx                // Works — NO TOUCH
+│   ├── advancedTax.ts                     // Works (needs backend controller)
+│   ├── apiError.ts                       // NO TOUCH
+│   ├── auth.ts                           // WORKS
+│   ├── axiosInstance.ts                  // WORKS
+│   ├── billing.ts                        // Phase 2 — leave stub
+│   ├── clients.ts                        // Works (needs backend controller)
+│   ├── communication.ts                  // Phase 2 — leave stub
+│   ├── dashboard.ts                      // Works (needs backend controller)
+│   ├── documents.ts                      // Works (needs backend controller)
+│   ├── filing.ts                         // Works (needs backend controller)
+│   ├── integration.ts                    // Works (needs backend controller)
+│   ├── itr.ts                            // Works (needs backend controller)
+│   ├── jobs.ts                           // Phase 2 — leave stub
+│   ├── notices.ts                        // Phase 2 — leave stub
+│   ├── pan.ts                            // Works (needs backend controller)
+│   ├── reconciliation.ts                 // Phase 2 — leave stub
+│   ├── sync.ts                           // Phase 2 — leave stub
+│   └── tokenManager.ts                   // NO TOUCH
+├── components/
+│   ├── BankInterestEntryManager.tsx       // Works
+│   ├── CapitalGainsEntryManager.tsx      // Works
+│   ├── DividendEntryManager.tsx           // Works
+│   ├── DonationEntryManager.tsx           // Works
+│   ├── EmployerEntryManager.tsx           // Works
+│   ├── EmployerReconciliationModal.tsx   // Works
+│   ├── HousePropertyEntryManager.tsx      // Works
+│   ├── IndianNumberInput.tsx              // Works
+│   ├── ProtectedRoute.tsx                 // Works
+│   ├── ReconciliationModal.tsx           // Works
+│   ├── TDSEntryManager.tsx                // Works
+│   ├── layout/AppLayout.tsx              // Works
+│   ├── layout/Sidebar.tsx                 // Works
+│   ├── layout/Topbar.tsx                  // Works
+│   └── ui/Badge.tsx, EmptyState.tsx, SkeletonRow.tsx, Spinner.tsx
+├── contexts/AYContext.tsx                 // Works — NO TOUCH
 ├── pages/
-│   ├── AccountingPage.tsx                // Phase 2 — stub
-│   ├── AdvancedTaxPage.tsx               // Works (uses advancedTax.ts)
-│   ├── BillingPage.tsx                   // Phase 2 — stub
-│   ├── CalendarPage.tsx                  // Phase 2 — stub
-│   ├── ClientsPage.tsx                   // Works (uses clients.ts, pan.ts) — backend needs controller
-│   ├── CommunicationPage.tsx             // Phase 2 — stub
-│   ├── DashboardPage.tsx                 // Works (uses dashboard.ts, clients.ts) — backend needs controller
-│   ├── FilingPage.tsx                    // Works (uses filing.ts) — backend needs controller
-│   ├── ITRComputationPage.tsx            // Works (uses itr.ts, clients.ts, integration.ts) — backend needs controller
+│   ├── ClientsPage.tsx                   // Works — backend needs controller
+│   ├── DashboardPage.tsx                  // Works — backend needs controller
+│   ├── FilingPage.tsx                     // Works — backend needs controller
+│   ├── ITRComputationPage.tsx            // Works — backend needs controller
 │   ├── ITRComputationTabs.tsx            // Works — backend needs controller
+│   ├── AdvancedTaxPage.tsx                // Works — backend needs controller
+│   ├── LoginPage.tsx                      // WORKS
+│   ├── RegisterPage.tsx                  // WORKS
+│   ├── AccountingPage.tsx                // Phase 2 — stub
+│   ├── BillingPage.tsx                    // Phase 2 — stub
+│   ├── CalendarPage.tsx                  // Phase 2 — stub
+│   ├── CommunicationPage.tsx             // Phase 2 — stub
 │   ├── JobsPage.tsx                      // Phase 2 — stub
-│   ├── LoginPage.tsx                     // Works
 │   ├── NoticesPage.tsx                   // Phase 2 — stub
 │   ├── ReconciliationPage.tsx            // Phase 2 — stub
-│   ├── RegisterPage.tsx                  // Works
 │   ├── ReportsPage.tsx                   // Phase 2 — stub
 │   ├── SyncPage.tsx                      // Phase 2 — stub
 │   └── TasksPage.tsx                     // Phase 2 — stub
-├── services/                             // Works — NO TOUCH
-├── types/                                // Works — NO TOUCH
-└── utils/                                // Works — NO TOUCH
+├── services/
+│   ├── capitalGainsCalculationService.ts  // Works
+│   ├── housePropertyCalculationService.ts // Works
+│   └── salaryCalculationService.ts       // Works
+├── types/
+│   ├── api.types.ts                      // Works
+│   └── import.types.ts                   // Works
+└── utils/formatters.ts                   // Works
 ```
 
 ---
 
-## 3. ARCHITECTURE OVERVIEW
+## 3. RESTRUCTURED IMPLEMENTATION PLAN
+
+### ⚠️ CRITICAL: Implementation Order
+
+The plan is structured in **4 sub-phases** to enable testing at each stage. Browser automation and ITD API integration are **LAST STEPS ONLY** — after core tax calculation is verified 100% correct.
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                          FRONTEND (React + Vite)                    │
-│  port 3000                                                          │
-│  src/api/*.ts → axiosInstance → http://localhost:8080/api/v1/       │
-├─────────────────────────────────────────────────────────────────────┤
-│                          BACKEND (Spring Boot 3.2.3)                │
-│  port 8080                                                          │
-│                                                                     │
-│  SecurityConfig                                                     │
-│  ├── Public: /api/v1/auth/**, /swagger-ui/**, /v3/api-docs/**       │
-│  └── Authenticated: Everything else (JWT Bearer token required)     │
-│                                                                     │
-│  REST Controllers (config/*Controller.java)                         │
-│  ├── AuthController       ✅ Works                                  │
-│  ├── ClientController     ❌ NEEDS CREATION                         │
-│  ├── DashboardController  ❌ NEEDS CREATION                         │
-│  ├── FilingController     ❌ NEEDS CREATION                         │
-│  ├── DocumentController   ❌ NEEDS CREATION                         │
-│  ├── PrefillController    ❌ NEEDS CREATION                         │
-│  ├── IntegrationController❌ NEEDS CREATION                         │
-│  ├── TaxController        ❌ NEEDS CREATION                         │
-│  ├── PANController        ❌ NEEDS CREATION                         │
-│  └── AdvancedTaxController❌ NEEDS CREATION                         │
-│                                                                     │
-│  Services → Domain Engines → JPA Repositories → PostgreSQL          │
-└─────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          SUB-PHASE A: Foundation                           │
+│  Step 1-2: REST Controllers + PAN Controller → Unlocks ALL pages          │
+│  TEST HERE: Login → Dashboard → Clients → Filing all working             │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                          SUB-PHASE B: Core Computation                      │
+│  Step 3-4: Tax Computation Orchestrator + ITR 1-4 Services                │
+│  TEST HERE: Compute button returns correct tax for all 4 forms            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                          SUB-PHASE C: Output Generation                    │
+│  Step 5-6: Computation PDF + ITD Schema JSON Export                       │
+│  TEST HERE: Download PDF and JSON match manual computation                │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                          SUB-PHASE D: Manual Import                        │
+│  Step 7-8: Prefill/Integration Controllers + Reconciliation               │
+│  TEST HERE: Upload 26AS/AIS/TIS PDF → auto-populate → reconcile            │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                          SUB-PHASE E: ITD Integration (LAST)               │
+│  Step 9-10: Browser Automation + ERI-2 API Integration                    │
+│  TEST HERE: One-click import + API key upload works                       │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                          Step 11-12: Config Updates                         │
+│  SecurityConfig + application.properties                                  │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. PHASE 1 IMPLEMENTATION PLAN (10 STEPS)
+## 4. SUB-PHASE A: REST CONTROLLERS (Foundation)
 
-### STEP 1: Create REST Controllers (BACKEND)
+### STEP 1: Create All REST Controllers
 
-Create these files in `backend/src/main/java/com/itr/config/` (all follow existing `AuthController.java` pattern):
+**CREATE these files in `backend/src/main/java/com/itr/config/`**
 
 #### 1a. `ClientController.java`
-- **Endpoints:**
-  - `GET /api/v1/clients` — list all clients for authenticated user
-  - `GET /api/v1/clients/{id}` — get single client with year data
-  - `POST /api/v1/clients` — create client (PAN verification)
-  - `PUT /api/v1/clients/{id}` — update client
-  - `DELETE /api/v1/clients/{id}` — delete client
-  - `GET /api/v1/clients/{id}/years` — list assessment years for client
-  - `PUT /api/v1/clients/{id}/years/{year}/itr-type` — update ITR type for an AY
-- **Uses existing:** `ClientService`, `ClientRequest`, `ClientResponse`
-- **Pattern:** `getUserId()` from SecurityContext, convert to Long via `Long.parseLong(getUserId())`
+```
+Endpoints:
+  GET    /api/v1/clients                          → list all clients
+  GET    /api/v1/clients/{id}                     → get single client
+  POST   /api/v1/clients                          → create client
+  PUT    /api/v1/clients/{id}                     → update client
+  DELETE /api/v1/clients/{id}                     → delete client
+  GET    /api/v1/clients/{id}/years               → list AY years
+  PUT    /api/v1/clients/{id}/years/{year}/itr-type → update ITR type for AY
 
-#### 1b. `DashboardController.java`
-- **Endpoints:**
-  - `GET /api/v1/dashboard/stats` — returns counts: totalClients, filed, inProgress, docPending, watchList, totalMismatches, totalNotices
-- **Logic:** Query ClientRepository + ITRFilingRepository to compute stats
-
-#### 1c. `FilingController.java`
-- **Endpoints:**
-  - `GET /api/v1/filing` — list filings (query params: status, year)
-  - `POST /api/v1/filing` — create filing
-  - `PUT /api/v1/filing/{id}` — update filing
-  - `DELETE /api/v1/filing/{id}` — delete filing
-- **Uses existing:** `ITRFilingService`, `FilingRequest`, `FilingResponse`
-
-#### 1d. `DocumentController.java`
-- **Endpoints:**
-  - `POST /api/v1/documents/upload` — multipart file upload (form: file, clientId, assessmentYear, documentType)
-  - `GET /api/v1/documents/list` — list documents (params: clientId, assessmentYear)
-  - `GET /api/v1/documents/download/{documentId}` — download document
-  - `DELETE /api/v1/documents/{documentId}` — delete document
-- **Uses existing:** `DocumentManagementService`
-
-#### 1e. `PrefillController.java`
-- **Endpoints:**
-  - `POST /api/v1/prefill/26as/upload` — upload Form26AS PDF → parse → save
-  - `POST /api/v1/prefill/ais` — upload AIS PDF → parse → save
-  - `POST /api/v1/prefill/tis` — upload TIS PDF → parse → save
-  - `POST /api/v1/prefill/form16` — upload Form16 PDF → parse → auto-populate
-  - `POST /api/v1/prefill/autoPopulateAll` — auto-populate all ITR fields from available data
-- **Uses existing:** `AISImportService`, `Form26ASImportService`, `TISImportService`, `Form16PartAParser`, `Form16PartBParser`, `PrefillService`
-
-#### 1f. `IntegrationController.java`
-- **Endpoints:**
-  - `POST /api/v1/integration/autopopulate/form16` — JSON body with extracted form16 data → auto-populate fields
-  - `POST /api/v1/integration/autopopulate/ais` — JSON body with AIS data → auto-populate fields
-  - `POST /api/v1/integration/reconciliation` — reconcile AIS vs 26AS vs TIS → return discrepancies
-- **Uses existing:** `AISReconciliationService`, `PrefillService`
-
-#### 1g. `TaxController.java`
-- **Endpoints:**
-  - `GET /api/v1/clients/{clientId}/itr/{year}` — get saved form data
-  - `PUT /api/v1/clients/{clientId}/itr/{year}` — save form data
-  - `POST /api/v1/clients/{clientId}/itr/{year}/compute` — compute tax for the form data → return full computation result
-  - `POST /api/v1/clients/{clientId}/itr/{year}/validate` — validate form data against CBDT rules
-  - `GET /api/v1/clients/{clientId}/itr/{year}/download` — download as JSON (ITD schema)
-  - `GET /api/v1/clients/{clientId}/itr/{year}/download-pdf` — download computation PDF
-  - `POST /api/v1/tax-summary/compute` — compute tax summary (regime comparison)
-- **Uses existing:** `ITRFormDataRepository`, `PrefillService`, domain calculators
-
-#### 1h. `PANController.java`
-- **Endpoints:**
-  - `GET /api/v1/pan/{pan}/validate` — validate PAN format, check against PANValidationCache
-  - `GET /api/v1/pan/{pan}/analyze` — analyze PAN (entity type, eligible ITR forms)
-- **Uses existing:** `PANValidationRepository`
-
-#### 1i. `AdvancedTaxController.java`
-- **Endpoints:**
-  - `POST /api/v1/advanced-tax/hra` — compute HRA exemption
-  - `POST /api/v1/advanced-tax/section14a` — compute Section 14A disallowance
-  - `POST /api/v1/advanced-tax/section50c` — compute Section 50C deemed sale consideration
-  - `POST /api/v1/advanced-tax/relief89` — compute relief under Section 89
-  - `POST /api/v1/advanced-tax/depreciation` — compute depreciation
-  - `GET /api/v1/advanced-tax/depreciation/rates` — get depreciation rates
-  - `POST /api/v1/advanced-tax/multi-employer` — compute multi-employer tax
-  - `POST /api/v1/advanced-tax/ltcg-grandfathering` — compute LTCG grandfathering
-  - `POST /api/v1/advanced-tax/epf-taxation` — compute EPF tax on contributions > ₹2.5L
-  - `POST /api/v1/advanced-tax/clubbing/minor-child` — compute clubbing of minor child income
-  - `POST /api/v1/advanced-tax/clubbing/spouse` — compute clubbing of spouse income
-  - `POST /api/v1/advanced-tax/fo-trading` — compute F&O trading tax
-  - `POST /api/v1/advanced-tax/break-even` — compute break-even analysis
-- **Uses existing:** `Section234AComputer`, `Section234BComputer`, `Section234CComputer`, `Section234FComputer`, domain calculators
-- **Note:** Implement proper business logic in each endpoint — not stubs. Each calculator must match CBDT rules exactly.
-
-### STEP 2: Create ITD Schema JSON Export Service
-
-**Create:** `backend/src/main/java/com/itr/service/ITRJsonExportService.java`
-
-- **Purpose:** Generates ITR-1, ITR-2, ITR-3, ITR-4 JSON files strictly per ITD published schema for AY 2026-27
-- **Methods:**
-  - `String generateITR1Json(Itr1FormData data)` — returns JSON string matching ITR-1 schema
-  - `String generateITR2Json(...)` — ITR-2 schema
-  - `String generateITR3Json(...)` — ITR-3 schema
-  - `String generateITR4Json(...)` — ITR-4 schema
-- **IMPORTANT:** The ITD JSON schema for AY 2026-27 is defined in the CBDT "ITR Schema for AY 2026-27" document. The JSON structure must match:
-  - Root: `{ "ITRForm": "ITR-1", "AssessmentYear": "2026-27", "SchemaVersion": "1.0", ... }`
-  - All monetary values in paise (Integer)
-  - Date format: `DD-MM-YYYY`
-  - PAN format: `AAAAA9999A`
-  - All mandatory fields must be present even if zero
-- **Strategy:** Since Itr1-4FormData.java was deleted in cleanup, create new lightweight form DTOs at `dto/itr/` package OR re-create minimal form data DTOs. Name them as ITD schema expects:
-  - `dto/ITR1SchemaData.java` — complete ITR-1 schema mapping
-  - `dto/ITR2SchemaData.java` — complete ITR-2 schema mapping
-  - `dto/ITR3SchemaData.java` — complete ITR-3 schema mapping
-  - `dto/ITR4SchemaData.java` — complete ITR-4 schema mapping
-
-### STEP 3: Create Computation PDF Generation Service
-
-**Create:** `backend/src/main/java/com/itr/service/ComputationPDFService.java`
-
-- **Purpose:** Generate a downloadable PDF showing full tax computation breakdown
-- **Uses existing:** iText libraries already in pom.xml (`com.itextpdf:kernel:7.2.5`, `com.itextpdf:layout:7.2.5`)
-- **Sections in PDF:**
-  1. Header: Assessee Name, PAN, AY, ITR Type, Date
-  2. Income Summary: Salary, House Property, Capital Gains, Business/Profession, Other Sources
-  3. Gross Total Income
-  4. Deductions under Chapter VI-A
-  5. Net Taxable Income
-  6. Tax Computation:
-     - Tax on normal income (slab-wise)
-     - Tax on special rate income
-     - Surcharge
-     - Health & Education Cess (4%)
-     - Rebate under Section 87A
-     - Total Tax Payable
-  7. Relief under Section 89 (if applicable)
-  8. TDS/TCS/Advance Tax/Self Assessment Tax summary
-  9. Interest under Sections 234A/234B/234C/234F
-  10. Net Tax Payable / Refund
-- **Method:** `byte[] generateComputationPDF(ITR1SchemaData data, TaxComputationResult result)`
-
-### STEP 4: Create ITD ERI-2 API Integration Service
-
-**Create:** `backend/src/main/java/com/itr/service/integration/ITDERI2Service.java`
-
-- **Purpose:** Integrate with Income Tax Department's ERI-2 (e-Return Intermediary 2.0) API for:
-  - Prefill data download (26AS, AIS, TIS)
-  - JSON upload for e-filing
-  - Verify JSON against ITD schema
-- **API Base URL (Sandbox):** `https://eportal.incometax.gov.in/iec/foservices/`
-- **API Base URL (Production):** `https://eportal.incometax.gov.in/iec/foservices/`
-- **Authentication:**
-  - ERI-2 requires API key/secrete (issued by ITD on registration as ERI)
-  - API keys stored in application.properties: `itd.api.key`, `itd.api.secret`, `itd.api.base-url`
-  - Each request must be signed with HMAC-SHA256 using the secret
-- **Endpoints to implement:**
-  - `getPrefillData(pan, ay)` → download prefill JSON → decrypt → parse → return `ITDPrefillData`
-  - `getForm26AS(pan, ay)` → download 26AS data
-  - `getAISData(pan, ay)` → download AIS data
-  - `getTISData(pan, ay)` → download TIS data
-  - `submitITR(itrJson)` → submit ITR JSON to ITD portal
-  - `getSubmissionStatus(acknowledgementNumber)` → check filing status
-- **Design:** Create a configuration DTO:
-  ```java
-  @ConfigurationProperties(prefix = "itd.api")
-  public record ITDAPIConfig(String key, String secret, String baseUrl) {}
-  ```
-- **RETRY LOGIC:** Use Spring Retry with exponential backoff for transient failures
-- **RATE LIMITING:** Max 5 requests per minute per PAN (ITD requirement)
-
-### STEP 5: Create Browser Automation for One-Click Import
-
-**Create:** `backend/src/main/java/com/itr/service/integration/ITDPortalAutomationService.java`
-
-- **Purpose:** Automate login to incometax.gov.in → navigate to AIS/26AS/TIS → download on single click
-- **Technology:** Use Playwright for Java (`com.microsoft.playwright:playwright:1.40.0`) — add to pom.xml
-- **Flow:**
-  1. User provides their ITD portal credentials (PAN + Password + DOB)
-  2. Service launches headless Playwright browser
-  3. Navigates to `https://eportal.incometax.gov.in/`
-  4. Logs in with provided credentials
-  5. Navigates to "AIS" section
-  6. Downloads AIS PDF/JSON
-  7. Navigates to "Form 26AS" section
-  8. Downloads Form 26AS PDF
-  9. Navigates to "TIS" section
-  10. Downloads TIS PDF
-  11. Returns all downloaded files → feeds into existing import services
-- **Security:** Credentials encrypted in memory, destroyed after session
-- **IMPORTANT:** This feature must have a clear warning: "Credentials are used only for this session and are NOT stored"
-
-### STEP 6: Create Complete Tax Computation Engine
-
-**Create:** `backend/src/main/java/com/itr/service/TaxComputationOrchestrator.java`
-
-- **Purpose:** Master orchestrator that takes form data → runs all domain calculators → produces `TaxComputationResult`
-- **Flow:**
-  1. Extract salary data → run `SalaryScheduleComputer` → get net salary income
-  2. Extract HP data → run `HPScheduleComputer` → get HP income/loss
-  3. Extract CG data → run capital gains calculators → get CG income
-  4. Extract business data → run business income calculators → get business income
-  5. Extract other sources → sum up
-  6. Run `SetOffOrderEngine` → apply CYLA (current year loss adjustment)
-  7. Run `Chapter6ADeductionEngine` → compute deductions
-  8. Calculate net taxable income
-  9. Apply tax slabs per regime (OLD vs NEW)
-  10. Apply surcharge per income bracket
-  11. Apply Health & Education Cess (4%)
-  12. Apply Rebate under Section 87A
-  13. Run `LossCarryForwardService` → compute BFLA + CFL
-  14. Calculate interest under Sections 234A/234B/234C/234F
-  15. Consider TDS/TCS/Advance Tax → compute refund or balance payable
-  16. Return `TaxComputationResult`
-
-### STEP 7: Create ITR-1 through ITR-4 Specific Calculation Services
-
-**Create:** `backend/src/main/java/com/itr/service/ITR1ComputationService.java`
-**Create:** `backend/src/main/java/com/itr/service/ITR2ComputationService.java`
-**Create:** `backend/src/main/java/com/itr/service/ITR3ComputationService.java`
-**Create:** `backend/src/main/java/com/itr/service/ITR4ComputationService.java`
-
-- Each service validates form data specific to that ITR type:
-  - **ITR-1:** Only salary, one HP, other sources, deductions (NO CG, NO business income)
-  - **ITR-2:** Salary, multiple HP, CG, other sources, deductions (NO business income)
-  - **ITR-3:** Everything in ITR-2 + business/profession income, depreciation, balance sheet
-  - **ITR-4:** Presumptive income under 44AD/44ADA/44AE, simplified balance sheet
-
-**DO NOT DELETE** the existing `domain/` engines — call them from these services.
-
-### STEP 8: Connect Frontend to Real Backend
-
-**EDIT these frontend files to replace stub usage with real API calls:**
-
-| File | Action |
-|---|---|
-| `pages/ClientsPage.tsx` | Already calls `clientsApi` and `panApi` — ✅ Works once controllers exist |
-| `pages/DashboardPage.tsx` | Already calls `dashboardApi` and `clientsApi` — ✅ Works once controllers exist |
-| `pages/FilingPage.tsx` | Already calls `filingApi` — ✅ Works once controllers exist |
-| `pages/ITRComputationPage.tsx` | Already calls `itrApi`, `clientsApi`, `import()` for integration — ✅ Works once controllers exist |
-| `pages/ITRComputationTabs.tsx` | Already calls entry managers + `itrApi` — ✅ Works once controllers exist |
-| `api/documents.ts` | Already correct — just needs backend controller |
-| `api/billing.ts` | **Phase 2** — leave as stub |
-| `api/reconciliation.ts` | **Phase 2** — leave as stub |
-| `api/communication.ts` | **Phase 2** — leave as stub |
-| `api/jobs.ts` | **Phase 2** — leave as stub |
-| `api/notices.ts` | **Phase 2** — leave as stub |
-| `api/sync.ts` | **Phase 2** — leave as stub |
-
-**NOTE:** The frontend's `pages/` stubs (`AccountingPage`, `BillingPage`, `CalendarPage`, `CommunicationPage`, `JobsPage`, `NoticesPage`, `ReportsPage`, `SyncPage`, `TasksPage`) — these are Phase 2. They currently show warning banners. Do NOT delete them, do NOT modify them.
-
-### STEP 9: Update SecurityConfig for New Public Endpoints
-
-**EDIT:** `config/SecurityConfig.java`
-
-Add to the `.requestMatchers(...).permitAll()` chain:
-```java
-.requestMatchers("/api/v1/auth/**", "/api/v1/pan/**", "/api/v1/prefill/**",
-    "/api/v1/documents/share/**", "/api/v1/webhook/**",
-    "/swagger-ui/**", "/v3/api-docs/**").permitAll()
+Uses: ClientService, ClientRequest, ClientResponse
+UserId: get from SecurityContextHolder, convert to Long
 ```
 
-**IMPORTANT:** Do NOT remove any existing permitAll entries. Only add new ones.
+#### 1b. `DashboardController.java`
+```
+Endpoints:
+  GET /api/v1/dashboard/stats?ay=2026-27         → returns stats JSON
 
-### STEP 10: Application Configuration
+Returns:
+{
+  "totalClients": 5,
+  "filed": 2,
+  "inProgress": 1,
+  "docPending": 1,
+  "watchList": 1,
+  "totalMismatches": 0,
+  "totalNotices": 0,
+  "recentClients": [...]
+}
+
+Query: ClientRepository.findByUserId() + ITRFilingRepository
+```
+
+#### 1c. `FilingController.java`
+```
+Endpoints:
+  GET    /api/v1/filing                          → list filings (?status=filed&year=2026-27)
+  POST   /api/v1/filing                          → create filing
+  PUT    /api/v1/filing/{id}                     → update filing (status, ackNo, filingDate)
+  DELETE /api/v1/filing/{id}                     → delete filing
+
+Uses: ITRFilingService, FilingRequest, FilingResponse
+```
+
+#### 1d. `DocumentController.java`
+```
+Endpoints:
+  POST   /api/v1/documents/upload                 → multipart (file, clientId, ay, documentType)
+  GET    /api/v1/documents/list?clientId=&ay=    → list documents
+  GET    /api/v1/documents/{id}                   → get document metadata
+  GET    /api/v1/documents/download/{id}          → download file
+  DELETE /api/v1/documents/{id}                   → delete document
+
+Document types: FORM16_PDF, FORM16_JSON, FORM26AS_PDF, AIS_PDF, AIS_JSON, TIS_PDF, OTHER
+Uses: DocumentManagementService, DocumentStorageService
+```
+
+#### 1e. `PANController.java`
+```
+Endpoints:
+  GET /api/v1/pan/{pan}/validate                  → validate PAN format
+  GET /api/v1/pan/{pan}/analyze                    → analyze PAN (entity type, eligible ITR forms)
+
+Returns:
+{
+  "pan": "AAAAA9999A",
+  "valid": true,
+  "entityType": "INDIVIDUAL",
+  "name": "TEST USER",
+  "eligibleITRForms": ["ITR-1", "ITR-2", "ITR-3", "ITR-4"],
+  "warnings": []
+}
+
+Uses: PANValidationRepository, PAN value object for regex validation
+```
+
+#### 1f. `PrefillController.java`
+```
+Endpoints:
+  POST /api/v1/prefill/26as/upload                 → upload 26AS PDF → parse → return parsed data
+  POST /api/v1/prefill/ais/upload                  → upload AIS PDF → parse → return parsed data
+  POST /api/v1/prefill/tis/upload                  → upload TIS PDF → parse → return parsed data
+  POST /api/v1/prefill/form16/upload               → upload Form16 PDF → parse Part A + B → return data
+  POST /api/v1/prefill/autoPopulateAll              → populate all fields from available docs
+  GET  /api/v1/prefill/status/{clientId}/{ay}      → get prefill status (which docs uploaded, which fields populated)
+
+Multipart: file (PDF), clientId, assessmentYear
+Returns: PrefillResponse with status, recommended ITR type, income summary
+
+Uses: AISImportService, Form26ASImportService, TISImportService,
+      Form16PartAParser, Form16PartBParser, PrefillService
+```
+
+#### 1g. `IntegrationController.java`
+```
+Endpoints:
+  POST /api/v1/integration/autopopulate/form16   → body: Form16Data JSON → populate ITR fields
+  POST /api/v1/integration/autopopulate/ais      → body: AISData JSON → populate ITR fields
+  POST /api/v1/integration/reconciliation          → body: { form26as, ais, tis } → return discrepancies
+
+Reconciliation returns:
+{
+  "hasDiscrepancies": true,
+  "discrepancies": [
+    {
+      "field": "salaryTDS",
+      "source1": "AIS",
+      "value1": 50000,
+      "source2": "26AS",
+      "value2": 48000,
+      "difference": 2000,
+      "severity": "HIGH"
+    }
+  ],
+  "summary": { "total": 5, "high": 2, "medium": 1, "low": 2 }
+}
+
+Uses: AISReconciliationService, PrefillService
+```
+
+#### 1h. `TaxController.java`
+```
+Endpoints:
+  GET  /api/v1/clients/{clientId}/itr/{ay}        → get saved ITR form data
+  PUT  /api/v1/clients/{clientId}/itr/{ay}        → save ITR form data
+  POST /api/v1/clients/{clientId}/itr/{ay}/compute → compute tax → return TaxComputationResult
+  POST /api/v1/clients/{clientId}/itr/{ay}/validate → validate → return validation errors
+  GET  /api/v1/clients/{clientId}/itr/{ay}/download → download ITD-schema JSON
+  GET  /api/v1/clients/{clientId}/itr/{ay}/download-pdf → download computation PDF
+  POST /api/v1/tax-summary/compute                 → regime comparison (OLD vs NEW)
+
+Validation endpoint returns:
+{
+  "valid": false,
+  "errors": [
+    { "field": "salary.grossSalary", "code": "MANDATORY_FIELD", "message": "Gross salary is mandatory" },
+    { "field": "houseProperty[0].interest", "code": "INVALID_AMOUNT", "message": "Interest cannot be negative" }
+  ],
+  "warnings": [
+    { "field": "deductions.80C", "code": "LIMIT_EXCEEDED", "message": "80C limit is Rs.1,50,000" }
+  ]
+}
+
+Uses: ITRFormDataRepository, TaxComputationOrchestrator (Step 4),
+      ITRJsonExportService (Step 5), ComputationPDFService (Step 6)
+```
+
+#### 1i. `AdvancedTaxController.java`
+```
+Endpoints:
+  POST /api/v1/advanced-tax/hra                  → HRA exemption calculation
+  POST /api/v1/advanced-tax/section14a            → Section 14A disallowance
+  POST /api/v1/advanced-tax/section50c            → Section 50C deemed sale
+  POST /api/v1/advanced-tax/relief89              → Section 89 relief
+  POST /api/v1/advanced-tax/depreciation          → depreciation computation
+  GET  /api/v1/advanced-tax/depreciation/rates    → IT Act Section 32 rates
+  POST /api/v1/advanced-tax/multi-employer        → multi-employer consolidation
+  POST /api/v1/advanced-tax/ltcg-grandfathering   → LTCG 112A grandfathering
+  POST /api/v1/advanced-tax/epf-taxation          → EPF tax on contributions > 2.5L
+  POST /api/v1/advanced-tax/clubbing/minor-child  → minor child income clubbing
+  POST /api/v1/advanced-tax/clubbing/spouse       → spouse income clubbing
+  POST /api/v1/advanced-tax/fo-trading            → F&O trading tax
+  POST /api/v1/advanced-tax/break-even             → break-even analysis
+
+Every endpoint must implement FULL CBDT rules — not stubs.
+```
+
+---
+
+## 5. SUB-PHASE B: Core Tax Computation
+
+### STEP 2: Create Tax Computation Orchestrator
+
+**CREATE:** `backend/src/main/java/com/itr/service/TaxComputationOrchestrator.java`
+
+This is the **heart of the application**. It must implement the complete tax computation flow for ALL four ITR forms.
+
+```java
+@Service
+@RequiredArgsConstructor
+public class TaxComputationOrchestrator {
+
+    private final SalaryScheduleComputer salaryScheduleComputer;
+    private final HPScheduleComputer hpScheduleComputer;
+    private final CapitalGainsExemptionService capitalGainsExemptionService;
+    private final BusinessIncomeService businessIncomeService;
+    private final SetOffOrderEngine setOffOrderEngine;
+    private final Chapter6ADeductionEngine chapter6ADeductionEngine;
+    private final LossCarryForwardService lossCarryForwardService;
+    private final InterestCalculator interestCalculator;
+    private final PrefillService prefillService;
+
+    /**
+     * Computes complete tax for a given client and assessment year.
+     * Called from TaxController.compute() endpoint.
+     *
+     * @param clientId      the client database ID
+     * @param assessmentYear e.g. "2026-27"
+     * @param regime        OLD or NEW tax regime
+     * @return TaxComputationResult with all income heads, deductions, tax, surcharge, cess
+     */
+    public TaxComputationResult computeTax(Long clientId, String assessmentYear, TaxRegime regime) {
+        // Step 1: Get form data from ITRFormDataRepository
+        // Step 2: Run SalaryScheduleComputer → netSalaryIncome
+        // Step 3: Run HPScheduleComputer → hpIncome/loss
+        // Step 4: Run CG calculators (LTCG, STCG, VDA) → cgIncome
+        // Step 5: Run business income calculators → businessIncome
+        // Step 6: Sum other sources → otherSourcesIncome
+        // Step 7: Run SetOffOrderEngine (CYLA) → adjusted income per head
+        // Step 8: Run Chapter6ADeductionEngine → totalDeductions
+        // Step 9: Calculate gross total income
+        // Step 10: Apply tax slabs per regime
+        // Step 11: Apply rebate 87A
+        // Step 12: Apply surcharge
+        // Step 13: Apply H&E Cess (4%)
+        // Step 14: Run LossCarryForwardService (BFLA + CFL) if loss remains
+        // Step 15: Calculate interest 234A/234B/234C/234F
+        // Step 16: Compute TDS/TCS/AdvanceTax/SelfAssessmentTax → refund or balance
+        // Step 17: Return TaxComputationResult
+    }
+}
+```
+
+### STEP 3: Create ITR 1-4 Specific Computation Services
+
+**CREATE:** `backend/src/main/java/com/itr/service/ITR1ComputationService.java`
+```
+Purpose: ITR-1 (Sahaj) specific computation
+Eligibility: Salary + at most ONE house property + other sources. NO CG, NO business.
+Validates:
+  - No capital gains entries
+  - At most one house property
+  - ITR type can only be ITR-1
+Calls: TaxComputationOrchestrator
+Returns: TaxComputationResult
+```
+
+**CREATE:** `backend/src/main/java/com/itr/service/ITR2ComputationService.java`
+```
+Purpose: ITR-2 specific computation
+Eligibility: Salary + multiple house properties + capital gains + other sources. NO business.
+Validates:
+  - Business income must be zero
+  - If CG present, must be eligible ITR-2
+Calls: TaxComputationOrchestrator
+Returns: TaxComputationResult
+Also handles: Schedule AL, FA, FSI, AMT, 80G
+```
+
+**CREATE:** `backend/src/main/java/com/itr/service/ITR3ComputationService.java`
+```
+Purpose: ITR-3 specific computation
+Eligibility: Everything in ITR-2 + business/profession income
+Validates:
+  - Business income > 0 allowed
+  - Schedule BP, DPM, GST, PL, BS required
+Calls: TaxComputationOrchestrator
+Returns: TaxComputationResult
+Also handles: Depreciation (Section 32), Section 43B, MSME payments, Audit details
+```
+
+**CREATE:** `backend/src/main/java/com/itr/service/ITR4ComputationService.java`
+```
+Purpose: ITR-4 (Sugam) specific computation
+Eligibility: Presumptive income under 44AD/44ADA/44AE
+Validates:
+  - No capital gains
+  - No foreign assets
+  - Schedule Presumptive must be filled
+Calls: TaxComputationOrchestrator
+Returns: TaxComputationResult
+Also handles: Simplified Balance Sheet, GST Registrations
+```
+
+---
+
+## 6. SUB-PHASE C: Output Generation
+
+### STEP 4: Create ITD Schema JSON Export Service
+
+**CREATE:** `backend/src/main/java/com/itr/service/ITRJsonExportService.java`
+
+**Critical:** The JSON must strictly match the ITD published schema for AY 2026-27. Download the official schema from `https://www.incometax.gov.in/iec/foservices/` and map every field.
+
+```
+Methods:
+  String generateITR1Json(ITR1FormData data)   // ITR-1 schema
+  String generateITR2Json(ITR2FormData data)   // ITR-2 schema
+  String generateITR3Json(ITR3FormData data)   // ITR-3 schema
+  String generateITR4Json(ITR4FormData data)   // ITR-4 schema
+
+All monetary values in PAISE (Integer).
+Date format: DD-MM-YYYY
+PAN format: AAAAA9999A
+```
+
+**CREATE form data DTOs** at `dto/itr/` package:
+
+```
+dto/itr/ITR1FormData.java    — complete ITR-1 schema (Sahaj)
+dto/itr/ITR2FormData.java    — complete ITR-2 schema
+dto/itr/ITR3FormData.java    — complete ITR-3 schema
+dto/itr/ITR4FormData.java    — complete ITR-4 schema (Sugam)
+
+Each must have:
+  - All mandatory fields (even if zero/null)
+  - All optional fields (populate if available)
+  - Tax computation section
+  - TDS/TCS section
+  - Tax paid section
+  - Verification info
+  - CreationInfo (digest, timestamp)
+```
+
+### STEP 5: Create Computation PDF Generation Service
+
+**CREATE:** `backend/src/main/java/com/itr/service/ComputationPDFService.java`
+
+Uses existing iText libraries in pom.xml (`com.itextpdf:kernel:7.2.5`, `com.itextpdf:layout:7.2.5`).
+
+```
+Methods:
+  byte[] generateComputationPDF(ITRFormData data, TaxComputationResult result)
+
+PDF Structure:
+  1. HEADER: Assessee Name, PAN, AY, ITR Type, Date, Acknowledgement
+  2. INCOME SUMMARY TABLE:
+     | Head             | Amount (Rs.) |
+     |------------------|-------------|
+     | Salary           | 12,00,000   |
+     | House Property   | -2,00,000   |
+     | Capital Gains    | 50,000      |
+     | Business         | 0           |
+     | Other Sources    | 5,000       |
+     | Gross Total     | 10,55,000   |
+  3. DEDUCTIONS TABLE:
+     | Section | Amount |
+     | 80C     | 1,50,000 |
+     | 80D     | 25,000 |
+     | 80G     | 10,000 |
+     | Chapter VI-A Total | 1,85,000 |
+  4. TAX COMPUTATION:
+     - Net Taxable Income
+     - Tax slabs breakdown (with rate and amount)
+     - Rebate 87A
+     - Surcharge
+     - H&E Cess (4%)
+     - Total Tax Payable
+  5. TAX PAID:
+     - TDS (employer-wise)
+     - TCS
+     - Advance Tax
+     - Self Assessment Tax
+  6. INTEREST:
+     - 234A / 234B / 234C / 234F with calculation
+  7. NET TAX PAYABLE / REFUND
+  8. BANK DETAILS (if refund)
+  9. SIGNATURE + VERIFICATION
+```
+
+---
+
+## 7. SUB-PHASE D: Manual PDF/JSON Import
+
+### STEP 6: Enhance IntegrationController with Full Reconciliation
+
+The IntegrationController (from Step 1g) already has the reconciliation endpoint. Ensure it implements:
+
+```
+POST /api/v1/integration/reconciliation
+  Input: { form26as: Form26ASData, ais: AISData, tis: TISData }
+  Output: ReconciliationReport with severity levels
+
+Severity mapping:
+  HIGH   — TDS mismatch > Rs.500, Salary mismatch > Rs.1000, missing major income
+  MEDIUM — Minor field mismatches, missing supporting documents
+  LOW    — Formatting differences, non-material variations
+
+Each discrepancy must show:
+  - field: full JSON path (e.g., "salary.tds.section194A[0].amount")
+  - aisValue: value from AIS
+  - form26asValue: value from Form 26AS
+  - difference: absolute difference
+  - severity: HIGH/MEDIUM/LOW
+  - suggestion: "Verify with employer TDS certificate"
+```
+
+### STEP 7: Create Manual Import Flow
+
+For each document type, the flow is:
+
+```
+User uploads PDF → PrefillController → Service parses PDF → Data stored in ClientYearData.formData JSON → IntegrationController auto-populates fields → User reviews and corrects → TaxController computes
+```
+
+**Key flow for Form16:**
+```
+1. User uploads Form16 PDF
+2. PrefillController.post("/form16/upload")
+3. Form16PartAParser extracts: employer TAN, name, address, salary, TDS, quarterly details
+4. Form16PartBParser extracts: all Section 17(1) components, deductions u/s 16
+5. Form16Data object created
+6. IntegrationController.post("/autopopulate/form16") → maps to ITR form fields
+7. User sees pre-populated salary section with employer name, TAN, all allowances
+8. User corrects if needed → TaxController computes
+```
+
+**Key flow for 26AS/AIS/TIS:**
+```
+1. User uploads AIS PDF → AISImportService decrypts + parses → AISData
+2. User uploads 26AS PDF → Form26ASImportService decrypts + parses → Form26ASData
+3. User uploads TIS PDF → TISImportService decrypts + parses → TISData
+4. IntegrationController.post("/reconciliation") → compare all three
+5. Show discrepancies with severity
+6. User resolves discrepancies
+7. Auto-populate from AIS as primary source, 26AS for TDS verification
+```
+
+---
+
+## 8. SUB-PHASE E: ITD Integration (LAST — After Core Verified)
+
+### STEP 8: Create ITD ERI-2 API Integration Service
+
+**CREATE:** `backend/src/main/java/com/itr/service/integration/ITDERI2Service.java`
+
+**DO NOT implement this until Steps 1-7 are tested and working.**
+
+```
+Purpose: Integrate with ITD ERI-2 (e-Return Intermediary 2.0) API
+
+API Base URL: https://eportal.incometax.gov.in/iec/foservices/
+Authentication: API key + HMAC-SHA256 signature per ITD spec
+
+Configuration (application.properties):
+  itd.api.key=<your-api-key>
+  itd.api.secret=<your-secret>
+  itd.api.base-url=https://eportal.incometax.gov.in/iec/foservices/
+  itd.api.timeout-ms=30000
+  itd.api.max-retries=3
+
+Methods to implement:
+  1. getPrefillData(pan: String, ay: String): ITDPrefillData
+     → GET /prefill/data?pan=XXX&ay=2026-27
+     → Decrypt response → parse JSON → return ITDPrefillData
+
+  2. getForm26AS(pan: String, ay: String): Form26ASData
+     → GET /form26as/download?pan=XXX&ay=2026-27
+     → Return parsed Form26ASData
+
+  3. getAISData(pan: String, ay: String): AISData
+     → GET /ais/download?pan=XXX&ay=2026-27
+     → Return parsed AISData
+
+  4. getTISData(pan: String, ay: String): TISData
+     → GET /tis/download?pan=XXX&ay=2026-27
+     → Return parsed TISData
+
+  5. submitITR(itrJson: String, itrType: String): SubmissionResult
+     → POST /itr/submit with signed JSON
+     → Return acknowledgement number + status
+
+  6. getSubmissionStatus(ackNo: String): FilingStatus
+     → GET /itr/status?ackNo=XXX
+     → Return filed/pending/rejected status
+
+Design:
+  @ConfigurationProperties(prefix = "itd.api")
+  public record ITDAPIConfig(String key, String secret, String baseUrl, int timeoutMs, int maxRetries) {}
+
+  Retry with exponential backoff (Spring Retry)
+  Rate limiting: max 5 requests/minute per PAN
+  All responses logged for debugging
+```
+
+### STEP 9: Create Browser Automation Service
+
+**CREATE:** `backend/src/main/java/com/itr/service/integration/ITDPortalAutomationService.java`
+
+**DO NOT implement this until Steps 1-8 are tested and working.**
+
+```
+Purpose: One-click import of AIS/26AS/TIS via browser automation
+
+Requires pom.xml update (Step 12):
+  <dependency>
+    <groupId>com.microsoft.playwright</groupId>
+    <artifactId>playwright</artifactId>
+    <version>1.40.0</version>
+  </dependency>
+
+Flow:
+  1. User provides ITD portal credentials (PAN + Password + DOB)
+     ⚠️ WARNING: "Credentials used only for this session, NOT stored"
+  2. Launch headless Playwright browser (Chromium)
+  3. Navigate to https://eportal.incometax.gov.in/
+  4. Login with provided credentials
+  5. Navigate to "AIS" → Download AIS PDF/JSON
+  6. Navigate to "Form 26AS" → Download 26AS PDF
+  7. Navigate to "TIS" → Download TIS PDF
+  8. Close browser, destroy credentials from memory
+  9. Return downloaded files → feed into existing import services
+
+Security:
+  - Credentials passed as method parameters, not stored anywhere
+  - Browser runs headless, no UI shown
+  - Session destroyed immediately after download
+  - All navigation steps logged for debugging
+```
+
+---
+
+## 9. ITD VALIDATIONS AND MANDATORY FIELDS
+
+This section is the **AUTHORITATIVE SOURCE** for all field-level validations that must be enforced when generating the ITD JSON and validating form data. These are derived from CBDT's "ITR Schema Validation Rules for AY 2026-27" and ITD's e-filing portal requirements.
+
+### 9.1 Personal Information Validations
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| PAN | Must match `^[A-Z]{5}[0-9]{4}[A-Z]$` | `INVALID_PAN` | PAN format is invalid |
+| PAN | Must exist in user's client record | `PAN_MISMATCH` | PAN does not match registered client |
+| FirstName | Max 30 chars, no special chars except space | `INVALID_NAME` | First name contains invalid characters |
+| LastName | Max 30 chars, no special chars except space | `INVALID_NAME` | Last name contains invalid characters |
+| FatherName | Max 30 chars | `MANDATORY_FIELD` | Father's name is mandatory |
+| DOB | Must be valid date, age ≥ 18 | `INVALID_DOB` | Date of birth is invalid or assessee is minor |
+| Aadhaar | Must be 12 digits or null | `INVALID_AADHAAR` | Aadhaar number is invalid |
+| Aadhaar | If provided, last 4 digits must match | `AADHAAR_MISMATCH` | Aadhaar does not match |
+| Mobile | Must be 10 digits, starting with 6-9 | `INVALID_MOBILE` | Mobile number is invalid |
+| Email | Must be valid email format | `INVALID_EMAIL` | Email address is invalid |
+| ResidentialStatus | Must be RES/NOR/NRI | `INVALID_RES_STATUS` | Residential status is invalid |
+| Aadhaar Enrollment No | Required if Aadhaar not linked | `MANDATORY_FIELD` | Aadhaar enrollment number required |
+| Bank Account | IFSCCode valid 11-char format | `INVALID_IFSC` | IFSC code is invalid |
+
+### 9.2 Filing Status Validations
+
+| Field | Rule | Error Code |
+|---|---|---|
+| ReturnType | ORIGINAL / REVISED / DEFECTIVE | `INVALID_RETURN_TYPE` |
+| Acknowledgement No | Required if revised, 15-digit format | `INVALID_ACK_NO` |
+| Date of Filing | Must be within AY (Apr 1 2026 to Mar 31 2027) | `INVALID_DATE` |
+| Section | Required if belated return | `MANDATORY_FIELD` |
+| Notice No | Required if under scrutiny | `MANDATORY_FIELD` |
+
+### 9.3 Salary Income Validations
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| GrossSalary | ≥ 0, in paise | `INVALID_AMOUNT` | Gross salary cannot be negative |
+| ExemptAllowances | ≤ GrossSalary | `EXCEEDS_LIMIT` | Exempt allowances cannot exceed gross salary |
+| StandardDeduction | ≤ 75,000 (FY 2025-26) | `EXCEEDS_LIMIT` | Standard deduction exceeds limit of Rs.75,000 |
+| ProfessionalTax | ≤ 2,500 | `EXCEEDS_LIMIT` | Professional tax exceeds limit of Rs.2,500 |
+| Employer TAN | Required if salary > 0, 10-char format | `MANDATORY_FIELD` | Employer TAN is mandatory |
+| Employer Name | Required if salary > 0 | `MANDATORY_FIELD` | Employer name is mandatory |
+| Nature of Employment | Required if salary > 0 | `MANDATORY_FIELD` | Nature of employment is mandatory |
+| Salary from previous employer | Must have TAN, income ≤ 0 if no previous | `INVALID_ENTRY` | Previous employer salary entry is invalid |
+
+### 9.4 House Property Validations
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| PropertyType | SELF_OCCUPIED / LET_OUT / DEEMED | `INVALID_PROPERTY_TYPE` | Property type is invalid |
+| AnnualValue | ≥ 0 | `INVALID_AMOUNT` | Annual value cannot be negative |
+| MunicipalTaxesPaid | ≤ AnnualValue, ≤ Actual Paid | `EXCEEDS_LIMIT` | Municipal taxes exceed annual value |
+| InterestOnBorrowedCapital | ≥ 0 | `INVALID_AMOUNT` | Interest cannot be negative |
+| SO Interest (Old Regime) | ≤ 2,00,000 | `EXCEEDS_LIMIT` | Self-occupied interest exceeds Rs.2,00,000 |
+| SO Interest (New Regime) | Must be 0 | `NEW_REGIME_NOT_ALLOWED` | Self-occupied interest not allowed in new regime |
+| Arrears/UnrealizedRent | ≥ 0, in paise | `INVALID_AMOUNT` | Arrears of rent cannot be negative |
+| HP Loss Set-off (Old) | ≤ 2,00,000 per year | `EXCEEDS_LIMIT` | HP loss set-off exceeds Rs.2,00,000 |
+| Pre-construction interest | Only first 5 years of loan, 1/5th per year | `INVALID_PERIOD` | Pre-construction interest period is invalid |
+
+### 9.5 Capital Gains Validations
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| PurchaseDate | Must be before sale date | `INVALID_DATE` | Purchase date cannot be after sale date |
+| SaleDate | Must be within AY | `INVALID_DATE` | Sale date must be within AY 2026-27 |
+| CostOfImprovement | ≥ 0 | `INVALID_AMOUNT` | Cost of improvement cannot be negative |
+| IndexedCostOfAcquisition | ≥ ActualCost (after CII indexation) | `INVALID_COST` | Indexed cost must be ≥ actual cost |
+| STCG Rate (Equity) | 20% (Finance Act 2024, from Jul 23 2024) | `INVALID_RATE` | STCG rate for listed equity is 20% |
+| LTCG Rate (Equity) | 12.5% over ₹1,25,000 exemption | `INVALID_RATE` | LTCG rate for listed equity is 12.5% |
+| LTCG Exemption (Sec 112A) | ≤ 1,25,000 | `EXCEEDS_LIMIT` | Exemption under Section 112A cannot exceed Rs.1,25,000 |
+| VDA Gains | 30% flat, no indexation, no loss set-off | `INVALID_TREATMENT` | VDA gains cannot be indexed or set off |
+| STCG on property | Taxed as per slab (no special rate) | `INVALID_RATE` | Property STCG is taxed as per slab |
+| LTCG on property | 20% with CII indexation | `INVALID_RATE` | Property LTCG rate is 20% with indexation |
+
+### 9.6 Business/Profession Income Validations (ITR-3, ITR-4)
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| Business Code | Must be valid 4-digit NIC code | `INVALID_CODE` | Business code is invalid |
+| 44AD Turnover | ≥ GrossReceipts if 44AD opted | `INVALID_AMOUNT` | Turnover cannot be less than gross receipts |
+| 44AD Presumptive Rate | 6% (digital receipts), 8% (cash ≤ 5%) | `INVALID_RATE` | Presumptive rate is invalid |
+| 44ADA Professional | 50% of gross receipts | `INVALID_RATE` | Presumptive rate for 44ADA is 50% |
+| 44AE Per Vehicle | As per ITD notified rates for AY 2026-27 | `INVALID_AMOUNT` | Per vehicle income is invalid |
+| Depreciation | Block-of-assets method, Section 32 rates | `INVALID_RATE` | Depreciation rate is invalid |
+| Section 43B | Must be actually paid before filing date | `NOT_PAID` | Business income reduced by unpaid 43B items |
+| MSME Payments | ≥ 45 days overdue to be disallowed | `INVALID_PERIOD` | MSME payment period is invalid |
+| Audit Required | If turnover > ₹10L (44AD) or turnover > ₹50L (others) | `AUDIT_REQUIRED` | Tax audit is mandatory |
+| Book Profit (Partners) | Required if partnership firm, Section 92E | `MANDATORY_FIELD` | Book profit is mandatory for Section 92E |
+
+### 9.7 Other Sources Validations
+
+| Field | Rule | Error Code | Error Message |
+|---|---|---|---|
+| Interest Income | ≥ 0, in paise | `INVALID_AMOUNT` | Interest cannot be negative |
+| Dividend Income | ≥ 0, in paise | `INVALID_AMOUNT` | Dividend cannot be negative |
+| Family Pension | ≤ 1/3 of salary received | `EXCEEDS_LIMIT` | Family pension exceeds permissible limit |
+| 80TTA | ≤ 10,000 (savings interest) | `EXCEEDS_LIMIT` | 80TTA deduction exceeds Rs.10,000 |
+| 80TTB | ≤ 50,000 (senior citizen) | `EXCEEDS_LIMIT` | 80TTB deduction exceeds Rs.50,000 |
+
+### 9.8 Deductions Validations
+
+| Section | Rule | Error Code | Error Message |
+|---|---|---|---|
+| 80C | ≤ 1,50,000 (PF, PPF, LIC, ELSS, NSC, etc.) | `EXCEEDS_LIMIT` | 80C exceeds limit of Rs.1,50,000 |
+| 80CCC | Combined with 80C ≤ 1,50,000 | `EXCEEDS_LIMIT` | 80C+80CCC exceeds limit |
+| 80CCD(1) | Within 80C limit of 1,50,000 | `EXCEEDS_LIMIT` | 80CCD(1) exceeds 80C limit |
+| 80CCD(1B) | ≤ 50,000 | `EXCEEDS_LIMIT` | 80CCD(1B) exceeds Rs.50,000 |
+| 80CCD(2) | ≤ 14% of salary (CG) / 10% (others) — New regime allowed | `EXCEEDS_LIMIT` | 80CCD(2) exceeds permissible limit |
+| 80D | ≤ 25,000 (self) / 50,000 (senior) / 1,00,000 (super senior) | `EXCEEDS_LIMIT` | 80D exceeds limit |
+| 80DD | Fixed 50,000 (normal) / 1,25,000 (severe disability) | `EXCEEDS_LIMIT` | 80DD amount is invalid |
+| 80DDB | ≤ 40,000 (normal) / 1,00,000 (senior citizen) | `EXCEEDS_LIMIT` | 80DDB amount is invalid |
+| 80E | Actual interest, max 8 years from start | `INVALID_PERIOD` | 80E period exceeds 8 years |
+| 80EE | ≤ 50,000, only for first home loan ≤ 50L | `EXCEEDS_LIMIT` | 80EE conditions not met |
+| 80EEA | ≤ 1,50,000, only for stamp duty ≤ 45L | `EXCEEDS_LIMIT` | 80EEA conditions not met |
+| 80G | Varies by category (100%/50% with/without 10% GTI limit) | `INVALID_CATEGORY` | 80G donation category is invalid |
+| 80G | Cash donation > 2,000 disallowed | `EXCEEDS_LIMIT` | Cash donation exceeds Rs.2,000 limit |
+| 80GG | ≤ 60,000, no HRA claimed | `EXCEEDS_LIMIT` | 80GG exceeds Rs.60,000 |
+| 80GGC | Only for political parties, in cash disallowed | `INVALID_MODE` | 80GGC cash donation not allowed |
+| 80U | Fixed 1,25,000 (normal) / 1,25,000 (severe disability) | `EXCEEDS_LIMIT` | 80U amount is invalid |
+| 80CCH(2) | New regime only, Agnipath scheme | `NEW_REGIME_ONLY` | 80CCH(2) only in new regime |
+| 80JJAA | Only manufacturing, additional employee cost | `INVALID_CATEGORY` | 80JJAA not applicable |
+
+### 9.9 Tax Computation Validations
+
+| Rule | Error Code | Error Message |
+|---|---|---|
+| New regime only allows 80CCD(2), 80CCH(2), 80JJAA | `NEW_REGIME_VIOLATION` | Deduction not allowed in new regime |
+| Rebate 87A: taxable income ≤ 7L → tax = 0 (new), ≤ 5L → tax = 0 (old) | `REBATE_LIMIT` | Rebate 87A not applicable |
+| Surcharge: 50L-1Cr = 10%, 1Cr-2Cr = 15%, 2Cr-5Cr = 25%, >5Cr = 37% | `SURCHARGE_APPLICABLE` | Surcharge calculation |
+| Marginal relief: surcharge cannot push total tax above income | `MARGINAL_RELIEF` | Marginal relief applied |
+| H&E Cess: 4% on (tax + surcharge) | `CESS_APPLICABLE` | Cess calculation |
+| Self-assessment tax: must equal (tax - TDS - advance tax - TCS) | `TAX_MISMATCH` | Self-assessment tax does not match |
+| Interest 234F: 1,000 (≤5L income) / 5,000 (before Dec 31, >5L) / 10,000 (after Dec 31) | `LATE_FEE_APPLICABLE` | Late filing fee applicable |
+
+### 9.10 TDS Validations
+
+| Rule | Error Code | Error Message |
+|---|---|---|
+| TAN must be 10-char format if provided | `INVALID_TAN` | TAN format is invalid |
+| TDS rate must match applicable rate | `INVALID_RATE` | TDS rate is incorrect |
+| TDS deducted must ≤ income amount | `EXCEEDS_INCOME` | TDS deducted exceeds income |
+| Quarterly TDS detail must match annual TDS | `TDS_MISMATCH` | Quarterly TDS does not match annual total |
+
+### 9.11 ITD JSON Upload Validations (Final Pre-submission)
+
+These are the validation rules ITD applies when JSON is uploaded to e-filing portal:
+
+| Error Code | Field | Description |
+|---|---|---|
+| `ITR_101` | PAN | PAN does not match the filer |
+| `ITR_102` | AssessmentYear | AY mismatch |
+| `ITR_103` | ITRForm | ITR type does not match income heads |
+| `ITR_104` | TotalIncome | Total income is negative |
+| `ITR_105` | TaxPayable | Tax computation error |
+| `ITR_106` | TDS | TDS details do not match Form 26AS |
+| `ITR_107` | ScheduleMismatch | Income head mismatch across schedules |
+| `ITR_108` | MandatoryField | Required field is missing |
+| `ITR_109` | SchemaVersion | JSON schema version mismatch |
+| `ITR_110` | CreationInfo | JSON digest does not match |
+| `ITR_111` | VerificationInfo | Digital signature invalid |
+| `ITR_112` | BankAccount | Bank account not validated |
+| `ITR_113` | Aadhaar | Aadhaar not linked to PAN |
+| `ITR_114` | Form26ASMismatch | Salary in JSON does not match 26AS |
+| `ITR_115` | AdvanceTax | Advance tax detail is incomplete |
+
+### 9.12 Validation Error Response Format
+
+Every validation error returned to the frontend must follow this structure:
+
+```json
+{
+  "valid": false,
+  "errors": [
+    {
+      "field": "salary.grossSalary",
+      "code": "INVALID_AMOUNT",
+      "message": "Gross salary cannot be negative",
+      "value": -50000,
+      "severity": "ERROR"
+    },
+    {
+      "field": "houseProperty[0].selfOccupiedInterest",
+      "code": "NEW_REGIME_NOT_ALLOWED",
+      "message": "Self-occupied house property interest is not allowed in new tax regime",
+      "value": 200000,
+      "severity": "ERROR"
+    }
+  ],
+  "warnings": [
+    {
+      "field": "deductions.80C",
+      "code": "LIMIT_EXCEEDED",
+      "message": "80C deduction claimed is Rs.1,60,000 but maximum allowed is Rs.1,50,000. Excess amount of Rs.10,000 will be disallowed.",
+      "value": 160000,
+      "severity": "WARNING"
+    }
+  ],
+  "info": [
+    {
+      "field": "taxComputation.regime",
+      "code": "REGIME_RECOMMENDATION",
+      "message": "New regime results in tax savings of Rs.12,500 compared to old regime.",
+      "severity": "INFO"
+    }
+  ]
+}
+```
+
+---
+
+## 10. SUB-PHASE E: Config Updates (After All Code Written)
+
+### STEP 10: Update SecurityConfig.java
+
+**EDIT:** `backend/src/main/java/com/itr/config/SecurityConfig.java`
+
+Add to the `.requestMatchers(...).permitAll()` chain. DO NOT remove existing entries.
+
+```java
+.authorizeHttpRequests(auth -> auth
+    .requestMatchers(
+        "/api/v1/auth/**",
+        "/api/v1/pan/**",
+        "/api/v1/prefill/**",
+        "/api/v1/documents/share/**",
+        "/api/v1/webhook/**",
+        "/swagger-ui/**",
+        "/v3/api-docs/**",
+        "/error"
+    ).permitAll()
+    .anyRequest().authenticated()
+)
+```
+
+### STEP 11: Update application.properties
 
 **EDIT:** `backend/src/main/resources/application.properties`
 
-Add:
+Append these properties at the end. DO NOT modify existing properties.
+
 ```properties
-# ITD ERI-2 API Configuration
+# ITD ERI-2 API Configuration (configure after API keys received from ITD)
 itd.api.base-url=https://eportal.incometax.gov.in/iec/foservices/
 itd.api.key=
 itd.api.secret=
@@ -566,17 +1086,32 @@ itd.api.max-retries=3
 # File Upload
 app.upload.dir=${user.home}/itr-filing-uploads
 
-# Computation
+# Tax Computation
 tax.regime.default=NEW
+
+# Playwright (for browser automation)
+playwright.enabled=false
 ```
 
-**Note:** Keep the existing properties. Only append.
+### STEP 12: Update pom.xml (for Browser Automation)
+
+**EDIT:** `backend/pom.xml`
+
+Add Playwright dependency. Only do this when implementing Step 9.
+
+```xml
+<dependency>
+    <groupId>com.microsoft.playwright</groupId>
+    <artifactId>playwright</artifactId>
+    <version>1.40.0</version>
+</dependency>
+```
 
 ---
 
-## 5. CBDT TAX RULES — ITR 1-4 (AY 2026-27)
+## 11. CBDT TAX RULES — AY 2026-27
 
-### 5.1 New Tax Regime (Default — Section 115BAC)
+### 11.1 New Tax Regime (Default — Section 115BAC)
 
 | Income Slab (₹) | Rate |
 |---|---|
@@ -588,9 +1123,9 @@ tax.regime.default=NEW
 | 20,00,001 – 24,00,000 | 25% |
 | Above 24,00,000 | 30% |
 
-**Rebate u/s 87A:** Full rebate if taxable income ≤ ₹7,00,000 (tax becomes NIL)
+**Rebate u/s 87A:** Full rebate if taxable income ≤ ₹7,00,000 → tax becomes NIL
 
-### 5.2 Old Tax Regime
+### 11.2 Old Tax Regime
 
 | Income Slab (₹) | Rate |
 |---|---|
@@ -602,359 +1137,213 @@ tax.regime.default=NEW
 **Senior Citizen (60-79):** Basic exemption ₹3,00,000
 **Super Senior (80+):** Basic exemption ₹5,00,000
 
-**Rebate u/s 87A:** Full rebate if taxable income ≤ ₹5,00,000 (₹7,00,000 for new regime)
+### 11.3 Surcharge
 
-### 5.3 Surcharge (Applies to both regimes)
-
-| Income Range (₹) | Surcharge Rate |
+| Income | Rate |
 |---|---|
-| Above 50L – 1Cr | 10% |
-| Above 1Cr – 2Cr | 15% |
-| Above 2Cr – 5Cr | 25% |
+| 50L – 1Cr | 10% |
+| 1Cr – 2Cr | 15% |
+| 2Cr – 5Cr | 25% |
 | Above 5Cr | 37% |
 
-**Marginal Relief:** Must be computed where surcharge pushes income into higher bracket.
+**Marginal Relief:** Must compute where surcharge pushes income into higher bracket.
 
-### 5.4 Health & Education Cess
+### 11.4 Health & Education Cess
 
-**Flat 4%** on (Income Tax + Surcharge) — applies to both regimes.
+**4% flat** on (Income Tax + Surcharge) — both regimes.
 
-### 5.5 House Property Rules
+### 11.5 Interest Rules
 
-| Item | Old Regime | New Regime |
-|---|---|---|
-| Self-occupied interest deduction | Max ₹2,00,000 | NIL |
-| Let-out property interest | Actual without cap | Actual without cap |
-| Standard deduction (30% of NAV) | ✅ Allowed | ✅ Allowed |
-| Pre-construction interest (5 year limit) | 1/5th per year for 5 years | 1/5th per year for 5 years |
-| HP loss set-off against other heads | Max ₹2,00,000 per year | NOT ALLOWED |
-| Unrealized rent deduction | ✅ Allowed | ✅ Allowed |
-| Municipal taxes (paid) | ✅ Allowed | ✅ Allowed |
-
-### 5.6 Capital Gains Rules
-
-| Type | Holding Period | Rate (Old Regime) | Rate (New Regime) |
+| Section | Trigger | Rate | Period |
 |---|---|---|---|
-| Listed Equity STCG | ≤12 months | 15% (was 15%, now 20% from Jul 23 2024) | Same |
-| Listed Equity LTCG | >12 months | 10% over ₹1 Lakh | Same |
-| Unlisted Shares STCG | ≤24 months | Taxed as per slab | Taxed as per slab |
-| Unlisted Shares LTCG | >24 months | 20% with indexation | 20% with indexation |
-| Property STCG | ≤24 months | Taxed as per slab | Taxed as per slab |
-| Property LTCG | >24 months | 20% with indexation | 20% with indexation |
-| VDA (Crypto/NFT) | Any | 30% flat (Section 115BBH) | 30% flat (Section 115BBH) |
+| 234A | Tax payable but return not filed by due date | 1%/month | From due date to filing date |
+| 234B | Advance tax paid < 90% of assessed tax | 1%/month | From Apr 1 to date of tax payment |
+| 234C | Quarterly installment shortfall | 1%/month | From each quarterly due date |
+| 234F | Late filing fee | ₹1,000/5,000/10,000 | Based on income and delay |
 
-### 5.7 Deductions — New Regime (115BAC)
+---
 
-**Only these deductions are allowed:**
-- **80CCD(2):** Employer's NPS contribution up to 14% of salary (Central Govt) / 10% (others)
-- **80CCH(2):** Employer's contribution to Agnipath scheme
-- **80JJAA:** Additional employee cost (manufacturing sector)
+## 12. TESTING CHECKLIST
 
-### 5.8 Deductions — Old Regime (Full list allowed)
+### Sub-Phase A Tests (after Step 1)
 
-| Section | Max Deduction | Notes |
+| # | Test | Expected |
 |---|---|---|
-| 80C | ₹1,50,000 | PF, PPF, LIC, ELSS, etc. |
-| 80CCC | ₹1,50,000 | Combined with 80C |
-| 80CCD(1) | ₹1,50,000 | NPS (employee) — within 80C limit |
-| 80CCD(1B) | ₹50,000 | NPS additional (over 80C) |
-| 80CCD(2) | Actual | Employer NPS |
-| 80D | ₹25,000/₹50,000 | Health insurance (self/senior citizen) |
-| 80E | Actual | Education loan interest (max 8 years) |
-| 80G | Actual | Donations (varying limits) |
-| 80GG | ₹60,000 per year | Rent paid (no HRA) |
-| 80TTA | ₹10,000 | Savings account interest |
-| 80TTB | ₹50,000 | Senior citizen savings interest |
-| 80U | ₹1,25,000 | Disability |
-| 24(b) | ₹2,00,000 | Home loan interest (self-occupied) |
+| A1 | Login with test1@test.com / pokemon123 | ✅ 200 + JWT |
+| A2 | GET /dashboard/stats | ✅ 200 + stats JSON |
+| A3 | POST /clients (create) | ✅ 201 + client object |
+| A4 | GET /clients (list) | ✅ 200 + client list |
+| A5 | GET /clients/{id} (single) | ✅ 200 + client with years |
+| A6 | PUT /clients/{id} (update) | ✅ 200 + updated client |
+| A7 | DELETE /clients/{id} | ✅ 204 |
+| A8 | POST /filing (create) | ✅ 201 + filing object |
+| A9 | GET /filing (list) | ✅ 200 + filing list |
+| A10 | POST /documents/upload (PDF) | ✅ 201 + document metadata |
+| A11 | GET /documents/list | ✅ 200 + document list |
+| A12 | GET /pan/AAAAA9999A/validate | ✅ 200 + validation result |
+| A13 | Bad password login | ✅ 401 |
+| A14 | Protected endpoint without JWT | ✅ 403 |
 
----
+### Sub-Phase B Tests (after Steps 2-3)
 
-## 6. ITD JSON SCHEMA — OUTPUT STRUCTURE
-
-### 6.1 ITR-1 Schema (Simplified)
-
-```json
-{
-  "ITRForm": "ITR-1",
-  "AssessmentYear": "2026-27",
-  "SchemaVersion": "1.0",
-  "PersonalInfo": {
-    "PAN": "AAAAA9999A",
-    "FirstName": "Test",
-    "LastName": "User",
-    "FatherName": "Father Name",
-    "DOB": "01-01-1990",
-    "Aadhaar": "XXXXXXXXXXXX",
-    "Mobile": "9876543210",
-    "Email": "test@test.com",
-    "ResidentialStatus": "RES",
-    "IsIndividualOrHUF": true
-  },
-  "FilingStatus": {
-    "ReturnType": "ORIGINAL",
-    "BelatedReturn": false,
-    "RevisedReturn": false
-  },
-  "IncomeDetails": {
-    "Salary": {
-      "GrossSalary": 120000000,
-      "ExemptAllowances": 6000000,
-      "NetSalary": 114000000,
-      "StandardDeduction": 75000,
-      "ProfessionalTax": 2500
-    },
-    "HouseProperty": {
-      "TotalRentalIncome": 0,
-      "TotalInterestPaid": 200000,
-      "IncomeFromHP": -200000
-    },
-    "OtherSources": {
-      "InterestIncome": 50000,
-      "TotalOtherSources": 50000
-    },
-    "GrossTotalIncome": 112000000,
-    "Deductions": {
-      "ChapterVIA": 150000
-    },
-    "TotalIncome": 110500000
-  },
-  "TaxComputation": {
-    "TaxOnTotalIncome": 0,
-    "Rebate87A": 0,
-    "Surcharge": 0,
-    "HealthAndEducationCess": 0,
-    "TotalTaxPayable": 0,
-    "Interest234A": 0,
-    "Interest234B": 0,
-    "Interest234C": 0,
-    "Interest234F": 0,
-    "TotalInterest": 0,
-    "GrossTaxLiability": 0,
-    "TDS": 0,
-    "TCS": 0,
-    "AdvanceTax": 0,
-    "SelfAssessmentTax": 0,
-    "NetTaxPayable": 0,
-    "RefundAmount": 0
-  }
-}
-```
-
-**All monetary values in paise (Integer).** The existing `IndianAmount` value object (paise-based) should be used for all computations.
-
-### 6.2 ITR-2 Schema (Additional fields over ITR-1)
-- Multiple house properties
-- Capital Gains (all asset types)
-- Schedule AL (Assets & Liabilities)
-- Schedule FA (Foreign Assets)
-- Schedule FSI (Foreign Source Income)
-- Schedule CYLA/BFLA/CFL
-- Schedule AMT
-- Schedule 80G (with carry forward)
-
-### 6.3 ITR-3 Schema (Additional over ITR-2)
-- Schedule BP (Business/Profession)
-- Schedule DPM (Depreciation)
-- Schedule GST
-- Schedule PL (Profit & Loss)
-- Schedule BS (Balance Sheet)
-- Audit details
-- MSME payments
-- Section 43B items
-- 80JJAA additional employee cost
-
-### 6.4 ITR-4 Schema (Different structure)
-- Schedule Presumptive (44AD/44ADA/44AE)
-- Simplified Balance Sheet
-- GST Registrations
-- No Capital Gains
-- No Foreign Assets
-
----
-
-## 7. FRONTEND ROUTE MAP
-
-Current routes in `App.tsx` — these work once backend controllers are created:
-
-| Route | Page Component | Backend API | Status |
-|---|---|---|---|
-| `/login` | LoginPage | POST /auth/login | ✅ Works |
-| `/register` | RegisterPage | POST /auth/register | ✅ Works |
-| `/dashboard` | DashboardPage | GET /dashboard/stats | ❌ Needs controller |
-| `/clients` | ClientsPage | GET/POST /clients, GET /pan | ❌ Needs controller |
-| `/clients/:id` | ClientsPage (edit) | GET/PUT/DELETE /clients/:id | ❌ Needs controller |
-| `/filing` | FilingPage | GET/POST/PUT/DELETE /filing | ❌ Needs controller |
-| `/itr/:clientId/:year` | ITRComputationPage | GET/PUT /clients/:id/itr/:year | ❌ Needs controller |
-| `/advanced-tax` | AdvancedTaxPage | POST /advanced-tax/* | ❌ Needs controller |
-| /stub pages | Various stubs | — | Phase 2 |
-
----
-
-## 8. IMPLEMENTATION ORDER
-
-```
-Step 1: REST Controllers (9 files)
-  ├── ClientController.java        → Unlocks Client Management
-  ├── DashboardController.java     → Unlocks Dashboard
-  ├── FilingController.java        → Unlocks Filing
-  ├── DocumentController.java      → Unlocks Document Upload
-  ├── PrefillController.java       → Unlocks AIS/26AS/TIS Import
-  ├── IntegrationController.java   → Unlocks Auto-Populate
-  ├── TaxController.java           → Unlocks Tax Computation
-  ├── PANController.java           → Unlocks PAN Validation
-  └── AdvancedTaxController.java   → Unlocks Advanced Tax
-
-Step 2: ITR JSON Export Service (1 file)
-  └── ITRJsonExportService.java    → Enables ITD schema JSON download
-
-Step 3: Computation PDF Generation (1 file)
-  └── ComputationPDFService.java   → Enables PDF download
-
-Step 4: ITD ERI-2 API Integration (1 file)
-  └── ITDERI2Service.java          → Enables live ITD portal integration
-
-Step 5: Browser Automation (1 file + pom.xml update)
-  └── ITDPortalAutomationService.java  → One-click AIS/26AS/TIS import
-
-Step 6: Tax Computation Orchestrator (1 file)
-  └── TaxComputationOrchestrator.java  → Central computation engine
-
-Step 7: ITR 1-4 Specific Services (4 files)
-  ├── ITR1ComputationService.java
-  ├── ITR2ComputationService.java
-  ├── ITR3ComputationService.java
-  └── ITR4ComputationService.java
-
-Step 8: Frontend verification (connect to real APIs)
-  ├── No code changes needed — pages already call API files
-  └── Only verify once backend controllers exist
-
-Step 9: SecurityConfig update (edit 1 file)
-  └── SecurityConfig.java — add new public routes
-
-Step 10: Application.properties update (edit 1 file)
-  └── application.properties — add ITD API config
-```
-
----
-
-## 9. TESTING CHECKLIST
-
-After implementation, verify each scenario:
-
-| # | Scenario | Expected Result |
+| # | Test | Expected |
 |---|---|---|
-| 1 | Login with test1@test.com / pokemon123 | ✅ 200 with JWT token |
-| 2 | GET /dashboard/stats with valid JWT | ✅ 200 with stats JSON |
-| 3 | POST /clients with valid client data | ✅ 201 with client object |
-| 4 | GET /clients | ✅ 200 with client list |
-| 5 | POST /documents/upload with PDF | ✅ 201 with document metadata |
-| 6 | POST /prefill/26as/upload with 26AS PDF | ✅ 200 with parsed data |
-| 7 | POST /prefill/form16 with Form16 PDF | ✅ 200 with auto-populated data |
-| 8 | POST /clients/:id/itr/:year/compute | ✅ 200 with full tax computation |
-| 9 | GET /clients/:id/itr/:year/download | ✅ 200 with ITD-schema JSON file |
-| 10 | GET /clients/:id/itr/:year/download-pdf | ✅ 200 with PDF file |
-| 11 | POST /tax-summary/compute | ✅ 200 with regime comparison |
-| 12 | GET /api/v1/pan/AAAAA9999A/validate | ✅ 200 with validation result |
-| 13 | Login with bad password | ✅ 401 Unauthorized |
-| 14 | Access protected endpoint without token | ✅ 403 Forbidden |
+| B1 | POST /clients/1/itr/2026-27/compute (ITR-1, salary only) | ✅ 200 + correct tax |
+| B2 | POST /clients/1/itr/2026-27/compute (ITR-2, with CG) | ✅ 200 + correct tax |
+| B3 | POST /clients/1/itr/2026-27/compute (ITR-3, with business) | ✅ 200 + correct tax |
+| B4 | POST /clients/1/itr/2026-27/compute (ITR-4, presumptive) | ✅ 200 + correct tax |
+| B5 | Verify ITR-1 rejects CG entries | ✅ 400 + validation error |
+| B6 | Verify ITR-4 rejects CG entries | ✅ 400 + validation error |
+| B7 | Verify HP interest = 0 in new regime | ✅ Computed correctly |
+| B8 | Verify HP interest capped at 2L in old regime | ✅ Computed correctly |
+| B9 | Verify Rebate 87A applied when income ≤ 7L (new) | ✅ Tax = 0 |
+| B10 | Verify Surcharge computed correctly at each bracket | ✅ Correct percentage |
+| B11 | Verify H&E Cess = 4% on (tax + surcharge) | ✅ Correct |
+| B12 | Verify LTCG 112A: 12.5% over 1.25L exemption | ✅ Correct |
+| B13 | Verify STCG 111A: 20% (Finance Act 2024) | ✅ Correct |
+| B14 | Verify VDA: 30% flat, no indexation | ✅ Correct |
+
+### Sub-Phase C Tests (after Steps 4-5)
+
+| # | Test | Expected |
+|---|---|---|
+| C1 | GET /clients/1/itr/2026-27/download (JSON) | ✅ 200 + valid ITD-schema JSON |
+| C2 | Verify JSON monetary values in paise | ✅ All amounts × 100 |
+| C3 | Verify JSON date format DD-MM-YYYY | ✅ Correct format |
+| C4 | Verify JSON PAN format AAAAA9999A | ✅ Correct format |
+| C5 | GET /clients/1/itr/2026-27/download-pdf | ✅ 200 + PDF file |
+| C6 | Verify PDF contains all income heads | ✅ Salary, HP, CG, OS |
+| C7 | Verify PDF tax computation matches compute endpoint | ✅ Consistent |
+| C8 | Verify JSON validates against ITD schema | ✅ No ITR_1xx errors |
+| C9 | Verify all mandatory fields present in JSON | ✅ Complete |
+| C10 | Verify ITR-2 JSON has CG, AL, FA, FSI sections | ✅ Complete |
+
+### Sub-Phase D Tests (after Steps 6-7)
+
+| # | Test | Expected |
+|---|---|---|
+| D1 | POST /prefill/26as/upload with 26AS PDF | ✅ 200 + parsed data |
+| D2 | POST /prefill/ais/upload with AIS PDF | ✅ 200 + parsed data |
+| D3 | POST /prefill/tis/upload with TIS PDF | ✅ 200 + parsed data |
+| D4 | POST /prefill/form16/upload with Form16 PDF | ✅ 200 + PartA + PartB data |
+| D5 | POST /integration/autopopulate/form16 | ✅ 200 + populated fields |
+| D6 | POST /integration/reconciliation | ✅ 200 + discrepancy report |
+| D7 | Verify HIGH severity for TDS mismatch > 500 | ✅ Correct |
+| D8 | Verify prefill status shows all uploaded docs | ✅ Complete |
+| D9 | Upload 26AS → auto-populate → compute → verify | ✅ End-to-end works |
+
+### Sub-Phase E Tests (after Steps 8-9) — LAST
+
+| # | Test | Expected |
+|---|---|---|
+| E1 | Configure ITD API keys in application.properties | ✅ Keys set |
+| E2 | Test ERI-2 API connectivity (sandbox) | ✅ Connected |
+| E3 | GET /itd/prefill/{pan}/{ay} (API) vs manual upload | ✅ Same data |
+| E4 | Submit ITR JSON via API | ✅ Acknowledgement received |
+| E5 | Browser automation: one-click AIS download | ✅ PDF downloaded |
+| E6 | Browser automation: one-click 26AS download | ✅ PDF downloaded |
+| E7 | End-to-end: API prefill → compute → PDF → JSON → submit | ✅ Filing complete |
 
 ---
 
-## 10. COMMANDS TO RUN AFTER ALL CHANGES
+## 13. FILES SUMMARY
+
+### CREATE (16 new files)
+
+| File | Package | Sub-Phase |
+|---|---|---|
+| `config/ClientController.java` | config | A |
+| `config/DashboardController.java` | config | A |
+| `config/FilingController.java` | config | A |
+| `config/DocumentController.java` | config | A |
+| `config/PANController.java` | config | A |
+| `config/PrefillController.java` | config | A |
+| `config/IntegrationController.java` | config | A |
+| `config/TaxController.java` | config | A |
+| `config/AdvancedTaxController.java` | config | A |
+| `service/TaxComputationOrchestrator.java` | service | B |
+| `service/ITR1ComputationService.java` | service | B |
+| `service/ITR2ComputationService.java` | service | B |
+| `service/ITR3ComputationService.java` | service | B |
+| `service/ITR4ComputationService.java` | service | B |
+| `service/ITRJsonExportService.java` | service | C |
+| `service/ComputationPDFService.java` | service | C |
+
+### CREATE DTOs (4 new files)
+
+| File | Package |
+|---|---|
+| `dto/itr/ITR1FormData.java` | dto.itr |
+| `dto/itr/ITR2FormData.java` | dto.itr |
+| `dto/itr/ITR3FormData.java` | dto.itr |
+| `dto/itr/ITR4FormData.java` | dto.itr |
+
+### CREATE (Sub-Phase E — after core verified)
+
+| File | Package | Sub-Phase |
+|---|---|---|
+| `service/integration/ITDERI2Service.java` | service.integration | E |
+| `service/integration/ITDPortalAutomationService.java` | service.integration | E |
+
+### EDIT (3 files)
+
+| File | Change | When |
+|---|---|---|
+| `config/SecurityConfig.java` | Add public routes | After Step 1 |
+| `application.properties` | Append ITD config | After Step 10 |
+| `pom.xml` | Add Playwright | When implementing Step 9 |
+
+### NO TOUCH
+
+All domain/, entity/, repository/, exception/, util/ files
+All infrastructure/ files
+All model/ files
+All frontend files (already correct — just need backend)
+backend/pom.xml (except Step 12)
+
+---
+
+## 14. COMMANDS TO RUN
 
 ```powershell
-# Backend: compile and verify
+# Verify backend compiles
 cd backend
 mvn clean compile
-# Expected: BUILD SUCCESS (0 errors)
+# Expected: BUILD SUCCESS
 
-# Backend: run tests
+# Run tests
 mvn test
-# Expected: All tests pass
+# Expected: All pass
 
-# Backend: package
+# Package
 mvn clean package -DskipTests
-# Expected: JAR at backend/target/itr-filing-assistant-0.0.1-SNAPSHOT.jar
 
-# Backend: run
+# Run
 java -jar target/itr-filing-assistant-0.0.1-SNAPSHOT.jar
-# Expected: Starts on port 8080
 
-# Frontend: install and build
+# Frontend
 cd frontend
 npm install
 npm run build
-# Expected: BUILD SUCCESS (0 errors)
-
-# Frontend: run dev
 npm run dev
-# Expected: Starts on port 3000
 ```
 
 ---
 
-## 11. FILES SUMMARY — WHAT TO CREATE/EDIT
+## 15. IMPORTANT WARNINGS FOR THE AGENT
 
-### CREATE (18 new backend files)
-
-| File | Package | Step |
-|---|---|---|
-| `config/ClientController.java` | config | Step 1a |
-| `config/DashboardController.java` | config | Step 1b |
-| `config/FilingController.java` | config | Step 1c |
-| `config/DocumentController.java` | config | Step 1d |
-| `config/PrefillController.java` | config | Step 1e |
-| `config/IntegrationController.java` | config | Step 1f |
-| `config/TaxController.java` | config | Step 1g |
-| `config/PANController.java` | config | Step 1h |
-| `config/AdvancedTaxController.java` | config | Step 1i |
-| `service/ITRJsonExportService.java` | service | Step 2 |
-| `service/ComputationPDFService.java` | service | Step 3 |
-| `service/integration/ITDERI2Service.java` | service.integration | Step 4 |
-| `service/integration/ITDPortalAutomationService.java` | service.integration | Step 5 |
-| `service/TaxComputationOrchestrator.java` | service | Step 6 |
-| `service/ITR1ComputationService.java` | service | Step 7 |
-| `service/ITR2ComputationService.java` | service | Step 7 |
-| `service/ITR3ComputationService.java` | service | Step 7 |
-| `service/ITR4ComputationService.java` | service | Step 7 |
-
-### EDIT (2 existing backend files)
-
-| File | Change | Step |
-|---|---|---|
-| `config/SecurityConfig.java` | Add new public endpoint patterns | Step 9 |
-| `application.properties` | Append ITD API configuration | Step 10 |
-
-### NO TOUCH (do NOT create, edit, or delete)
-
-**All domain/ files** — they contain correct CBDT rules
-**All entity/ files** — JPA mappings work correctly
-**All repository/ files** — database access works
-**All service/ files** — existing services like ClientService, PrefillService, AuthService work
-**All dto/ files** — existing DTOs work (you may ADD new DTOs, never change existing)
-**All exception/ files** — GlobalExceptionHandler works
-**infrastructure/security/** — JwtTokenProvider works
-**All util/ files** — utility classes work
-**model/** — dead code, leave alone
-**backend/pom.xml** — dependencies are sufficient (add Playwright only in Step 5)
-**All frontend files under src/api/** — they are already correct for the backend endpoints
-**All frontend pages under src/pages/** — they already call the correct API functions
-**All frontend components** — they work and render correctly
-**frontend/node_modules/** — do not touch
-
----
-
-## 12. IMPORTANT WARNINGS FOR THE AGENT
-
-1. **DO NOT** modify `application.properties` jwt.secret — it shows as redacted in display but contains a valid key. Leave it unchanged.
-2. **DO NOT** modify `DataInitializer.java` — test user accounts must remain.
-3. **DO NOT** delete any stub page — they are part of Phase 2 scope.
-4. **DO NOT** modify `SecurityConfig.java` except to add new `.requestMatchers()` entries to `permitAll()`.
-5. **ALL controllers must go in `config/` package** — the original `interfaces/rest/` package was deleted. This is intentional.
-6. **ALL new services must go in `service/` package** — `service/integration/` for integration services.
-7. **Frontend axiosInstance has base URL `http://localhost:8080/api/v1/`** — so controller paths must be relative to that. e.g., frontend calls `POST /clients` → backend controller must be `@RequestMapping("/api/v1/clients")`.
-8. **The domain layer is complete and CORRECT** — do not rewrite any domain logic. Only use it.
-9. **userId extraction:** `SecurityContextHolder.getContext().getAuthentication().getName()` returns email string. Convert to Long via `Long.parseLong()` when passing to services that expect Long userId.
-10. **Playwright dependency** (for Step 5) is NOT in pom.xml. Add it when implementing that step.
+1. **DO NOT implement Steps 8-9 (ITD API + Browser Automation) until ALL other steps are tested and working.** The core tax calculation must be 100% verified before connecting to external systems.
+2. **DO NOT** modify `application.properties` jwt.secret — it contains a valid key (redacted in display).
+3. **DO NOT** modify `DataInitializer.java` — test user accounts must remain.
+4. **DO NOT** delete any stub page — Phase 2 scope.
+5. **All controllers go in `config/` package** — `interfaces/rest/` was deleted.
+6. **userId extraction:** `SecurityContextHolder.getContext().getAuthentication().getName()` returns the user ID (numeric string). Convert to Long via `Long.parseLong()`.
+7. **ALL monetary values stored in PAISE** — multiply by 100 before storing, divide by 100 when displaying.
+8. **ALL dates in DD-MM-YYYY format** — use `ITDDateFormatter.java`.
+9. **ALL JSON output must match ITD schema** — download the official schema JSON from incometax.gov.in and map every field.
+10. **Validation errors must be returned with codes from Section 9** — not generic messages.
+11. **ITR-1 can only contain Salary + at most ONE house property + Other Sources** — validate and reject CG/business entries.
+12. **ITR-4 can only contain Salary + at most ONE house property + Other Sources + Presumptive business** — validate and reject CG/business.
+13. **New regime (115BAC):** Self-occupied HP interest = NIL. Only 80CCD(2), 80CCH(2), 80JJAA deductions allowed.
+14. **The existing domain/ engines are CORRECT** — do not rewrite them. Only call them from new services.
+15. **When in doubt about CBDT rules, refer to `AssessmentYear.java`** — it is the single source of truth for all AY 2026-27 constants.
