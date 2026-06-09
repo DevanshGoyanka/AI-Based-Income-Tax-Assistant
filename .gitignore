@@ -1,6 +1,28 @@
-# Node
-target/
-*.jar
-*.class
-node_modules/
+# Build artifacts
+backend/target/
+backend/data/*.db
+backend/data/*.log
+backend/data/*.trace.db
+frontend/dist/
+frontend/node_modules/
+
+# JVM crash logs
+hs_err_*.log
+replay_*.log
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
 .env
+.env.*
+*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
