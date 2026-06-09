@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { authApi } from '../lib/api/auth';
-import { tokenManager } from '../lib/api/tokenManager';
+import { authApi } from '../api/auth';
+import { tokenManager } from '../api/tokenManager';
 import { Spinner } from '../components/ui/Spinner';
 
 export default function LoginPage() {

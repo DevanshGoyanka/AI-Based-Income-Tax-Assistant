@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAY } from '../contexts/AYContext';
-import { filingApi } from '../lib/api/filing';
+import { filingApi } from '../api/filing';
 import { SkeletonRow } from '../components/ui/SkeletonRow';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Badge } from '../components/ui/Badge';

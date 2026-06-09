@@ -1,4 +1,4 @@
-import axiosInstance from '../lib/api/axiosInstance';
+import axiosInstance from '../api/axiosInstance';
 
 // Request types for capital gains calculation
 export interface CapitalGainsCalculationRequest {

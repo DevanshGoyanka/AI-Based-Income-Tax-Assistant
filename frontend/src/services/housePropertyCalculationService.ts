@@ -1,4 +1,4 @@
-import axiosInstance from '../lib/api/axiosInstance';
+import axiosInstance from '../api/axiosInstance';
 
 export interface HousePropertyInput {
   // Property identification

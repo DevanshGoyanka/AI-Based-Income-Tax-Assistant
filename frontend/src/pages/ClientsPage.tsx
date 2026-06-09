@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAY } from '../contexts/AYContext';
-import { clientsApi } from '../lib/api/clients';
-import { panApi } from '../lib/api/pan';
+import { clientsApi } from '../api/clients';
+import { panApi } from '../api/pan';
 import { SkeletonRow } from '../components/ui/SkeletonRow';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Badge } from '../components/ui/Badge';

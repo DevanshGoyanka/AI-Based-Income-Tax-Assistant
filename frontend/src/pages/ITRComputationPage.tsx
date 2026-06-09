@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAY } from '../contexts/AYContext';
-import { itrApi } from '../lib/api/itr';
-import { clientsApi } from '../lib/api/clients';
+import { itrApi } from '../api/itr';
+import { clientsApi } from '../api/clients';
 import { Spinner } from '../components/ui/Spinner';
 import toast from 'react-hot-toast';
 import { EmployerEntryManager } from '../components/EmployerEntryManager';
@@ -296,8 +296,8 @@ export default function ITRComputationPage() {
       toast.loading(`Importing ${type}...`);
       
       if (type === 'form16-pdf' || type === 'form16-json') {
-        const data = await import('../lib/api/integration').then(m => m.integrationApi.extractForm16(file));
-        const populated = await import('../lib/api/integration').then(m => m.integrationApi.autoPopulateFromForm16(formData, data));
+        const data = await import('../api/integration').then(m => m.integrationApi.extractForm16(file));
+        const populated = await import('../api/integration').then(m => m.integrationApi.autoPopulateFromForm16(formData, data));
         setFormData((prev: any) => ({ ...prev, ...populated }));
         toast.dismiss();
         toast.success('Form 16 imported and auto-populated');
@@ -319,19 +319,19 @@ export default function ITRComputationPage() {
           const text = await file.text();
           data = JSON.parse(text);
         } else if (type === 'ais-pdf') {
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importAIS(file, pan!, dob!);
           setImportedAIS(data);
         } else if (type === 'ais-json') {
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importAISJson(file, pan!, dob!);
           setImportedAIS(data);
         } else if (type === 'tis-pdf') {
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importTIS(file, pan!, dob!);
           setImportedTIS(data);
         } else if (type === '26as-pdf') {
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
           data = await integrationApi.import26AS(file, pan!, dob!);
           setImported26AS(data);
         }
@@ -347,7 +347,7 @@ export default function ITRComputationPage() {
         
         // Auto-populate from all available documents
         if (type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf') {
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
 
           // Auto-populate from all available documents
           const populated = await integrationApi.autoPopulateAll(
@@ -382,7 +382,7 @@ export default function ITRComputationPage() {
           // ITD Prefill - use backend auto-populate API
           console.log('Prefill data received:', data);
           
-          const { integrationApi } = await import('../lib/api/integration');
+          const { integrationApi } = await import('../api/integration');
           const populated = await integrationApi.autoPopulateFromPrefill(formData, data);
           
           console.log('Auto-populated data:', populated);

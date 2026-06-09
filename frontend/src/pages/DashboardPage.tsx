@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAY } from '../contexts/AYContext';
-import { dashboardApi } from '../lib/api/dashboard';
-import { clientsApi } from '../lib/api/clients';
+import { dashboardApi } from '../api/dashboard';
+import { clientsApi } from '../api/clients';
 import { Spinner } from '../components/ui/Spinner';
 import { Badge } from '../components/ui/Badge';
 

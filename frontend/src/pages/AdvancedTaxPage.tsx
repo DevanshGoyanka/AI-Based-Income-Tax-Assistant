@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { advancedTaxApi } from '../lib/api/advancedTax';
+import { advancedTaxApi } from '../api/advancedTax';
 import toast from 'react-hot-toast';
 import { IndianNumberInput } from '../components/IndianNumberInput';
 
