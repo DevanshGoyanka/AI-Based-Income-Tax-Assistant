@@ -1,5 +1,5 @@
 import axiosInstance from './axiosInstance';
-import type { AISData, Form26ASData, TISData, ReconciliationReport } from '../../types/import.types';
+import type { AISData, Form26ASData, TISData, ReconciliationReport } from '../types/import.types';
 
 const multipartPost = async (endpoint: string, file: File, params?: Record<string, string>) => {
   const fd = new FormData();

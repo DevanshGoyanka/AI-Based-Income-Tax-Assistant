@@ -1,4 +1,4 @@
-﻿package com.itr.infrastructure.security;
+package com.itr.infrastructure.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
