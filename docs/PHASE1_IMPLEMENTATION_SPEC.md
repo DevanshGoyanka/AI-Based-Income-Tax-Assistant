@@ -116,13 +116,13 @@ com/itr/
 │       ├── MultiEmployerConsolidator.java
 │       ├── SalaryComputationResult.java
 │       └── SalaryScheduleComputer.java
-├── dto/                                         // CAN ADD NEW — never change existing
+├── dto/                                         // CAN ADD NEW + EDIT ClientRequest.java — add itdPassword field
 │   ├── AISData.java
 │   ├── AuthRequest.java
 │   ├── AuthResponse.java
 │   ├── BusinessIncomeRequest.java
 │   ├── BusinessIncomeResponse.java
-│   ├── ClientRequest.java
+│   ├── ClientRequest.java                       // CAN EDIT — add ITD password field
 │   ├── ClientResponse.java
 │   ├── DocumentMetadata.java
 │   ├── ErrorResponse.java
@@ -141,9 +141,9 @@ com/itr/
 │   ├── ScheduleCYLA.java
 │   ├── TaxCalculationDtos.java
 │   └── TISData.java
-├── entity/                                      // NO TOUCH — JPA entities work
+├── entity/                                      // CAN EDIT — add ITD password fields (Client.java only)
 │   ├── AuditTrail.java
-│   ├── Client.java
+│   ├── Client.java                             // CAN EDIT — add ITD password fields
 │   ├── ClientYearData.java
 │   ├── ITRFiling.java
 │   ├── ITRFormData.java
@@ -250,7 +250,7 @@ src/
 │   └── ui/Badge.tsx, EmptyState.tsx, SkeletonRow.tsx, Spinner.tsx
 ├── contexts/AYContext.tsx                 // Works — NO TOUCH
 ├── pages/
-│   ├── ClientsPage.tsx                   // Works — backend needs controller
+│   ├── ClientsPage.tsx                   // Works — EDIT: add ITD password field with Caps Lock warning
 │   ├── DashboardPage.tsx                  // Works — backend needs controller
 │   ├── FilingPage.tsx                     // Works — backend needs controller
 │   ├── ITRComputationPage.tsx            // Works — backend needs controller
@@ -331,9 +331,41 @@ Endpoints:
   DELETE /api/v1/clients/{id}                     → delete client
   GET    /api/v1/clients/{id}/years               → list AY years
   PUT    /api/v1/clients/{id}/years/{year}/itr-type → update ITR type for AY
+  PUT    /api/v1/clients/{id}/itd-password        → set/update ITD portal password (encrypted)
+  DELETE /api/v1/clients/{id}/itd-password        → remove ITD portal password
+  GET    /api/v1/clients/{id}/itd-password        → check if password exists (returns boolean, never the password)
+  POST   /api/v1/clients/{id}/itd-validate        → validate password by attempting ITD portal login
 
-Uses: ClientService, ClientRequest, ClientResponse
+Uses: ClientService, ClientRequest, ClientResponse, EncryptionService
 UserId: get from SecurityContextHolder, convert to Long
+```
+
+**ITD Portal Password Management:**
+```
+Password is encrypted using EncryptionService (AES-256-GCM) before storage.
+NEVER stored in plain text. Only encrypted bytes + IV stored in database.
+
+Database fields added to Client entity:
+  itdPasswordEncrypted (byte[]) — AES-256-GCM encrypted password
+  itdPasswordIv (byte[])         — 12-byte GCM IV for this client's password
+  itdPasswordSetAt (OffsetDateTime) — timestamp when password was set
+
+Flow:
+  1. User enters password in frontend (with Caps Lock warning)
+  2. Frontend sends plain password to PUT /clients/{id}/itd-password
+  3. Backend: EncryptionService.encrypt(plainPassword.getBytes(), ITD_MASTER_KEY)
+  4. Store: client.setItdPasswordEncrypted(encryptedBytes)
+  5. Store: client.setItdPasswordIv(iv)
+  6. ClientService.save(client)
+  7. GET /clients/{id}/itd-password → returns { "exists": true/false }
+
+CRITICAL SECURITY RULES:
+  - Password stored ONLY for the specific PAN of this client
+  - Master encryption key stored in application.properties (never in code)
+  - GET endpoint NEVER returns the actual password — only boolean exists
+  - Encrypted password can only be decrypted using the master key + client's IV
+  - DELETE removes both encrypted bytes and IV from database
+  - Password is used ONLY by ITDPortalAutomationService for browser login
 ```
 
 #### 1b. `DashboardController.java`
@@ -489,6 +521,278 @@ Endpoints:
 
 Every endpoint must implement FULL CBDT rules — not stubs.
 ```
+
+---
+
+## 5A. ITD PORTAL PASSWORD — ENCRYPTED STORAGE
+
+### Overview
+
+When managing clients, an **ITD Portal Password** can be stored for each client (PAN-specific). This password is used exclusively for the browser automation service (`ITDPortalAutomationService`) to log into `incometax.gov.in` on behalf of the client and download AIS/26AS/TIS data.
+
+**Security Requirements:**
+- Password is NEVER stored in plain text
+- Password is encrypted using **AES-256-GCM** (via existing `EncryptionService`)
+- Encryption key is stored in `application.properties` as `itd.master.key`
+- Each client's password uses a unique IV (Initialization Vector)
+- Password is scoped to the **specific PAN** of the client — cannot be used for any other PAN
+- Password is **never exposed** via any API endpoint — only existence is checkable
+- Password is **deleted** when client is deleted
+
+### Database Changes
+
+**EDIT:** `backend/src/main/java/com/itr/entity/Client.java`
+
+Add the following fields to the Client entity:
+
+```java
+@Column(name = "itd_password_encrypted")
+private byte[] itdPasswordEncrypted; // AES-256-GCM encrypted password bytes
+
+@Column(name = "itd_password_iv")
+private byte[] itdPasswordIv; // 12-byte GCM IV for this client's password
+
+@Column(name = "itd_password_set_at")
+private OffsetDateTime itdPasswordSetAt; // When password was last set
+```
+
+**EDIT:** `backend/src/main/java/com/itr/dto/ClientRequest.java`
+
+Add optional ITD password field (used in create and update):
+
+```java
+private String itdPassword; // Plain text from frontend — encrypt before storing
+```
+
+**EDIT:** `backend/src/main/java/com/itr/service/ClientService.java`
+
+Add methods for password management:
+
+```java
+/**
+ * Sets the ITD portal password for a client.
+ * Password is encrypted using AES-256-GCM before storage.
+ * @param clientId   the client database ID
+ * @param password   plain text ITD portal password
+ * @param userId     the authenticated user ID (for authorization)
+ * @throws ResourceNotFoundException if client not found
+ * @throws ForbiddenException if client belongs to different user
+ */
+public void setItdPassword(Long clientId, String password, Long userId) {
+    Client client = clientRepository.findByIdAndUserId(clientId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+
+    // Encrypt password using master key
+    byte[] plainBytes = password.getBytes(StandardCharsets.UTF_8);
+    EncryptionService.EncryptedData encrypted =
+        encryptionService.encrypt(plainBytes, masterEncryptionKey);
+
+    client.setItdPasswordEncrypted(encrypted.getEncryptedBytes());
+    client.setItdPasswordIv(encrypted.getIv());
+    client.setItdPasswordSetAt(OffsetDateTime.now());
+    clientRepository.save(client);
+}
+
+/**
+ * Removes the ITD portal password for a client.
+ */
+public void removeItdPassword(Long clientId, Long userId) {
+    Client client = clientRepository.findByIdAndUserId(clientId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+    client.setItdPasswordEncrypted(null);
+    client.setItdPasswordIv(null);
+    client.setItdPasswordSetAt(null);
+    clientRepository.save(client);
+}
+
+/**
+ * Checks if ITD password exists for a client. Returns boolean only.
+ * NEVER returns the actual password.
+ */
+public boolean hasItdPassword(Long clientId, Long userId) {
+    Client client = clientRepository.findByIdAndUserId(clientId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+    return client.getItdPasswordEncrypted() != null;
+}
+
+/**
+ * Retrieves the decrypted ITD password for a client.
+ * INTERNAL USE ONLY — called only by ITDPortalAutomationService.
+ * @return the decrypted plain text password
+ */
+public String getDecryptedItdPassword(Long clientId, Long userId) {
+    Client client = clientRepository.findByIdAndUserId(clientId, userId)
+            .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
+
+    if (client.getItdPasswordEncrypted() == null) {
+        return null;
+    }
+
+    byte[] decrypted = encryptionService.decrypt(
+        client.getItdPasswordEncrypted(),
+        masterEncryptionKey,
+        client.getItdPasswordIv()
+    );
+    return new String(decrypted, StandardCharsets.UTF_8);
+}
+```
+
+**application.properties update:**
+
+```properties
+# ITD Portal Password Encryption
+itd.master.key=<base64-encoded-256-bit-key>  # Generate: openssl rand -base64 32
+```
+
+### ClientController Endpoints (already in Step 1a)
+
+```
+PUT    /api/v1/clients/{id}/itd-password        → set/update password (body: { "password": "xxx" })
+DELETE /api/v1/clients/{id}/itd-password        → remove password
+GET    /api/v1/clients/{id}/itd-password        → check exists (returns { "exists": true/false })
+POST   /api/v1/clients/{id}/itd-validate        → validate password (optional, tests ITD portal login)
+```
+
+**PUT /clients/{id}/itd-password body:**
+```json
+{
+  "password": "UserPlainTextPassword123"
+}
+```
+
+**Response:**
+```json
+{ "success": true, "message": "ITD portal password saved securely", "setAt": "2026-06-10T12:00:00+05:30" }
+```
+
+**GET /clients/{id}/itd-password response:**
+```json
+{ "exists": true }
+```
+
+### Frontend: Add Client Form — ITD Password Field
+
+**EDIT:** `frontend/src/pages/ClientsPage.tsx`
+
+Add an **optional collapsible section** in the "Add Client" / "Edit Client" modal/form:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ ☐ Save ITD Portal Password (Optional)                 │
+│                                                     │
+│   ⚠️  This password is used only for the           │
+│       browser automation to import AIS/26AS/TIS     │
+│       on your behalf. It is stored encrypted        │
+│       and never shared with anyone.                 │
+│                                                     │
+│   Password: [••••••••••••••••]  ← show Caps Lock warning if ON
+│   Confirm:  [••••••••••••••••]                       │
+│                                                     │
+│   🔒 Stored encrypted — AES-256-GCM                 │
+│   🔑 Scoped to PAN: AAAAA9999A                      │
+│   🗑️  Can be removed anytime                        │
+└─────────────────────────────────────────────────────┘
+```
+
+**Caps Lock Detection (React):**
+```tsx
+const [capsLockWarning, setCapsLockWarning] = useState(false);
+
+// On password input change
+const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isCapsLockOn = e.getModifierState('CapsLock');
+    setCapsLockWarning(isCapsLockOn);
+};
+
+// In the form field
+{capsLockWarning && (
+    <div style={{color: '#ef4444', fontSize: '12px', fontWeight: 500}}>
+        ⚠️ Caps Lock is ON — password may be entered in uppercase
+    </div>
+)}
+```
+
+**API call:**
+```tsx
+// When saving client
+await clientsApi.updateClient(clientId, {
+    ...formData,
+    itdPassword: passwordField.value || undefined  // only send if provided
+});
+```
+
+**Password field in form:**
+```tsx
+// Collapsible section
+const [saveItdPassword, setSaveItdPassword] = useState(false);
+const [itdPassword, setItdPassword] = useState('');
+const [itdPasswordConfirm, setItdPasswordConfirm] = useState('');
+
+{ saveItdPassword && (
+    <div className="itd-password-section" style={{marginTop: '12px', padding: '12px', background: '#fef3c7', borderRadius: '8px'}}>
+        <label>
+            <input type="checkbox" checked={saveItdPassword}
+                onChange={(e) => setSaveItdPassword(e.target.checked)} />
+            Save ITD Portal Password (Optional)
+        </label>
+        {saveItdPassword && (
+            <>
+                <p style={{fontSize: '11px', color: '#92400e', margin: '4px 0'}}>
+                    🔒 This password is encrypted and stored only for PAN: {pan}
+                </p>
+                <input
+                    type="password"
+                    placeholder="ITD Portal Password"
+                    value={itdPassword}
+                    onChange={(e) => {
+                        setItdPassword(e.target.value);
+                        setCapsLockWarning(e.target.getModifierState('CapsLock'));
+                    }}
+                    style={{width: '100%', marginTop: '8px'}}
+                />
+                {capsLockWarning && (
+                    <div style={{color: '#dc2626', fontSize: '12px', fontWeight: 600, marginTop: '4px'}}>
+                        ⚠️ CAPS LOCK IS ON — password may be incorrect
+                    </div>
+                )}
+                <input
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={itdPasswordConfirm}
+                    onChange={(e) => setItdPasswordConfirm(e.target.value)}
+                    style={{width: '100%', marginTop: '8px'}}
+                />
+                {itdPassword !== itdPasswordConfirm && itdPasswordConfirm && (
+                    <div style={{color: '#dc2626', fontSize: '12px', marginTop: '4px'}}>
+                        Passwords do not match
+                    </div>
+                )}
+            </>
+        )}
+    </div>
+)}
+```
+
+### Password Usage in Browser Automation
+
+When `ITDPortalAutomationService` needs to log in to ITD portal for a specific client:
+
+```java
+// Inside ITDPortalAutomationService
+String plainPassword = clientService.getDecryptedItdPassword(clientId, userId);
+// Use plainPassword for Playwright login
+// After session ends, plainPassword reference is nulled
+```
+
+### Security Notes
+
+1. **Master Key:** `itd.master.key` in `application.properties` must be a 256-bit random key. Never commit this to git. Add to `.gitignore`.
+2. **IV per client:** Each client has a unique IV. Compromising one client's IV does not reveal another client's password.
+3. **No plain text logs:** Password field in logs must be masked: `password=******`.
+4. **Session-only decryption:** Password is decrypted only during the browser automation session and immediately used, then the reference is nulled.
+5. **User consent required:** User must explicitly check the checkbox and enter password. Not auto-saved.
+6. **No cross-PAN use:** The encrypted password is tied to the specific PAN in the Client entity. It cannot be used for any other PAN.
+7. **Encryption standard:** AES-256-GCM with 12-byte IV and 128-bit authentication tag — same as the existing document encryption service.
 
 ---
 
@@ -1083,6 +1387,11 @@ itd.api.secret=
 itd.api.timeout-ms=30000
 itd.api.max-retries=3
 
+# ITD Portal Password Encryption (AES-256-GCM)
+# Generate key: openssl rand -base64 32
+# WARNING: Never commit this key to version control
+itd.master.key=
+
 # File Upload
 app.upload.dir=${user.home}/itr-filing-uploads
 
@@ -1183,6 +1492,18 @@ Add Playwright dependency. Only do this when implementing Step 9.
 | A12 | GET /pan/AAAAA9999A/validate | ✅ 200 + validation result |
 | A13 | Bad password login | ✅ 401 |
 | A14 | Protected endpoint without JWT | ✅ 403 |
+
+### ITD Portal Password Tests
+
+| # | Test | Expected |
+|---|---|---|
+| A15 | PUT /clients/{id}/itd-password (set password) | ✅ 200 + encrypted stored |
+| A16 | GET /clients/{id}/itd-password (check exists) | ✅ 200 + { "exists": true } |
+| A17 | DELETE /clients/{id}/itd-password (remove) | ✅ 200 + password deleted |
+| A18 | GET /clients/{id}/itd-password after delete | ✅ 200 + { "exists": false } |
+| A19 | Verify password NOT returned in GET /clients/{id} | ✅ Response has no password field |
+| A20 | PUT /clients/{id}/itd-password with wrong client JWT | ✅ 403 Forbidden |
+| A21 | GET decrypted password via internal method | ✅ Returns correct plain text password |
 
 ### Sub-Phase B Tests (after Steps 2-3)
 
@@ -1285,19 +1606,27 @@ Add Playwright dependency. Only do this when implementing Step 9.
 | `service/integration/ITDERI2Service.java` | service.integration | E |
 | `service/integration/ITDPortalAutomationService.java` | service.integration | E |
 
-### EDIT (3 files)
+### EDIT (6 files)
 
 | File | Change | When |
 |---|---|---|
+| `entity/Client.java` | Add itdPasswordEncrypted, itdPasswordIv, itdPasswordSetAt fields | Sub-Phase A |
+| `dto/ClientRequest.java` | Add optional itdPassword field | Sub-Phase A |
+| `service/ClientService.java` | Add setItdPassword, removeItdPassword, hasItdPassword, getDecryptedItdPassword methods | Sub-Phase A |
 | `config/SecurityConfig.java` | Add public routes | After Step 1 |
-| `application.properties` | Append ITD config | After Step 10 |
+| `application.properties` | Append ITD master key + API config | After Step 10 |
 | `pom.xml` | Add Playwright | When implementing Step 9 |
 
 ### NO TOUCH
 
-All domain/, entity/, repository/, exception/, util/ files
-All infrastructure/ files
+All domain/ files
+All repository/ files  
+All exception/ files  
+All util/ files
+All infrastructure/ files (including security/JwtTokenProvider.java)
 All model/ files
+All other entity/ files (AuditTrail, ClientYearData, ITRFiling, etc.) — only Client.java may be edited
+All other dto/ files — only ClientRequest.java may be edited
 All frontend files (already correct — just need backend)
 backend/pom.xml (except Step 12)
 
