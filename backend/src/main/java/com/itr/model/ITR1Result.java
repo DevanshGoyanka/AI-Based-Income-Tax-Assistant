@@ -1,5 +1,6 @@
 package com.itr.model;
 
+import com.itr.domain.common.TaxRegime;
 import java.util.List;
 
 /**
