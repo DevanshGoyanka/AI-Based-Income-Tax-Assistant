@@ -71,7 +71,14 @@ interface Props {
 }
 
 export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, assessmentYear }) => {
-  const [expandedSection, setExpandedSection] = React.useState<Record<number, Set<string>>>({});
+  // Initialize with employer and salary sections open by default
+  const [expandedSection, setExpandedSection] = React.useState<Record<number, Set<string>>>(() => {
+    const initial: Record<number, Set<string>> = {};
+    entries.forEach((_, idx) => {
+      initial[idx] = new Set(['employer', 'salary']);
+    });
+    return initial;
+  });
   const [calculationResponse, setCalculationResponse] = React.useState<SalaryCalculationResponse | null>(null);
 
   // Get/set expanded state for an employer
@@ -100,6 +107,11 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
       professionalTax: 0, entertainmentAllowance: 0, tdsDeducted: 0, grossSalary: 0, netSalary: 0
     };
     onChange([...entries, newEntry]);
+    // Auto-expand employer and salary for new entry
+    setExpandedSection(prev => ({
+      ...prev,
+      [entries.length]: new Set(['employer', 'salary'])
+    }));
   };
 
   const removeEntry = (index: number) => onChange(entries.filter((_, i) => i !== index));
