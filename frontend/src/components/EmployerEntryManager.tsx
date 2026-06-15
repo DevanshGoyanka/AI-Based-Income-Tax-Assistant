@@ -215,14 +215,20 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
   const NumberInput = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
     <input
       type="number"
+      step="1"
       {...props}
       style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...props.style }}
     />
   );
 
-  const getTotalGross = () => calculationResponse?.totalGrossSalary ?? entries.reduce((sum, e) => sum + e.grossSalary, 0);
-  const getTotalNet = () => calculationResponse?.totalNetSalary ?? entries.reduce((sum, e) => sum + e.netSalary, 0);
-  const getTotalTDS = () => calculationResponse?.totalTDS ?? entries.reduce((sum, e) => sum + e.tdsDeducted, 0);
+  const fmt = (val: number | undefined | null): string => {
+    if (!val) return '0';
+    return Math.round(val).toLocaleString('en-IN');
+  };
+
+  const getTotalGross = () => Math.round(calculationResponse?.totalGrossSalary ?? entries.reduce((sum, e) => sum + (e.grossSalary || 0), 0));
+  const getTotalNet = () => Math.round(calculationResponse?.totalNetSalary ?? entries.reduce((sum, e) => sum + (e.netSalary || 0), 0));
+  const getTotalTDS = () => Math.round(calculationResponse?.totalTDS ?? entries.reduce((sum, e) => sum + (e.tdsDeducted || 0), 0));
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -261,19 +267,19 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                 <div>
                   <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Gross Salary</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{(entry.grossSalary || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{fmt(entry.grossSalary)}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Total Exemptions</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>- ₹{((entry.hraExempt || 0) + (entry.ltaExempt || 0) + (entry.gratuityExempt || 0) + (entry.leaveEncashmentExempt || 0)).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>- ₹{fmt((entry.hraExempt || 0) + (entry.ltaExempt || 0) + (entry.gratuityExempt || 0) + (entry.leaveEncashmentExempt || 0))}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Net Taxable</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{(entry.netSalary || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{fmt(entry.netSalary)}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>TDS</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{(entry.tdsDeducted || 0).toLocaleString('en-IN')}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{fmt(entry.tdsDeducted)}</div>
                 </div>
               </div>
             </div>
@@ -296,7 +302,7 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
               </div>
             </Section>
 
-            <Section title="Salary Components" index={index} sectionKey="salary" icon="💰" badge="From Form 16">
+            <Section title="Salary Components" index={index} sectionKey="salary" icon="💰" badge="">
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                 <Field label="Basic Salary"><NumberInput value={entry.basic} onChange={(e) => updateEntry(index, 'basic', parseFloat(e.target.value) || 0)} /></Field>
                 <Field label="DA"><NumberInput value={entry.da} onChange={(e) => updateEntry(index, 'da', parseFloat(e.target.value) || 0)} /></Field>
@@ -333,7 +339,7 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
                 <Field label="Leave Encashment"><NumberInput value={entry.leaveEncashment} onChange={(e) => updateEntry(index, 'leaveEncashment', parseFloat(e.target.value) || 0)} /></Field>
               </div>
               <div style={{ marginTop: 12, padding: 12, background: '#f0fdf4', borderRadius: 6, fontSize: 12, color: '#166534' }}>
-                ℹ️ Govt employees: Full exemption on gratuity & leave encashment (no caps). Non-govt: Gr
+                Info: Govt employees get full exemption on gratuity & leave encashment (no caps). Non-govt employees: capped at Rs 20L (gratuity) & Rs 25L (leave encashment).
               </div>
             </Section>
 
