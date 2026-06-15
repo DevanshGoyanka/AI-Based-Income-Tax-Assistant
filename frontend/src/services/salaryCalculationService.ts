@@ -220,10 +220,11 @@ export interface SalaryCalculationResponse {
  */
 export const calculateSalary = async (
   assessmentYear: string,
-  employerInputs: any[]
+  employerInputs: any[],
+  taxRegime: string = 'OLD'
 ): Promise<SalaryCalculationResponse> => {
   // Build salary input from employer data
-  const salaryInput = buildSalaryInput(employerInputs);
+  const salaryInput = buildSalaryInput(employerInputs, taxRegime);
   
   const response = await axiosInstance.post<SalaryCalculationResponse>(
     '/api/v1/calculations/salary',
@@ -252,7 +253,7 @@ export const calculateSalary = async (
 /**
  * Build salary input from employer data for backend API
  */
-function buildSalaryInput(employerInputs: any[]): any {
+function buildSalaryInput(employerInputs: any[], taxRegime: string = 'OLD'): any {
   // Aggregate all employer data into single salary input
   let totalBasic = 0, totalDA = 0, totalHRA = 0, totalBonus = 0;
   let totalAllowances = 0, totalLTA = 0, totalPension = 0;
@@ -285,22 +286,32 @@ function buildSalaryInput(employerInputs: any[]): any {
   }
   
   return {
-    basicSalary: totalBasic,
-    daAmount: totalDA,
-    bonusAmount: totalBonus,
-    commissionAmount: 0,
-    hraReceived: totalHRAReceived,
-    ltaReceived: totalLTAReceived,
-    otherAllowance: totalAllowances,
-    transportAllowanceReceived: totalTransportAllowance,
-    medicalReimbursementReceived: totalMedicalReimbursement,
-    ceaReceived: totalChildrenEducation,
-    hostelAllowanceReceived: totalHostelAllowance,
-    perquisites17_2: totalPerquisites,
-    profitsInLieu17_3: totalProfitsInLieu,
-    ltaExempt: totalLtaExempt,
-    professionalTax: totalProfTax,
-    entertainmentAllowance: totalEntertainment,
-    isPropertyCoOwned: false
+    taxRegime: taxRegime,
+    assessmentYear: "2026-27",
+    employers: employerInputs.map(emp => ({
+      employerName: emp.employerName || 'Employer',
+      employerTAN: emp.employerTAN || '',
+      basic: emp.basic || 0,
+      da: emp.da || 0,
+      hraReceived: emp.hra || 0,
+      ltaReceived: emp.lta || 0,
+      bonus: emp.bonus || 0,
+      allowances: emp.allowances || 0,
+      perquisitesValue: emp.perquisites || 0,
+      profitsInLieu: emp.profitsInLieu || 0,
+      annualRentPaid: emp.rentPaid || 0,
+      isMetroCity: emp.isMetroCity || false,
+      isGovernmentEmployee: emp.isGovernmentEmployee || false,
+      isDisabledEmployee: emp.isDisabledEmployee || false,
+      gratuityReceived: emp.gratuity || 0,
+      leaveEncashmentReceived: emp.leaveEncashment || 0,
+      commutedPensionReceived: emp.commutedPension || 0,
+      professionalTax: emp.professionalTax || 0,
+      entertainmentAllowance: emp.entertainmentAllowance || 0,
+      tdsDeducted: emp.tdsDeducted || 0,
+      childrenEducationAllowance: emp.childrenEducationAllowance || 0,
+      hostelExpenditureAllowance: emp.hostelExpenditureAllowance || 0,
+      transportAllowance: emp.transportAllowance || 0,
+    }))
   };
 }
