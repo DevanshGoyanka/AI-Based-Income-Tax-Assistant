@@ -270,15 +270,15 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{fmt(entry.grossSalary)}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Total Exemptions</div>
+                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Exemptions u/s 10</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>- ₹{fmt((entry.hraExempt || 0) + (entry.ltaExempt || 0) + (entry.gratuityExempt || 0) + (entry.leaveEncashmentExempt || 0))}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Net Taxable</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{fmt(entry.netSalary)}</div>
+                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>Gross Taxable Income</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{fmt((entry.grossSalary || 0) - ((entry.hraExempt || 0) + (entry.ltaExempt || 0) + (entry.gratuityExempt || 0) + (entry.leaveEncashmentExempt || 0)))}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>TDS</div>
+                  <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4 }}>TDS Deducted</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: '#1e293b' }}>₹{fmt(entry.tdsDeducted)}</div>
                 </div>
               </div>
