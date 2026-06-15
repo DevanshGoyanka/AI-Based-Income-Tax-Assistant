@@ -100,6 +100,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
+        console.log('[SALARY] Calculating with taxRegime:', taxRegime);
+        
         const inputs: EmployerInput[] = entries.map(e => ({
           employerName: e.employerName || 'Employer',
           employerTAN: e.employerTAN || '',
@@ -125,8 +127,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         }));
 
         const res = await calculateSalary(assessmentYear, inputs, taxRegime || 'OLD');
+        console.log('[SALARY] Result:', JSON.stringify(res));
         setResult(res);
-        console.log('[SALARY] Calculated:', res);
       } catch (err) {
         console.error('[SALARY] Calc error:', err);
       }
