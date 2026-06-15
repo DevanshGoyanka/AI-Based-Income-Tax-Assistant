@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { calculateSalary, type EmployerInput, type SalaryCalculationResponse } from '../services/salaryCalculationService';
 
 interface EmployerEntry {
   id: string;
@@ -28,17 +29,16 @@ interface EmployerEntry {
 interface Props {
   entries: EmployerEntry[];
   onChange: (entries: EmployerEntry[]) => void;
+  assessmentYear: string;
+  taxRegime?: string;
 }
 
-const generateId = () => {
-  return 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-};
+const generateId = () => 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
 const formatINR = (num?: number): string => {
   if (!num || typeof num !== 'number' || isNaN(num)) return '0';
   const n = Math.round(num);
-  if (n < 0) return '0';
-  return n.toLocaleString('en-IN');
+  return n < 0 ? '0' : n.toLocaleString('en-IN');
 };
 
 const Section = ({ title, expanded, onClick, badge, children }: any) => (
@@ -46,7 +46,7 @@ const Section = ({ title, expanded, onClick, badge, children }: any) => (
     <button onClick={onClick} style={{ width: '100%', padding: 12, display: 'flex', justifyContent: 'space-between', background: expanded ? '#fef3e2' : '#f8fafc', border: 'none', cursor: 'pointer' }}>
       <span style={{ fontSize: 13, fontWeight: 600, color: '#475569' }}>{title}</span>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {badge && <span style={{ fontSize: 11, background: '#e2e8f0', padding: '2px 8px', borderRadius: 4 }}>{badge}</span>}
+        {badge && <span style={{ fontSize: 11, background: badge > 0 ? '#16a34a' : '#e2e8f0', color: badge > 0 ? 'white' : '#647', padding: '2px 8px', borderRadius: 4 }}>₹{formatINR(badge)}</span>}
         <span style={{ fontSize: 12, color: '#94a3b8' }}>{expanded ? '▲' : '▼'}</span>
       </div>
     </button>
@@ -71,12 +71,18 @@ const Inp = (p: any) => (
       let val = String(e.target.value).replace(/[^\d]/g, '');
       p.onChange(val === '' ? 0 : parseInt(val, 10) || 0);
     }}
-    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...p.style }} 
+    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} 
   />
 );
 
-export function EmployerEntryManager({ entries = [], onChange }: Props) {
+export function EmployerEntryManager({ entries = [], onChange, assessmentYear, taxRegime = 'OLD' }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [calcResult, setCalcResult] = useState<SalaryCalculationResponse | null>(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   const addEntry = () => {
     onChange([...entries, { id: generateId(), customEmployerName: `Employer ${entries.length + 1}` }]);
@@ -84,138 +90,184 @@ export function EmployerEntryManager({ entries = [], onChange }: Props) {
 
   const updateEntry = (id: string, updates: Partial<EmployerEntry>) => {
     onChange(entries.map(e => e.id === id ? { ...e, ...updates } : e));
+    // Clear previous result when data changes
+    setCalcResult(null);
   };
 
   const removeEntry = (id: string) => {
     onChange(entries.filter(e => e.id !== id));
-    if (expandedId === id) setExpandedId(null);
+    setCalcResult(null);
   };
 
-  const toggleExpand = (id: string) => {
-    setExpandedId(expandedId === id ? null : id);
+  // Call backend to calculate exemptions
+  const handleCalculate = async () => {
+    const hasData = entries.some(e => (e.basic || e.hra || e.bonus) > 0);
+    if (!hasData) {
+      alert('Please enter salary details first');
+      return;
+    }
+
+    setIsCalculating(true);
+    try {
+      const employerInputs: EmployerInput[] = entries.map(e => ({
+        employerName: e.employerName || 'Employer',
+        employerTAN: e.employerTAN || '',
+        basic: e.basic || 0,
+        da: e.da || 0,
+        hra: e.hra || 0,
+        bonus: e.bonus || 0,
+        allowances: e.allowances || 0,
+        lta: e.lta || 0,
+        rentPaid: e.rentPaid,
+        isMetroCity: e.isMetroCity,
+        pension: 0,
+        commutedPension: e.commutedPension || 0,
+        gratuity: e.gratuity || 0,
+        leaveEncashment: e.leaveEncashment || 0,
+        professionalTax: e.professionalTax || 0,
+        entertainmentAllowance: 0,
+        tdsDeducted: e.tdsDeducted || 0,
+        isDisabledEmployee: e.isDisabledEmployee,
+        isGovernmentEmployee: e.isGovernmentEmployee,
+        childrenEducationAllowance: e.childrenEducationAllowance,
+        hostelExpenditureAllowance: e.hostelExpenditureAllowance,
+      }));
+
+      const result = await calculateSalary(assessmentYear, employerInputs, taxRegime || 'OLD');
+      setCalcResult(result);
+      console.log('[SALARY] Calculation result:', result);
+    } catch (error: any) {
+      console.error('[SALARY] Calculation failed:', error);
+      alert('Calculation failed: ' + (error.message || 'Check console'));
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
-  // Calculate local gross with validation
+  // Get computed values - use backend result or local calculation
   const getGross = (e: EmployerEntry) => {
-    const basic = typeof e.basic === 'number' && e.basic > 0 && e.basic < 100000000 ? e.basic : 0;
-    const da = typeof e.da === 'number' && e.da > 0 && e.da < 100000000 ? e.da : 0;
-    const hra = typeof e.hra === 'number' && e.hra > 0 && e.hra < 100000000 ? e.hra : 0;
-    const bonus = typeof e.bonus === 'number' && e.bonus > 0 && e.bonus < 100000000 ? e.bonus : 0;
-    const allowances = typeof e.allowances === 'number' && e.allowances > 0 && e.allowances < 100000000 ? e.allowances : 0;
-    const lta = typeof e.lta === 'number' && e.lta > 0 && e.lta < 100000000 ? e.lta : 0;
-    return basic + da + hra + bonus + allowances + lta;
+    const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
+    const d = typeof e.da === 'number' && e.da > 0 ? e.da : 0;
+    const h = typeof e.hra === 'number' && e.hra > 0 ? e.hra : 0;
+    const bn = typeof e.bonus === 'number' && e.bonus > 0 ? e.bonus : 0;
+    const a = typeof e.allowances === 'number' && e.allowances > 0 ? e.allowances : 0;
+    const l = typeof e.lta === 'number' && e.lta > 0 ? e.lta : 0;
+    return b + d + h + bn + a + l;
   };
-  const totalGross = () => {
-    let total = 0;
-    for (const e of entries) {
-      total += getGross(e);
+
+  const getExemptions = (e: EmployerEntry, result: SalaryCalculationResponse | null) => {
+    // If we got backend result, use it; otherwise 0 (will be calculated on backend)
+    if (result?.hraExempt || result?.ltaExempt || result?.gratuityExempt || result?.leaveEncashmentExempt) {
+      return (result.hraExempt || 0) + (result.ltaExempt || 0) + (result.gratuityExempt || 0) + (result.leaveEncashmentExempt || 0);
     }
-    return total;
+    return 0;
   };
-  const totalTDS = () => {
-    let total = 0;
-    for (const e of entries) {
-      const tds = typeof e.tdsDeducted === 'number' && e.tdsDeducted > 0 && e.tdsDeducted < 100000000 ? e.tdsDeducted : 0;
-      total += tds;
-    }
-    return total;
-  };
+
+  const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
+  const totalExemptions = () => calcResult ? calcResult.totalExemptions || 0 : 0;
+  const totalTaxable = () => calcResult ? calcResult.netTaxableSalary || totalGross() - totalExemptions() : totalGross() - totalExemptions();
+  const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#64748b' }}>Salary Details</h3>
-        <button onClick={addEntry} style={{ padding: '8px 16px', background: '#c9943a', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>+ Add Employer</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={handleCalculate} disabled={isCalculating || entries.length === 0}
+            style={{ padding: '8px 20px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: isCalculating ? 'not-allowed' : 'pointer', opacity: isCalculating ? 0.7 : 1 }}>
+            {isCalculating ? 'Calculating...' : 'Calculate Tax'}
+          </button>
+          <button onClick={addEntry} style={{ padding: '8px 16px', background: '#c9943a', color: 'white', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>+ Add</button>
+        </div>
       </div>
 
       {entries.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8', background: '#f8fafc', borderRadius: 8, border: '1px dashed #cbd5e1' }}>
-          Click "+ Add Employer" to add salary details
+          Click "+ Add" to add salary details
         </div>
-      ) : entries.map(entry => (
-        <div key={entry.id} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+      ) : entries.map(e => (
+        <div key={e.id} style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 16 }}>
           {/* Header */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid #f1f5f9' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ background: '#c9943a', color: 'white', padding: '4px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>#{entries.indexOf(entry) + 1}</span>
-              <input type="text" value={entry.customEmployerName || `Employer ${entries.indexOf(entry) + 1}`}
-                onChange={(e: any) => updateEntry(entry.id, { customEmployerName: e.target.value })}
-                style={{ border: 'none', borderBottom: '1px dashed #c9943a', background: 'transparent', fontSize: 14, fontWeight: 600, color: '#1e293b', outline: 'none', minWidth: 150 }} />
-            </div>
-            <button onClick={() => removeEntry(entry.id)} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 16 }}>×</button>
+            <input type="text" value={e.customEmployerName || 'Employer'} onChange={(ev: any) => updateEntry(e.id, { customEmployerName: ev.target.value })}
+              style={{ border: 'none', borderBottom: '1px dashed #c9943a', background: 'transparent', fontSize: 14, fontWeight: 600, minWidth: 150, outline: 'none' }} />
+            <button onClick={() => removeEntry(e.id)} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
 
           {/* Summary */}
           <div style={{ padding: 16, background: 'linear-gradient(135deg, #fef3e2, #fff7ed)', borderRadius: 8, marginBottom: 16, border: '1px solid #fed7aa' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Gross</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(entry))}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(getGross(entry))}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(entry.tdsDeducted)}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Gross</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(e))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Exemptions</div><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>-₹{formatINR(getExemptions(e, calcResult))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(calcResult ? calcResult.netTaxableSalary || 0 : getGross(e) - getExemptions(e, calcResult))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div></div>
             </div>
+            {calcResult && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #fed7aa', fontSize: 11, color: '#64748b' }}>
+                HRA: ₹{formatINR(calcResult.hraExempt)} | LTA: ₹{formatINR(calcResult.ltaExempt)} | Std Ded: ₹{formatINR(calcResult.standardDeduction)}
+              </div>
+            )}
           </div>
 
           {/* Sections */}
-          <Section title="Employer Details" expanded={expandedId === `emp-${entry.id}`} onClick={() => toggleExpand(`emp-${entry.id}`)} badge={entry.employerName || 'Required'}>
+          <Section title="Employer Details" expanded={expandedId === `emp-${e.id}`} onClick={() => toggleExpand(`emp-${e.id}`)} badge={e.employerName || 'Req'}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Employer Name"><Inp value={entry.employerName || ''} onChange={(v: any) => updateEntry(entry.id, { employerName: v })} /></F>
-              <F label="TAN"><Inp value={entry.employerTAN || ''} onChange={(v: any) => updateEntry(entry.id, { employerTAN: v.toUpperCase() })} /></F>
+              <F label="Name"><Inp value={e.employerName || ''} onChange={(v: any) => updateEntry(e.id, { employerName: v })} /></F>
+              <F label="TAN"><Inp value={e.employerTAN || ''} onChange={(v: any) => updateEntry(e.id, { employerTAN: v.toUpperCase() })} /></F>
               <F label="Nature">
-                <select value={entry.natureOfEmployment || 'NGOV'} onChange={(e: any) => updateEntry(entry.id, { natureOfEmployment: e.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }}>
+                <select value={e.natureOfEmployment || 'NGOV'} onChange={(ev: any) => updateEntry(e.id, { natureOfEmployment: ev.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6 }}>
                   <option value="NGOV">Private</option><option value="GOV">Government</option><option value="PSU">PSU</option>
                 </select>
               </F>
             </div>
           </Section>
 
-          <Section title="Salary Components" expanded={expandedId === `sal-${entry.id}`} onClick={() => toggleExpand(`sal-${entry.id}`)} badge="">
+          <Section title="Salary Components" expanded={expandedId === `sal-${e.id}`} onClick={() => toggleExpand(`sal-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              <F label="Basic Salary"><Inp type="number" value={entry.basic || ''} onChange={(v: any) => updateEntry(entry.id, { basic: v })} /></F>
-              <F label="DA"><Inp type="number" value={entry.da || ''} onChange={(v: any) => updateEntry(entry.id, { da: v })} /></F>
-              <F label="HRA"><Inp type="number" value={entry.hra || ''} onChange={(v: any) => updateEntry(entry.id, { hra: v })} /></F>
-              <F label="Bonus"><Inp type="number" value={entry.bonus || ''} onChange={(v: any) => updateEntry(entry.id, { bonus: v })} /></F>
-              <F label="Other Allowances"><Inp type="number" value={entry.allowances || ''} onChange={(v: any) => updateEntry(entry.id, { allowances: v })} /></F>
-              <F label="LTA"><Inp type="number" value={entry.lta || ''} onChange={(v: any) => updateEntry(entry.id, { lta: v })} /></F>
+              <F label="Basic Salary"><Inp type="number" value={e.basic} onChange={(v: any) => updateEntry(e.id, { basic: v })} /></F>
+              <F label="DA"><Inp type="number" value={e.da} onChange={(v: any) => updateEntry(e.id, { da: v })} /></F>
+              <F label="HRA"><Inp type="number" value={e.hra} onChange={(v: any) => updateEntry(e.id, { hra: v })} /></F>
+              <F label="Bonus"><Inp type="number" value={e.bonus} onChange={(v: any) => updateEntry(e.id, { bonus: v })} /></F>
+              <F label="Allowances"><Inp type="number" value={e.allowances} onChange={(v: any) => updateEntry(e.id, { allowances: v })} /></F>
+              <F label="LTA"><Inp type="number" value={e.lta} onChange={(v: any) => updateEntry(e.id, { lta: v })} /></F>
             </div>
           </Section>
 
-          <Section title="HRA Exemption" expanded={expandedId === `hra-${entry.id}`} onClick={() => toggleExpand(`hra-${entry.id}`)} badge="">
+          <Section title="HRA Exemption" expanded={expandedId === `hra-${e.id}`} onClick={() => toggleExpand(`hra-${e.id}`)} badge={calcResult?.hraExempt || 0}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Annual Rent Paid"><Inp type="number" value={entry.rentPaid || ''} onChange={(v: any) => updateEntry(entry.id, { rentPaid: v })} hint="Required for exemption" /></F>
-              <F label="Metro City">
-                <select value={entry.isMetroCity ? 'yes' : 'no'} onChange={(e: any) => updateEntry(entry.id, { isMetroCity: e.target.value === 'yes' })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }}>
+              <F label="Annual Rent"><Inp type="number" value={e.rentPaid} onChange={(v: any) => updateEntry(e.id, { rentPaid: v })} hint="Required for exemption" /></F>
+              <F label="Metro">
+                <select value={e.isMetroCity ? 'yes' : 'no'} onChange={(ev: any) => updateEntry(e.id, { isMetroCity: ev.target.value === 'yes' })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6 }}>
                   <option value="no">No (40%)</option><option value="yes">Yes (50%)</option>
                 </select>
               </F>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
-                <input type="checkbox" checked={entry.isGovernmentEmployee || false} onChange={(e: any) => updateEntry(entry.id, { isGovernmentEmployee: e.target.checked })} />
-                <span style={{ fontSize: 12, color: '#64748b' }}>Govt Employee</span>
+                <input type="checkbox" checked={e.isGovernmentEmployee || false} onChange={(ev: any) => updateEntry(e.id, { isGovernmentEmployee: ev.target.checked })} />
+                <span style={{ fontSize: 12 }}>Govt Employee (Full HRA exempt)</span>
               </div>
             </div>
           </Section>
 
-          <Section title="Retirement Benefits" expanded={expandedId === `ret-${entry.id}`} onClick={() => toggleExpand(`ret-${entry.id}`)} badge="">
+          <Section title="Retirement Benefits" expanded={expandedId === `ret-${e.id}`} onClick={() => toggleExpand(`ret-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              <F label="Commuted Pension"><Inp type="number" value={entry.commutedPension || ''} onChange={(v: any) => updateEntry(entry.id, { commutedPension: v })} /></F>
-              <F label="Gratuity"><Inp type="number" value={entry.gratuity || ''} onChange={(v: any) => updateEntry(entry.id, { gratuity: v })} /></F>
-              <F label="Leave Encashment"><Inp type="number" value={entry.leaveEncashment || ''} onChange={(v: any) => updateEntry(entry.id, { leaveEncashment: v })} /></F>
+              <F label="Commuted"><Inp type="number" value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
+              <F label="Gratuity"><Inp type="number" value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
+              <F label="Leave"><Inp type="number" value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
             </div>
           </Section>
 
-          <Section title="Special Allowances" expanded={expandedId === `all-${entry.id}`} onClick={() => toggleExpand(`all-${entry.id}`)} badge="">
+          <Section title="Special Allowances" expanded={expandedId === `all-${e.id}`} onClick={() => toggleExpand(`all-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Transport (Disabled)">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><input type="checkbox" checked={entry.isDisabledEmployee || false} onChange={(e: any) => updateEntry(entry.id, { isDisabledEmployee: e.target.checked })} /><span style={{ fontSize: 11 }}>Disabled</span></div>
-              </F>
-              <F label="Children Education"><Inp type="number" value={entry.childrenEducationAllowance || ''} onChange={(v: any) => updateEntry(entry.id, { childrenEducationAllowance: v })} /></F>
-              <F label="Hostel Expenditure"><Inp type="number" value={entry.hostelExpenditureAllowance || ''} onChange={(v: any) => updateEntry(entry.id, { hostelExpenditureAllowance: v })} /></F>
+              <F label="Transport"><input type="checkbox" checked={e.isDisabledEmployee || false} onChange={(ev: any) => updateEntry(e.id, { isDisabledEmployee: ev.target.checked })} /><span style={{fontSize:11,marginLeft:4}}>Disabled</span></F>
+              <F label="Children"><Inp type="number" value={e.childrenEducationAllowance} onChange={(v: any) => updateEntry(e.id, { childrenEducationAllowance: v })} /></F>
+              <F label="Hostel"><Inp type="number" value={e.hostelExpenditureAllowance} onChange={(v: any) => updateEntry(e.id, { hostelExpenditureAllowance: v })} /></F>
             </div>
           </Section>
 
-          <Section title="Deductions & TDS" expanded={expandedId === `ded-${entry.id}`} onClick={() => toggleExpand(`ded-${entry.id}`)} badge="">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Professional Tax"><Inp type="number" value={entry.professionalTax || ''} onChange={(v: any) => updateEntry(entry.id, { professionalTax: v })} /></F>
-              <F label="Entertainment (Govt)"><Inp type="number" value={0} disabled style={{ background: '#f0f0f0' }} /></F>
-              <F label="TDS Deducted"><Inp type="number" value={entry.tdsDeducted || ''} onChange={(v: any) => updateEntry(entry.id, { tdsDeducted: v })} /></F>
+          <Section title="Deductions" expanded={expandedId === `ded-${e.id}`} onClick={() => toggleExpand(`ded-${e.id}`)} badge="">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+              <F label="Professional Tax"><Inp type="number" value={e.professionalTax} onChange={(v: any) => updateEntry(e.id, { professionalTax: v })} /></F>
+              <F label="TDS Deducted"><Inp type="number" value={e.tdsDeducted} onChange={(v: any) => updateEntry(e.id, { tdsDeducted: v })} /></F>
             </div>
           </Section>
         </div>
@@ -225,8 +277,9 @@ export function EmployerEntryManager({ entries = [], onChange }: Props) {
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24, textAlign: 'center' }}>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>TOTAL GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE INCOME</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TOTAL TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPTIONS</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>-₹{formatINR(totalExemptions())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(totalTaxable())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7, gridColumn: '1 / -1' }}>TDS: ₹{formatINR(totalTDS())}</div></div>
           </div>
         </div>
       )}
