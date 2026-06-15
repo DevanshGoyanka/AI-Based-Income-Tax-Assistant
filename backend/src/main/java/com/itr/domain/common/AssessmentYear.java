@@ -122,6 +122,8 @@ public final class AssessmentYear {
     public static final long VRS_EXEMPTION_MAX          = 5_00_00000L;
     public static final long COMMUTED_PENSION_GOVT_PCT  = Long.MAX_VALUE;
     public static final long FAMILY_PENSION_STD_DED_MAX  = 15_00000L;
+    // Rs 2,500 professional tax per state — per CBDT validation rule S-04
+    public static final long PROFESSIONAL_TAX_MAX        = 2_50_00000L;
 
     // ═════════════════════════════════════════════════════════════════════
     // HOUSE PROPERTY

@@ -1,12 +1,23 @@
 package com.itr.domain.salary;
 
+import com.itr.domain.common.TaxRegime;
+
 /**
- * HRAExemption computator — Section 10(13A) read with Rule 2A.
- * <p>
- * Exemption = minimum of three conditions:
- * 1. Actual HRA received
- * 2. Rent paid minus 10% of salary (basic + DA)
- * 3. 50% of salary (metro) or 40% (non-metro)
+ * HRA Exemption under Section 10(13A) read with Rule 2A.
+ *
+ * AVAILABLE: Old Tax Regime ONLY.
+ * NOT AVAILABLE: New Tax Regime (Section 115BAC) — HRA fully taxable.
+ *
+ * Three-condition minimum (per Rule 2A):
+ *   (a) Actual HRA received from employer
+ *   (b) Rent paid − 10% of (Basic + eligible DA + commission)
+ *   (c) 50% of salary for metro / 40% for non-metro
+ *
+ * "Salary" for HRA = Basic + DA (if forming part of retirement benefits) + Commission.
+ *
+ * AY routing: Metro city expansion (4→8) applies from AY 2027-28 onwards only.
+ *
+ * All amounts in PAISE.
  */
 public final class HRAExemption {
 
@@ -15,23 +26,78 @@ public final class HRAExemption {
     /**
      * Compute HRA exemption.
      *
-     * @param actualHRA      HRA actually received in paise
-     * @param basicDA        Basic salary + Dearness Allowance (paise)
-     * @param rentPaid       Actual rent paid (paise)
-     * @param isMetro        Whether the employee lives in a metro city
-     * @return HRA exemption amount in paise
+     * @param actualHRAReceived    HRA actually received from employer (paise)
+     * @param basicSalary         Basic salary (paise)
+     * @param da                  DA forming part of retirement benefits (paise)
+     * @param commission          Commission as % of turnover (paise)
+     * @param annualRentPaid      Actual annual rent paid (paise)
+     * @param city                City of employment
+     * @param assessmentYear      Assessment year e.g. "2026-27"
+     * @param regime              Tax regime (OLD or NEW)
+     * @return Exempt amount in paise (0 if new regime)
      */
-    public static long compute(long actualHRA, long basicDA, long rentPaid, boolean isMetro) {
-        // Condition 1: Actual HRA
-        long condition1 = Math.max(actualHRA, 0);
+    public static long compute(
+            long actualHRAReceived,
+            long basicSalary,
+            long da,
+            long commission,
+            long annualRentPaid,
+            String city,
+            String assessmentYear,
+            TaxRegime regime
+    ) {
+        // GATE: HRA not exempt under new regime
+        if (regime == TaxRegime.NEW) {
+            return 0L;
+        }
 
-        // Condition 2: Rent paid - 10% of salary (basic + DA)
-        long condition2 = Math.max(rentPaid - (basicDA * 10 / 100), 0);
+        long salaryForHRA = basicSalary + da + commission;
 
-        // Condition 3: 50% of salary (metro) or 40% (non-metro)
-        long condition3 = isMetro ? (basicDA * 50 / 100) : (basicDA * 40 / 100);
+        // Condition (b): Rent paid − 10% of salary
+        long rentMinus10Pct = Math.max(annualRentPaid - (salaryForHRA / 10), 0L);
 
-        // Exemption = minimum of the three
-        return Math.min(condition1, Math.min(condition2, condition3));
+        // Condition (c): Metro 50% or Non-metro 40%
+        HRAMetroCity metroCity = HRAMetroCity.fromCity(city, assessmentYear);
+        long metroCondition = (salaryForHRA * metroCity.getPercentageOfSalary()) / 100;
+
+        // Return minimum of the three conditions
+        long condition1 = actualHRAReceived;
+        return Math.min(condition1, Math.min(rentMinus10Pct, metroCondition));
+    }
+
+    /**
+     * Convenience overload for AY 2026-27.
+     */
+    public static long compute(
+            long actualHRAReceived,
+            long basicSalary,
+            long da,
+            long commission,
+            long annualRentPaid,
+            String city,
+            TaxRegime regime
+    ) {
+        return compute(actualHRAReceived, basicSalary, da, commission, annualRentPaid, city, "2026-27", regime);
+    }
+
+    // ── Backward-compatible overloads for existing controllers ─────────────────
+
+    /**
+     * 4-param overload for existing code that uses basicDA combined, isMetro boolean.
+     * Defaults: OLD regime, AY 2026-27, commission=0, da=0.
+     * NOTE: This merges basic and DA into one value.
+     */
+    public static long computeForLegacy(
+            long actualHRA, long basicDAEquivalent, long rentPaid, boolean isMetro
+    ) {
+        String metroCity = isMetro ? "MUMBAI" : "NON_METRO";
+        return compute(actualHRA, basicDAEquivalent, 0L, 0L, rentPaid, metroCity, TaxRegime.OLD);
+    }
+
+    /** Alias for backward compatibility with existing code */
+    public static long compute(
+            long actualHRA, long basicDAEquivalent, long rentPaid, boolean isMetro
+    ) {
+        return computeForLegacy(actualHRA, basicDAEquivalent, rentPaid, isMetro);
     }
 }
