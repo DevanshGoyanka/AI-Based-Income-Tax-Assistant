@@ -72,8 +72,8 @@ const formatINR = (num: number | undefined | null): string => {
 };
 
 export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, assessmentYear, taxRegime = 'OLD' }) => {
-  const [expandedSection, setExpandedSection] = useState<Record<number, Set<string>>(() => {
-    const initial: Record<number, Set<string>> = {};
+  const [expandedSection, setExpandedSection] = useState<{[key: number]: Set<string>}>(() => {
+    const initial: {[key: number]: Set<string>} = {};
     entries.forEach((_, idx) => {
       initial[idx] = new Set(['employer', 'salary']);
     });
