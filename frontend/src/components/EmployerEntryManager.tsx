@@ -182,7 +182,11 @@ export const EmployerEntryManager: React.FC<Props> = ({ entries, onChange, asses
       }));
 
       const response = await calculateSalary(assessmentYear, employerInputs, taxRegime);
+      console.log('[SALARY] API Response:', JSON.stringify(response, null, 2));
       setCalculationResponse(response);
+      
+      // Log the key values
+      console.log('[SALARY] Gross:', response.grossSalary, 'HRA Exempt:', response.hraExempt, 'Total Exempt:', response.totalExemptions);
       
       // Update entries with calculated values from BACKEND response
       const recalc = updatedEntries.map((entry, idx) => ({
