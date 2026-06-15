@@ -35,8 +35,10 @@ const generateId = () => {
 };
 
 const formatINR = (num?: number): string => {
-  if (!num || isNaN(num) || num === 0) return '0';
-  return Math.round(num).toLocaleString('en-IN');
+  if (!num || typeof num !== 'number' || isNaN(num)) return '0';
+  const n = Math.round(num);
+  if (n < 0) return '0';
+  return n.toLocaleString('en-IN');
 };
 
 const Section = ({ title, expanded, onClick, badge, children }: any) => (
@@ -60,29 +62,18 @@ const F = ({ label, hint, children }: any) => (
   </div>
 );
 
-const Inp = (p: any) => {
-  const val = p.value ?? '';
-  // Ensure we always pass a valid number to parent
-  const handleChange = (e: any) => {
-    let raw = e.target.value;
-    // Only allow digits
-    let clean = raw.replace(/[^\d]/g, '');
-    let num = clean === '' ? 0 : parseInt(clean, 10);
-    if (isNaN(num)) num = 0;
-    // Cap at reasonable max (10 crore = 100000000)
-    if (num > 100000000) num = 100000000;
-    p.onChange(num);
-  };
-  return (
-    <input 
-      type="text" 
-      inputMode="numeric"
-      value={val === 0 || val === '' ? '' : val.toString()} 
-      onChange={handleChange}
-      style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...p.style }} 
-    />
-  );
-};
+const Inp = (p: any) => (
+  <input 
+    type="text" 
+    inputMode="numeric"
+    value={p.value === 0 || p.value === undefined ? '' : String(p.value)} 
+    onChange={(e: any) => {
+      let val = String(e.target.value).replace(/[^\d]/g, '');
+      p.onChange(val === '' ? 0 : parseInt(val, 10) || 0);
+    }}
+    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...p.style }} 
+  />
+);
 
 export function EmployerEntryManager({ entries = [], onChange }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -104,10 +95,31 @@ export function EmployerEntryManager({ entries = [], onChange }: Props) {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // Calculate local gross
-  const getGross = (e: EmployerEntry) => (e.basic || 0) + (e.da || 0) + (e.hra || 0) + (e.bonus || 0) + (e.allowances || 0) + (e.lta || 0);
-  const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
-  const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
+  // Calculate local gross with validation
+  const getGross = (e: EmployerEntry) => {
+    const basic = typeof e.basic === 'number' && e.basic > 0 && e.basic < 100000000 ? e.basic : 0;
+    const da = typeof e.da === 'number' && e.da > 0 && e.da < 100000000 ? e.da : 0;
+    const hra = typeof e.hra === 'number' && e.hra > 0 && e.hra < 100000000 ? e.hra : 0;
+    const bonus = typeof e.bonus === 'number' && e.bonus > 0 && e.bonus < 100000000 ? e.bonus : 0;
+    const allowances = typeof e.allowances === 'number' && e.allowances > 0 && e.allowances < 100000000 ? e.allowances : 0;
+    const lta = typeof e.lta === 'number' && e.lta > 0 && e.lta < 100000000 ? e.lta : 0;
+    return basic + da + hra + bonus + allowances + lta;
+  };
+  const totalGross = () => {
+    let total = 0;
+    for (const e of entries) {
+      total += getGross(e);
+    }
+    return total;
+  };
+  const totalTDS = () => {
+    let total = 0;
+    for (const e of entries) {
+      const tds = typeof e.tdsDeducted === 'number' && e.tdsDeducted > 0 && e.tdsDeducted < 100000000 ? e.tdsDeducted : 0;
+      total += tds;
+    }
+    return total;
+  };
 
   return (
     <div style={{ marginBottom: 24 }}>
