@@ -1,4 +1,4 @@
-// Dividend Entry Manager - CBDT Compliant Schedule OS
+// Dividend Entry Manager - Schedule OS
 import React, { useState } from 'react';
 
 interface DividendEntry {
@@ -9,6 +9,7 @@ interface DividendEntry {
   deductorTAN: string;
   isin?: string;
   category: 'SHARES' | 'MF_UNITS' | 'OTHER';
+  section: string; // 194 for dividends
 }
 
 interface DividendEntryManagerProps {
@@ -28,6 +29,7 @@ export const DividendEntryManager: React.FC<DividendEntryManagerProps> = ({ entr
       deductorTAN: '',
       isin: '',
       category: 'SHARES',
+      section: '194', // Default section for dividends
     };
     onChange([...entries, newEntry]);
     setEditingIndex(entries.length);
@@ -50,7 +52,12 @@ export const DividendEntryManager: React.FC<DividendEntryManagerProps> = ({ entr
   return (
     <div style={{ padding: 16, background: '#f9f9f9', borderRadius: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Dividend Details (CBDT Schedule OS)</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>Dividend Details</h3>
+          <span style={{ background: '#4CAF50', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>
+            Sec 194
+          </span>
+        </div>
         <button
           onClick={addEntry}
           style={{ background: '#4CAF50', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
@@ -68,9 +75,14 @@ export const DividendEntryManager: React.FC<DividendEntryManagerProps> = ({ entr
       {entries.map((entry, index) => (
         <div key={index} style={{ background: 'white', border: '1px solid #ddd', borderRadius: 8, padding: 16, marginBottom: 12 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-            <span style={{ background: '#9c27b0', color: 'white', padding: '4px 12px', borderRadius: 4, fontSize: 12 }}>
-              Dividend #{index + 1}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ background: '#9c27b0', color: 'white', padding: '4px 12px', borderRadius: 4, fontSize: 12 }}>
+                Dividend #{index + 1}
+              </span>
+              <span style={{ background: '#e3f2fd', color: '#1565c0', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                Sec {entry.section || '194'}
+              </span>
+            </div>
             <button onClick={() => removeEntry(index)} style={{ background: '#f44336', color: 'white', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer', fontSize: 18 }}>
               ×
             </button>
@@ -110,6 +122,22 @@ export const DividendEntryManager: React.FC<DividendEntryManagerProps> = ({ entr
                 maxLength={10}
                 style={{ width: '100%', padding: 7, border: '1px solid #ddd', borderRadius: 4, fontSize: 13, textTransform: 'uppercase' }}
               />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 4, fontWeight: 500, fontSize: 12 }}>Section</label>
+              <select
+                value={entry.section || '194'}
+                onChange={(e) => updateEntry(index, 'section', e.target.value)}
+                style={{ width: '100%', padding: 7, border: '1px solid #ddd', borderRadius: 4, fontSize: 13 }}
+              >
+                <option value="194">194 - Dividends</option>
+                <option value="194K">194K - MF/UTI Income</option>
+                <option value="196A">196A - Units of Non-Residents</option>
+                <option value="196B">196B - Offshore Fund Units</option>
+                <option value="196C">196C - Foreign Currency Bonds</option>
+                <option value="196D">196D - FII Securities</option>
+              </select>
             </div>
 
             <div>

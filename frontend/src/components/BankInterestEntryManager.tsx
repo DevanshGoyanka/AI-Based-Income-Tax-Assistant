@@ -50,7 +50,12 @@ export const BankInterestEntryManager: React.FC<BankInterestEntryManagerProps> =
   return (
     <div style={{ padding: 20, background: '#f9f9f9', borderRadius: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <h3 style={{ margin: 0 }}>Bank Interest Details (CBDT Compliant)</h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <h3 style={{ margin: 0 }}>Bank Interest Details</h3>
+          <span style={{ background: '#4CAF50', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>
+            Sec 194A
+          </span>
+        </div>
         <button onClick={addEntry} style={{ background: '#4CAF50', color: 'white', border: 'none', padding: '10px 20px', borderRadius: 4, cursor: 'pointer' }}>
           + Add Bank Account
         </button>
@@ -64,10 +69,15 @@ export const BankInterestEntryManager: React.FC<BankInterestEntryManagerProps> =
 
       {entries.map((entry, index) => (
         <div key={index} style={{ background: 'white', border: '1px solid #ddd', borderRadius: 8, padding: 20, marginBottom: 15 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 15 }}>
-            <span style={{ background: entry.accountType === 'SAVINGS' ? '#2196F3' : '#FF9800', color: 'white', padding: '5px 10px', borderRadius: 4, fontSize: 14 }}>
-              {entry.accountType}
-            </span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ background: entry.accountType === 'SAVINGS' ? '#2196F3' : '#FF9800', color: 'white', padding: '5px 10px', borderRadius: 4, fontSize: 14 }}>
+                {entry.accountType}
+              </span>
+              <span style={{ background: '#e3f2fd', color: '#1565c0', padding: '4px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>
+                Sec {entry.section || '194A'}
+              </span>
+            </div>
             <button onClick={() => removeEntry(index)} style={{ background: '#f44336', color: 'white', border: 'none', width: 30, height: 30, borderRadius: '50%', cursor: 'pointer', fontSize: 20 }}>
               ×
             </button>
@@ -96,6 +106,22 @@ export const BankInterestEntryManager: React.FC<BankInterestEntryManagerProps> =
                 <option value="FD">Fixed Deposit</option>
                 <option value="RD">Recurring Deposit</option>
                 <option value="CURRENT">Current Account</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: 5, fontWeight: 500 }}>Section</label>
+              <select
+                value={entry.section || '194A'}
+                onChange={(e) => updateEntry(index, 'section', e.target.value)}
+                style={{ width: '100%', padding: 8, border: '1px solid #ddd', borderRadius: 4 }}
+              >
+                <option value="194A">194A - Interest (other than securities)</option>
+                <option value="193">193 - Interest on Securities</option>
+                <option value="194K">194K - MF/UTI Income</option>
+                <option value="194LB">194LB - Infrastructure Debt Fund</option>
+                <option value="194LC">194LC - Interest on Bonds</option>
+                <option value="194LD">194LD - Interest on Gov Securities</option>
               </select>
             </div>
 
@@ -134,7 +160,7 @@ export const BankInterestEntryManager: React.FC<BankInterestEntryManagerProps> =
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: 5, fontWeight: 500 }}>TDS Deducted (194A)</label>
+              <label style={{ display: 'block', marginBottom: 5, fontWeight: 500 }}>TDS Deducted</label>
               <input
                 type="number"
                 value={entry.tdsDeducted}

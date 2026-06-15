@@ -1,0 +1,76 @@
+^Annual Tax Statement^
+
+File Creation Date^Permanent Account Number (PAN)^Current Status of PAN^Financial Year^Assessment Year^Name of Assessee^Address Line 1^Address Line 2^Address Line 3^Address Line 4^Address Line 5^Statecode^Pin Code
+11-06-2026^ACUPG3482G^ACTIVE AND OPERATIVE^2025-2026^2026-2027^SUNIT RAMASHANKAR GOYANKA^FLAT NO. G-1 GAJANAN^PALACE OPP. JANTA^HOMIOPATHIC COLLEGE RAM^NAGAR KEDIYA PLOT AKOLA^AKOLA^MAHARASHTRA^444005
+
+^PART-I - Details of Tax Deducted at Source^
+Sr. No.^Name of Deductor^TAN of Deductor^^^^^Total Amount Paid / Credited(Rs.)^Total Tax Deducted(Rs.)^Total TDS Deposited(Rs.)
+1^STATE BANK OF INDIA^MUMS89569E^^^^^261838.00^26191.00^26191.00^
+^Sr. No.^Section^Transaction Date^Status of Booking^Date of Booking^Remarks^Amount Paid / Credited(Rs.)^Tax Deducted(Rs.)^TDS Deposited(Rs.)
+^1^194A^31-Mar-2026^F^25-May-2026^-^3665.00^367.00^367.00^
+^2^194A^31-Mar-2026^F^25-May-2026^-^4655.00^466.00^466.00^
+^3^194A^31-Mar-2026^F^25-May-2026^-^11290.00^1129.00^1129.00^
+^4^194A^31-Mar-2026^F^25-May-2026^-^23653.00^2366.00^2366.00^
+^5^194A^31-Mar-2026^F^25-May-2026^-^244.00^25.00^25.00^
+^6^194A^31-Mar-2026^F^25-May-2026^-^1562.00^157.00^157.00^
+^7^194A^31-Mar-2026^F^25-May-2026^-^3787.00^379.00^379.00^
+^8^194A^31-Mar-2026^F^25-May-2026^-^63375.00^6338.00^6338.00^
+^9^194A^31-Mar-2026^F^25-May-2026^-^1565.00^157.00^157.00^
+^10^194A^31-Mar-2026^F^25-May-2026^-^11081.00^1109.00^1109.00^
+^11^194A^31-Mar-2026^F^25-May-2026^-^45610.00^4561.00^4561.00^
+^12^194A^31-Mar-2026^F^25-May-2026^-^7947.00^795.00^795.00^
+^13^194A^31-Mar-2026^F^25-May-2026^-^11379.00^1138.00^1138.00^
+^14^194A^31-Mar-2026^F^25-May-2026^-^16690.00^1669.00^1669.00^
+^15^194A^12-Mar-2026^F^25-May-2026^-^28764.00^2877.00^2877.00^
+^16^194A^23-Jan-2026^F^25-May-2026^-^19153.00^1916.00^1916.00^
+^17^194A^12-Jan-2026^F^25-May-2026^-^6008.00^601.00^601.00^
+^18^194A^08-Oct-2025^F^16-Feb-2026^-^1410.00^141.00^141.00^
+
+2^ANAND PURUSHOTTAM AGRAWAL^NGPA14339D^^^^^60000.00^6000.00^6000.00^
+^Sr. No.^Section^Transaction Date^Status of Booking^Date of Booking^Remarks^Amount Paid / Credited(Rs.)^Tax Deducted(Rs.)^TDS Deposited(Rs.)
+^1^194A^31-Mar-2026^F^15-Apr-2026^-^15000.00^1500.00^1500.00^
+^2^194A^31-Dec-2025^F^07-Jan-2026^-^15000.00^1500.00^1500.00^
+^3^194A^30-Sep-2025^F^09-Oct-2025^-^30000.00^3000.00^3000.00^
+
+
+^PART-II - Details of Tax Deducted at Source for 15G / 15H^
+Sr. No.^Name of Deductor^TAN of Deductor^^^^Total Amount Paid / Credited(Rs.)^Total Tax Deducted(Rs.)^Total TDS Deposited(Rs.)
+^^^*********** No Transactions Present **********^
+
+
+^PART-III - Details of Transactions under Proviso to section 194B/First Proviso to sub-section (1) of section 194R/ Proviso to sub-section(1) of section 194S/Sub-section (2) of section 194BA
+Sr. No.^Name of Deductor^TAN of Deductor^^^^^Total Amount Paid / Credited(Rs.)
+^^^*********** No Transactions Present **********^
+
+
+^PART-IV - Details of Tax Deducted at Source  u/s 194IA/ 194IB /  194M/  194S (For Seller/Landlord of Property/Contractors or professionals/ Seller of Virtual Digital Asset)^
+Sr. No.^Acknowledgement Number^Name of Deductor^PAN of Deductor^Transaction Date^Total Transaction Amount(Rs.)^Total TDS Deposited(Rs.)
+^^^*********** No Transactions Present **********^
+
+^PART-V - : Details of Transactions under Proviso to sub-section(1) of section 194S as per Form-26QE (For Seller of Virtual Digital Asset)^
+Sr. No.^Acknowledgement Number^Name of Buyer^PAN of Buyer^Transaction Date^Total Transaction Amount(Rs.)
+^^^*********** No Transactions Present **********^
+
+^PART-VI - Details of Tax Collected at Source^
+Sr. No.^Name of Collector^TAN of Collector^^^^^Total Amount Paid / Debited(Rs.)^Total Tax Collected(Rs.)^Total TCS Deposited(Rs.)
+^^^*********** No Transactions Present **********^
+
+
+^PART-VII - Details of Paid Refund (For which source is CPC TDS. For other details refer AIS at E-filing portal)^
+Sr. No.^Assessment Year^Mode^Refund Issued^Nature of Refund^Amount of Refund(Rs.)^Interest(Rs.)^Date of Payment^Remarks
+^^^*********** No Transactions Present **********^
+
+
+^PART-VIII - Details of Tax Deducted at Source  u/s 194IA/ 194IB /194M/194S (For Buyer/Tenant of Property /Person making payment to contractors or Professionals/Buyer of Virtual Digital Asset)^
+Sr. No.^Acknowledgement Number^Name of Deductee^PAN of Deductee^Transaction Date^Total Transaction Amount(Rs.)^Total TDS Deposited(Rs.)^Total Amount Deposited other than TDS(Rs.)
+^^^*********** No Transactions Present **********^
+
+^PART-IX -Details of Transactions/Demand Payments under Proviso to sub-section(1) of section 194S as per Form 26QE (For Buyer of Virtual Digital Asset)^
+Sr. No.^Acknowledgement Number^Name of Seller^PAN of Seller^Transaction Date^Total Transaction Amount(Rs.)^Total Amount Deposited other than TDS(Rs.)
+^^^*********** No Transactions Present **********^
+
+^PART-X - TDS/TCS Defaults* (Processing of Statements)^
+Sr. No.^Financial Year^Short Payment^Short Deduction/Collection^Interest on TDS/TCS Payments default^Interest on TDS/TCS Deduction/Collection Default^Late Filing Fee u/s 234E^Interest u/s 220(2)^Total Default
+^^^*********** No Transactions Present **********^
+
+

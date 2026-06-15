@@ -9,13 +9,30 @@ export const itrApi = {
     const { data } = await axiosInstance.put(`/clients/${clientId}/itr/${year}`, formData);
     return data;
   },
-  computeTax: async (clientId: number, year: string, formData: any) => {
+  
+  /**
+   * Compute tax from frontend form data.
+   * FRONTEND SENDS ALL FIELDS (even if 0).
+   * BACKEND COMPUTES ALL VALUES including 0.
+   * Returns TaxComputationResult with otherIncome, totalInterest, totalDividend, etc.
+   */
+  computeTax: async (formData: any, regime: string = 'NEW') => {
+    const { data } = await axiosInstance.post('/api/tax/compute', formData, {
+      params: { regime }
+    });
+    return data;
+  },
+  
+  /**
+   * Legacy computeTax - redirects to new endpoint
+   */
+  computeTaxLegacy: async (clientId: number, year: string, formData: any) => {
     const { data } = await axiosInstance.post(`/clients/${clientId}/itr/${year}/compute`, formData);
     return data;
   },
+  
   /**
    * Compute complete tax summary in backend - replaces frontend computeTax() entirely.
-   * POST /api/v1/tax-summary/compute
    */
   computeTaxSummary: async (formData: any, assessmentYear: string, regime: string) => {
     const { data } = await axiosInstance.post('/tax-summary/compute', {
@@ -25,6 +42,7 @@ export const itrApi = {
     });
     return data;
   },
+  
   validate: async (clientId: number, year: string, formData: any) => {
     const { data } = await axiosInstance.post(`/clients/${clientId}/itr/${year}/validate`, formData);
     return data as { valid: boolean; errors: string[]; warnings: string[] };

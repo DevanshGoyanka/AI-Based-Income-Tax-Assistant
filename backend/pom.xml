@@ -113,6 +113,20 @@
             <version>2.0.30</version>
         </dependency>
 
+        <!-- Apache Commons Compress for password-protected ZIP -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.26.0</version>
+        </dependency>
+
+        <!-- Zip4j for password-protected ZIP support -->
+        <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.11.5</version>
+        </dependency>
+
         <!-- Tess4J for OCR (scanned PDFs) -->
         <dependency>
             <groupId>net.sourceforge.tess4j</groupId>

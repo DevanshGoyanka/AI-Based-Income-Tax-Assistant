@@ -166,4 +166,25 @@ public class ClientService {
                 .years(years)
                 .build();
     }
+
+    /**
+     * Stub method for ITD password management.
+     */
+    public void setItdPassword(Long clientId, String encryptedPassword, Long userId) {
+        // Stub - implementation needed
+    }
+
+    /**
+     * Stub method for removing ITD password.
+     */
+    public void removeItdPassword(Long clientId, Long userId) {
+        // Stub - implementation needed
+    }
+
+    /**
+     * Stub method for checking ITD password.
+     */
+    public boolean hasItdPassword(Long clientId, Long userId) {
+        return false;
+    }
 }

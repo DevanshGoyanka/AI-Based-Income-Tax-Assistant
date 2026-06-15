@@ -165,12 +165,15 @@ export default function ITRComputationPage() {
   // Fetch backend-computed tax summary - replaces local computeTax()
   useEffect(() => {
     if (!clientId || !ayParam) return;
+    console.log('[TAX] Calling computeTaxSummary for Other Sources...', { ayParam, regime });
     setTaxResultLoading(true);
     itrApi.computeTaxSummary(formData, ayParam || '2025-26', regime)
       .then((result: any) => {
+        console.log('[TAX] computeTaxSummary result:', result);
         setBackendTaxResult(result);
       })
-      .catch(() => {
+      .catch((err: any) => {
+        console.error('[TAX] computeTaxSummary ERROR:', err);
         // If backend call fails, clear result (no fallback to local)
         setBackendTaxResult(null);
       })
@@ -180,7 +183,7 @@ export default function ITRComputationPage() {
   const taxResult = useMemo(() => {
     // ALWAYS use backend-computed result - no local calculation
     if (backendTaxResult) return backendTaxResult;
-    // Return empty result when loading or no data
+    // Return empty result when loading or no data - include ALL Other Sources properties
     return {
       grossSalary: 0, hraExempt: 0, netSalary: 0, hpIncome: 0, cgTax: 0,
       bizIncome: 0, otherIncome: 0, vdaTax: 0, gti: 0, gtiAfterSetOff: 0,
@@ -190,6 +193,7 @@ export default function ITRComputationPage() {
       totalInterest: 0, interestDeduction80TTA: 0, interestDeduction80TTB: 0,
       totalDividend: 0, dividendTaxableAtSpecialRate: 0, dividendTaxableAtNormalRate: 0,
       totalWinnings: 0, winningsTax: 0, taxableGifts: 0, familyPensionDed: 0, specialRateIncome: 0,
+      familyPensionIncome: 0, // Added for Other Sources
       tdsS192: 0, tds194A: 0, tdsOther: 0,
       adv15Jun: 0, adv15Sep: 0, adv15Dec: 0, adv15Mar: 0,
       selfTax: 0, tdsEntries: [], selfAssessmentTaxEntries: []
@@ -301,38 +305,40 @@ export default function ITRComputationPage() {
         setFormData((prev: any) => ({ ...prev, ...populated }));
         toast.dismiss();
         toast.success('Form 16 imported and auto-populated');
-      } else if (type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf' || type === 'prefill') {
+      } else if (type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf' || type === '26as-txt' || type === 'prefill') {
+        const typeStr = type as string;
         let data: any;
 
         const pan = clientData?.pan;
         const dob = clientData?.dob; // YYYY-MM-DD format
 
-        // Validate PAN and DOB are available for encrypted documents
-        if ((type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf') && (!pan || !dob)) {
+        // Validate PAN and DOB are available for encrypted documents (except TXT/ZIP)
+        if ((typeStr === 'ais-pdf' || typeStr === 'ais-json' || typeStr === 'tis-pdf' || typeStr === '26as-pdf') && (!pan || !dob)) {
           toast.dismiss();
           toast.error('Client PAN and Date of Birth are required for importing encrypted ITD documents');
           setShowImportMenu(false);
           return;
         }
 
-        if (type === 'prefill') {
+        if (typeStr === 'prefill') {
           const text = await file.text();
           data = JSON.parse(text);
-        } else if (type === 'ais-pdf') {
+        } else if (typeStr === 'ais-pdf') {
           const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importAIS(file, pan!, dob!);
           setImportedAIS(data);
-        } else if (type === 'ais-json') {
+        } else if (typeStr === 'ais-json') {
           const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importAISJson(file, pan!, dob!);
           setImportedAIS(data);
-        } else if (type === 'tis-pdf') {
+        } else if (typeStr === 'tis-pdf') {
           const { integrationApi } = await import('../api/integration');
           data = await integrationApi.importTIS(file, pan!, dob!);
           setImportedTIS(data);
-        } else if (type === '26as-pdf') {
+        } else if (typeStr === '26as-txt' || typeStr === '26as-pdf') {
           const { integrationApi } = await import('../api/integration');
-          data = await integrationApi.import26AS(file, pan!, dob!);
+          // Backend will use client's DOB as password for ZIP files
+          data = await integrationApi.import26AS(file, Number(clientId));
           setImported26AS(data);
         }
         
@@ -346,24 +352,193 @@ export default function ITRComputationPage() {
         }
         
         // Auto-populate from all available documents
-        if (type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf') {
+        if (type === 'ais-pdf' || type === 'ais-json' || type === 'tis-pdf' || type === '26as-pdf' || type === '26as-txt') {
+          // For 26AS, transform TDS entries to frontend format
+          let tdsEntriesForForm = [];
+          
+          // Determine financial year from 26AS data
+          // Format from 26AS: "2025-2026" -> convert to "2025-26"
+          let fyFrom26AS = '2025-26'; // default
+          if (data.financialYear) {
+            const fyParts = data.financialYear.split('-');
+            if (fyParts.length === 2) {
+              fyFrom26AS = fyParts[0] + '-' + fyParts[1].substring(2);
+            }
+          }
+          
+          if (type === '26as-txt' || type === '26as-pdf') {
+            const tdsFrom26AS = data.tdsEntries || data.deductorAggregates || [];
+            tdsEntriesForForm = tdsFrom26AS.map((entry: any) => ({
+              section: entry.sectionCode || entry.section || '192',
+              deductorName: entry.employerName || entry.deductorName || 'Unknown Employer',
+              deductorTAN: entry.employerTAN || entry.deductorTAN || '',
+              deductorPAN: entry.deductorPAN || '',
+              incomeAmount: entry.incomeAmount || entry.totalAmount || 0,
+              tdsDeducted: entry.tdsDeducted || entry.totalTDS || 0,
+              certificateNo: entry.certificateNo || '',
+              deductionDate: entry.transactionDate || entry.deductionDate || '',
+              uniqueTransactionNo: entry.uniqueTransactionNo || entry.utrNo || '',
+              financialYear: fyFrom26AS, // Use correct FY from 26AS
+              verified26AS: true,
+              claimedInReturn: true
+            }));
+            console.log('26AS TDS entries transformed with FY:', fyFrom26AS, tdsEntriesForForm);
+          }
+          
+          // For 26AS only, directly set form data without calling autoPopulateAll
+          if (type === '26as-txt' || type === '26as-pdf') {
+            const incomeBreakdown = data.incomeBreakdown || {};
+            const deductorDetails = incomeBreakdown.deductorDetails || [];
+            
+            // Get financial year from 26AS data (format: "2025-2026" -> "2025-26")
+            let fyFrom26AS = data.financialYear || '2025-26';
+            if (fyFrom26AS.includes("2025")) {
+              fyFrom26AS = '2025-26';
+            } else if (fyFrom26AS.includes("2024")) {
+              fyFrom26AS = '2024-25';
+            }
+            
+            // TDS entries only (where TDS > 0)
+            const tdsOnlyEntries = tdsEntriesForForm.filter((e: any) => (e.tdsDeducted || 0) > 0);
+            
+            // ===== BUILD EMPLOYER ENTRIES (Summary per employer) =====
+            const salaryDeductors = deductorDetails.filter((d: any) => 
+              d.sectionCode === '192' || d.sectionCode === '192A'
+            );
+            
+            const employerEntriesFrom26AS = salaryDeductors.map((deductor: any) => ({
+              employerName: deductor.employerName || 'Employer',
+              employerTAN: deductor.employerTAN || '',
+              employerPAN: '',
+              basic: deductor.totalAmount || 0,
+              da: 0,
+              hra: 0,
+              bonus: 0,
+              allowances: 0,
+              perquisites: 0,
+              professionalTax: 0,
+              tdsDeducted: deductor.totalTDS || 0,
+              grossSalary: deductor.totalAmount || 0,
+              netSalary: (deductor.totalAmount || 0) - (deductor.totalTDS || 0),
+              financialYear: fyFrom26AS,
+              verified26AS: true
+            }));
+            
+            // ===== BUILD DIVIDEND ENTRIES (Summary per company) =====
+            const dividendDeductors = deductorDetails.filter((d: any) => d.sectionCode === '194');
+            const dividendEntriesFrom26AS = dividendDeductors.map((deductor: any) => ({
+              companyName: deductor.employerName || 'Company',
+              companyPAN: '',
+              dividendAmount: deductor.totalAmount || 0,
+              tdsDeducted: deductor.totalTDS || 0,
+              deductorTAN: deductor.employerTAN || '',
+              isin: '',
+              category: 'SHARES',
+              section: deductor.sectionCode || '194'
+            }));
+            
+            // ===== BUILD INTEREST ENTRIES (Summary per bank/deductor) =====
+            const interestDeductors = deductorDetails.filter((d: any) => 
+              d.sectionCode === '194A' || d.sectionCode === '193' || d.sectionCode === '194K'
+            );
+            const bankInterestEntriesFrom26AS = interestDeductors.map((deductor: any) => ({
+              bankName: deductor.employerName || 'Bank',
+              accountNumber: '',
+              accountType: 'SAVINGS',
+              interestEarned: deductor.totalAmount || 0,
+              tdsDeducted: deductor.totalTDS || 0,
+              deductorTAN: deductor.employerTAN || '',
+              section: deductor.sectionCode || '194A'
+            }));
+            
+            // Calculate total income from all heads
+            const totalIncomeFrom26AS = 
+              (incomeBreakdown.salaryIncome || 0) + 
+              (incomeBreakdown.dividendIncome || 0) + 
+              (incomeBreakdown.interestIncome || 0) +
+              (incomeBreakdown.housePropertyIncome || 0) +
+              (incomeBreakdown.capitalGains || 0) +
+              (incomeBreakdown.businessIncome || 0) +
+              (incomeBreakdown.lotteryIncome || 0) +
+              (incomeBreakdown.vdaIncome || 0) +
+              (incomeBreakdown.onlineGamingIncome || 0) +
+              (incomeBreakdown.tcsIncome || 0);
+            
+            const formDataUpdate: any = {
+              // ===== SALARY ENTRIES =====
+              employerEntries: employerEntriesFrom26AS.length > 0 ? employerEntriesFrom26AS : [],
+              basic: employerEntriesFrom26AS.length > 0 ? employerEntriesFrom26AS[0].basic : 0,
+              
+              // ===== TDS ENTRIES =====
+              tdsEntries: tdsOnlyEntries,
+              tdsS192: incomeBreakdown.salaryIncome > 0 ? (data.totalTdsSalary || 0) : 0,
+              tds194A: incomeBreakdown.interestIncome > 0 ? (data.totalTdsInterest || 0) : 0,
+              tdsOther: (data.totalTDS || 0) - (data.totalTdsSalary || 0) - (data.totalTdsInterest || 0),
+              
+              // Store 26AS import info for display
+              imported26AS: {
+                totalTDS: data.totalTDS,
+                totalIncome: totalIncomeFrom26AS,
+                financialYear: fyFrom26AS,
+                assessmentYear: data.assessmentYear || '2026-27',
+                deductorCount: tdsOnlyEntries.length,
+                incomeBreakdown: incomeBreakdown
+              },
+              
+              // ===== DIVIDEND ENTRIES (per company) =====
+              dividendEntries: dividendEntriesFrom26AS.length > 0 ? dividendEntriesFrom26AS : [],
+              
+              // ===== BANK INTEREST ENTRIES (per bank) =====
+              bankInterestEntries: bankInterestEntriesFrom26AS.length > 0 ? bankInterestEntriesFrom26AS : [],
+              
+              // ===== MAP TO RESPECTIVE INCOME HEADS =====
+              grossRent: incomeBreakdown.housePropertyIncome || 0,
+              ltcgProperty: incomeBreakdown.capitalGains || 0,
+              bizTurnover: incomeBreakdown.businessIncome || 0,
+              interestSB: incomeBreakdown.interestIncome || 0,
+              interestFD: incomeBreakdown.interestIncome || 0,
+              dividends: incomeBreakdown.dividendIncome || 0,
+              lotteryIncome: incomeBreakdown.lotteryIncome || 0,
+              horseRaceIncome: incomeBreakdown.horseRaceIncome || 0,
+              vdaGains: incomeBreakdown.vdaIncome || 0,
+              onlineGamingIncome: incomeBreakdown.onlineGamingIncome || 0,
+              tcsCollections: incomeBreakdown.tcsIncome || 0,
+              incomeBreakdown26AS: incomeBreakdown,
+            };
+            
+            console.log('26AS Import - Employer Entries:', employerEntriesFrom26AS);
+            console.log('26AS Import - Dividend Entries:', dividendEntriesFrom26AS);
+            console.log('26AS Import - Interest Entries:', bankInterestEntriesFrom26AS);
+            
+            setFormData((prev: any) => ({ ...prev, ...formDataUpdate }));
+            await itrApi.saveFormData(Number(clientId), year!, { ...formData, ...formDataUpdate });
+            toast.dismiss();
+            
+            const message = `26AS imported! ${tdsOnlyEntries.length} TDS entries. ` +
+              `Salary: ${employerEntriesFrom26AS.length} employer (₹${(incomeBreakdown.salaryIncome || 0).toLocaleString('en-IN')}), ` +
+              `Dividends: ${dividendEntriesFrom26AS.length} companies (₹${(incomeBreakdown.dividendIncome || 0).toLocaleString('en-IN')})`;
+            toast.success(message);
+            setShowImportMenu(false);
+            return;
+          }
+          
           const { integrationApi } = await import('../api/integration');
 
-          // Auto-populate from all available documents
+          // Auto-populate from AIS and TIS documents
           const populated = await integrationApi.autoPopulateAll(
             Number(clientId),
             year!,
-            type === 'ais-pdf' || type === 'ais-json' ? data : importedAIS,
-            type === '26as-pdf' ? data : imported26AS,
-            type === 'tis-pdf' ? data : importedTIS
+            importedAIS || data,
+            imported26AS || data,
+            importedTIS || data
           );
           
           setFormData((prev: any) => ({ ...prev, ...populated }));
           
           // If both AIS and 26AS available, check reconciliation
-          const ais = (type === 'ais-pdf' || type === 'ais-json') ? data : importedAIS;
-          const f26as = type === '26as-pdf' ? data : imported26AS;
-          const tis = type === 'tis-pdf' ? data : importedTIS;
+          const ais = importedAIS || data;
+          const f26as = imported26AS || data;
+          const tis = importedTIS || data;
           
           if (ais && f26as) {
             const report = await integrationApi.getReconciliationReport(ais, f26as, tis);
@@ -379,98 +554,40 @@ export default function ITRComputationPage() {
           toast.dismiss();
           toast.success(`${type.toUpperCase()} imported and auto-populated successfully!`);
         } else if (type === 'prefill') {
-          // ITD Prefill - use backend auto-populate API
-          console.log('Prefill data received:', data);
-          
+          // ITD Prefill - use backend import API with clientId tracking
           const { integrationApi } = await import('../api/integration');
-          const populated = await integrationApi.autoPopulateFromPrefill(formData, data);
           
-          console.log('Auto-populated data:', populated);
+          // Import to backend - this saves to database
+          const importResult = await integrationApi.importITDPrefill(
+            file, 
+            Number(clientId), 
+            year!
+          );
           
-          // Check for reconciliation result
-          if (populated.reconciliationResult) {
-            setReconciliationResult(populated.reconciliationResult);
-            
-            // If there are discrepancies, show modal
-            if (populated.reconciliationResult.discrepancies && 
-                populated.reconciliationResult.discrepancies.length > 0) {
-              toast.dismiss();
-              toast(`Import complete with ${populated.reconciliationResult.discrepancies.length} discrepancy(ies) - review required`, { icon: '⚠️' });
-              setShowReconciliationModal(true);
-            }
-          }
+          console.log('Prefill import result:', importResult);
+          toast.success('Prefill imported successfully! Reloading data...');
           
-          // Map backend field names to frontend field names for Personal Info tab
-          const updatedFormData = {
-            ...formData,
-            ...populated,
-            // Personal Info - overwrite all fields from prefill
-            name: populated.name || formData.name,
-            pan: populated.pan || formData.pan,
-            aadhaar: populated.aadhaar || formData.aadhaar,
-            dob: populated.dob || formData.dob,
-            age: populated.age || formData.age,
-            fatherName: populated.fatherName || formData.fatherName,
-            // Contact details
-            email: populated.email || formData.email,
-            mobile: populated.mobile || formData.mobile,
-            // Address mapping: backend uses flatDoorNo, roadStreet, etc. -> frontend uses flatNo, road, etc.
-            flatNo: populated.flatDoorNo || populated.flatNo || formData.flatNo,
-            premises: populated.premisesName || populated.premises || formData.premises,
-            road: populated.roadStreet || populated.road || formData.road,
-            area: populated.area || formData.area,
-            city: populated.townCity || populated.city || formData.city,
-            state: populated.state || formData.state,
-            pincode: populated.pinCode || populated.pincode || formData.pincode,
-            // Residential status
-            residentialStatus: populated.residentialStatus || formData.residentialStatus,
-            // Employer details
-            employerName: populated.employerName || (populated.salaryIncome?.employers?.[0]?.employerName),
-            employerTAN: populated.employerTAN || (populated.salaryIncome?.employers?.[0]?.employerTAN),
-            // TDS entries
-            tdsEntries: populated.tdsEntries || populated.taxPayments?.tdsOnSalary || [],
-            // Employer entries - create from TDS entries or single employer data
-            employerEntries: (populated.tdsEntries && populated.tdsEntries.length > 0)
-              ? populated.tdsEntries.map((tds: any, idx: number) => ({
-                  employerName: tds.employerName || tds.deductorName || `Employer ${idx + 1}`,
-                  employerTAN: tds.employerTAN || tds.deductorTAN || '',
-                  employerPAN: '',
-                  natureOfEmployment: 'NGOV',
-                  basic: tds.incomeAmount || tds.basic || 0,
-                  da: 0,
-                  hra: 0,
-                  bonus: 0,
-                  allowances: 0,
-                  lta: 0,
-                  rentPaid: 0,
-                  isMetroCity: false,
-                  professionalTax: 0,
-                  tdsDeducted: tds.tdsDeducted || tds.tdsAmount || 0,
-                  grossSalary: tds.incomeAmount || tds.basic || 0,
-                  // Net taxable salary = gross - standard deduction - professional tax
-                  // Standard deduction for AY 2025-26 is ₹75,000 for both regimes
-                  netSalary: (tds.incomeAmount || tds.basic || 0) - 75000
-                }))
-              : (formData.employerEntries && formData.employerEntries.length > 0)
-                ? formData.employerEntries
-                : [],
-            // Self assessment tax entries
-            selfAssessmentTaxEntries: populated.selfAssessmentTaxEntries || [],
-            // Bank account details
-            bankAccountDetails: populated.bankAccountDetails || [],
-            // Bank interest entries - populate from prefill if not already set
-            // If we have partial entries (from prefill bank details), don't overwrite entirely
-            // instead use interestSB to add/update entries
-            bankInterestEntries: (populated.bankInterestEntries && populated.bankInterestEntries.length > 0) 
-              ? populated.bankInterestEntries 
-              : (populated.interestSB && populated.interestSB > 0 
-                  ? [{ bankName: 'Bank (from prefill)', accountType: 'SAVINGS', interestEarned: populated.interestSB, tdsDeducted: 0 }]
-                  : [])
-          };
+          // Reload form data from backend to get the extracted data
+          const freshFormData = await itrApi.getFormData(Number(clientId), year!);
+          console.log('Fresh form data from backend:', freshFormData);
           
-          setFormData(updatedFormData);
+          // Update form with the extracted data
+          setFormData((prev: any) => ({ 
+            ...prev,
+            ...freshFormData,
+            // Also merge any auto-populated fields
+            name: freshFormData.name || prev.name,
+            employerEntries: freshFormData.employerEntries || prev.employerEntries,
+            tdsEntries: freshFormData.tdsEntries || prev.tdsEntries,
+            bankAccountDetails: freshFormData.bankAccountDetails || prev.bankAccountDetails,
+            bankInterestEntries: freshFormData.bankInterestEntries || prev.bankInterestEntries,
+          }));
           
-          await itrApi.saveFormData(Number(clientId), year!, updatedFormData);
+          setShowImportMenu(false);
+          
+          // All data is now loaded from backend, just show success message
+          toast.dismiss();
+          toast.success('Prefill data imported and loaded successfully!');
         } else {
           setFormData((prev: any) => ({ ...prev, ...data }));
         }
@@ -893,6 +1010,21 @@ export default function ITRComputationPage() {
                     style={{ display: 'none' }}
                   />
                   ITD Prefill JSON
+                </label>
+                <label style={{
+                  display: 'block',
+                  padding: '8px 12px',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  borderTop: '1px solid var(--border)'
+                }}>
+                  <input
+                    type="file"
+                    accept=".txt,.zip"
+                    onChange={(e) => e.target.files?.[0] && handleFileImport('26as-txt', e.target.files[0])}
+                    style={{ display: 'none' }}
+                  />
+                  Form 26AS (TXT/ZIP)
                 </label>
                 <label style={{
                   display: 'block',

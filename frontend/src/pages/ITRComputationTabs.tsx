@@ -1,13 +1,21 @@
 import { INR } from '../utils/formatters';
 import { BankInterestEntryManager } from '../components/BankInterestEntryManager';
-import { DividendEntryManager } from '../components/DividendEntryManager';
+import { DividendEntryManager } from '../components/dividend/DividendEntryManager';
 import { DonationEntryManager } from '../components/DonationEntryManager';
+import { InterestEntryManager } from '../components/interest/InterestEntryManager';
+import { WinningsManager } from '../components/winnings/WinningsManager';
+import { FamilyPensionManager } from '../components/familyPension/FamilyPensionManager';
+import { GiftPropertyManager } from '../components/gifts/GiftPropertyManager';
 
 export function BusinessTab({ formData, setFormData, taxResult }: any) {
   return (
     <div>
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Income from Business or Profession (CBDT Schedule BP - Section 28-44)
+      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+        Income from Business or Profession
+        <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', marginLeft: 8 }}>
+          <span style={{ cursor: 'pointer', fontSize: 12, color: 'var(--gold)', border: '1px solid var(--gold)', borderRadius: '50%', width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600 }}>i</span>
+          <span style={{ position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--text-primary)', color: 'white', padding: '8px 12px', borderRadius: 6, fontSize: 11, whiteSpace: 'nowrap', zIndex: 1000, display: 'none', marginBottom: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>Sec 28-44 (Schedule BP)</span>
+        </span>
       </h3>
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: 'block', marginBottom: 8, fontSize: 12, fontWeight: 500 }}>Presumptive Scheme</label>
@@ -55,79 +63,242 @@ export function BusinessTab({ formData, setFormData, taxResult }: any) {
 }
 
 export function OtherSourcesTab({ formData, setFormData, taxResult }: any) {
+  // Calculate totals from 26AS
+  const totalTDSFrom26AS = formData.tdsEntries ? formData.tdsEntries.reduce((sum: number, e: any) => sum + (e.tdsDeducted || 0), 0) : 0;
+  const incomeBreakdown = formData.incomeBreakdown26AS || {};
+  
+  // Get income from 26AS breakdown
+  const dividendFrom26AS = incomeBreakdown.dividendIncome || 0;
+  const interestFrom26AS = incomeBreakdown.interestIncome || 0;
+  const salaryFrom26AS = incomeBreakdown.salaryIncome || 0;
+  
+  // Calculate total income from 26AS
+  const totalIncomeFrom26AS = salaryFrom26AS + dividendFrom26AS + interestFrom26AS;
+  
   return (
-    <div>
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Income from Other Sources (CBDT Schedule OS - Section 56-59)
+    <div style={{ padding: '16px', background: '#fafafa' }}>
+      {/* 26AS Import Summary */}
+      {formData.imported26AS && (
+        <div style={{ marginBottom: 24, padding: 16, background: 'var(--gold-pale)', borderRadius: 6, border: '1px solid var(--gold)' }}>
+          <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--gold)' }}>
+            📊 Form 26AS Import Summary
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
+            <div style={{ padding: 12, background: 'white', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Total Income (26AS)</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>₹{totalIncomeFrom26AS.toLocaleString('en-IN')}</div>
+            </div>
+            <div style={{ padding: 12, background: 'white', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Total TDS Credit</div>
+              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--gold)' }}>₹{totalTDSFrom26AS.toLocaleString('en-IN')}</div>
+            </div>
+            <div style={{ padding: 12, background: 'white', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Salary (192)</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>₹{salaryFrom26AS.toLocaleString('en-IN')}</div>
+            </div>
+            <div style={{ padding: 12, background: 'white', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Interest (193, 194A, 194K)</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>₹{interestFrom26AS.toLocaleString('en-IN')}</div>
+            </div>
+            <div style={{ padding: 12, background: 'white', borderRadius: 6 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Dividends (194)</div>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>₹{dividendFrom26AS.toLocaleString('en-IN')}</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 20, color: '#1a237e', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ background: '#1a237e', color: 'white', padding: '4px 10px', borderRadius: 4, fontSize: 12 }}>OS</span>
+        Income from Other Sources
+        <span style={{ fontSize: 11, color: '#666', fontWeight: 400 }}>Schedule OS - Sec 56-59</span>
       </h3>
 
-      <BankInterestEntryManager
-        entries={formData.bankInterestEntries || []}
-        onChange={(entries) => setFormData({ ...formData, bankInterestEntries: entries })}
-      />
-
-      <div style={{ marginTop: 24 }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-          Other Interest Income (Section 194A)
+      {/* ===== INTEREST INCOME (ITD Tags 17A-17H) ===== */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #1565c0', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: '#1565c0', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ background: '#e3f2fd', color: '#1565c0', padding: '2px 8px', borderRadius: 4, fontSize: 10 }}>17A-17H</span>
+          Interest Income
+          <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>Sec 194A, 194K, 244A</span>
         </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 12 }}>
-          <Field label="NSC Interest" value={formData.nscInterest || 0} onChange={(v: any) => setFormData({ ...formData, nscInterest: v })} />
-          <Field label="SCSS Interest" value={formData.scssInterest || 0} onChange={(v: any) => setFormData({ ...formData, scssInterest: v })} />
-          <Field label="Post Office Interest" value={formData.postOfficeInterest || 0} onChange={(v: any) => setFormData({ ...formData, postOfficeInterest: v })} />
-          <Field label="Interest from IT Refund" value={formData.interestFromITRefund || 0} onChange={(v: any) => setFormData({ ...formData, interestFromITRefund: v })} />
-        </div>
+        <InterestEntryManager
+          entries={formData.interestEntries || []}
+          onChange={(entries) => setFormData({ ...formData, interestEntries: entries })}
+        />
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-          Dividend Income (Company-wise, Section 115BBDA / 194)
+      {/* DIVIDEND income section - ITD Compliant */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #2e7d32', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: '#2e7d32', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ background: '#e8f5e9', color: '#2e7d32', padding: '2px 8px', borderRadius: 4, fontSize: 10 }}>DIV</span>
+          Dividend Income
+          <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>Sec 2(22)(e), 2(22)(f), 194</span>
         </h4>
         <DividendEntryManager
           entries={formData.dividendEntries || []}
           onChange={(entries) => setFormData({ ...formData, dividendEntries: entries })}
         />
-        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
-          Total Dividend: <strong>₹{(formData.dividendEntries || []).reduce((s: number, e: any) => s + (e.dividendAmount || 0), 0).toLocaleString('en-IN')}</strong>
-        </div>
       </div>
 
-      <div style={{ marginTop: 24 }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-          Legacy Aggregate Fields
+      {/* FAMILY PENSION section - ITD Compliant */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #7b1fa2', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <FamilyPensionManager
+          entry={formData.familyPensionEntry || null}
+          onChange={(entry) => setFormData({ ...formData, familyPensionEntry: entry })}
+        />
+      </div>
+
+      {/* WINNINGS section - ITD Compliant */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #c62828', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <WinningsManager
+          entries={formData.winningsEntries || []}
+          onChange={(entries) => setFormData({ ...formData, winningsEntries: entries })}
+        />
+      </div>
+
+      {/* GIFTS section - ITD Compliant */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #ef6c00', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <GiftPropertyManager
+          entries={formData.giftEntries || []}
+          onChange={(entries) => setFormData({ ...formData, giftEntries: entries })}
+        />
+      </div>
+
+      {/* VDA section */}
+      <div style={{ marginBottom: 20, background: 'white', borderRadius: 8, padding: 16, borderLeft: '4px solid #e65100', boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: '#e65100', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ background: '#fff3e0', color: '#e65100', padding: '2px 8px', borderRadius: 4, fontSize: 10 }}>VDA</span>
+          Virtual Digital Assets
+          <span style={{ fontSize: 11, color: '#888', fontWeight: 400 }}>Sec 194S / 115BBH</span>
         </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-          <Field label="SB Interest (Legacy)" value={formData.interestSB || 0} onChange={(v: any) => setFormData({ ...formData, interestSB: v })} />
-          <Field label="FD Interest (Legacy)" value={formData.interestFD || 0} onChange={(v: any) => setFormData({ ...formData, interestFD: v })} />
-          <Field label="Dividend Total (Legacy)" value={formData.dividends || 0} onChange={(v: any) => setFormData({ ...formData, dividends: v })} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, color: '#888', marginBottom: 4 }}>VDA Gains (₹)</label>
+            <input type="number" value={formData.vdaGains || ''}
+              onChange={(v: any) => setFormData({ ...formData, vdaGains: parseFloat(v.target.value) || 0 })}
+              style={{ width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 4 }} />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11, color: '#888', marginBottom: 4 }}>VDA Tax @ 30%</label>
+            <input type="number" value={taxResult.vdaTax || 0} readOnly
+              style={{ width: '100%', padding: 8, border: '1px solid var(--border)', borderRadius: 4, background: '#fff3e0', color: '#e65100', fontWeight: 600 }} />
+          </div>
+        </div>
+        <div style={{ marginTop: 8, fontSize: 11, color: '#e65100', fontStyle: 'italic' }}>
+          ⚠️ VDA income taxed @ 30% + 4% cess. No loss set-off allowed.
         </div>
       </div>
 
-      <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
-        Other Income
-      </h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-        <Field label="Family Pension" value={formData.familyPension || 0} onChange={(v: any) => setFormData({ ...formData, familyPension: v })} />
-        <Field label="Other Misc Income" value={formData.otherMisc || 0} onChange={(v: any) => setFormData({ ...formData, otherMisc: v })} />
-        <Field label="Accumulated SPF Income" value={formData.accumulatedSPF || 0} onChange={(v: any) => setFormData({ ...formData, accumulatedSPF: v })} />
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <h4 style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-secondary)' }}>
-          Gifts and Casual Income (Section 56(2)(x))
-        </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-          <Field label="Gifts from Non-Relatives (₹)" value={formData.giftsFromNonRelatives || 0} onChange={(v: any) => setFormData({ ...formData, giftsFromNonRelatives: v })} />
-          <Field label="Winnings (Lottery/Betting) ₹" value={formData.lotteryIncome || 0} onChange={(v: any) => setFormData({ ...formData, lotteryIncome: v })} />
-          <Field label="Card Game Winnings ₹" value={formData.cardGameIncome || 0} onChange={(v: any) => setFormData({ ...formData, cardGameIncome: v })} />
-          <Field label="Horse Race Winnings ₹" value={formData.horseRaceIncome || 0} onChange={(v: any) => setFormData({ ...formData, horseRaceIncome: v })} />
+      {/* ===== OTHER SOURCES SUMMARY (CBDT Schedule OS) ===== */}
+      <div style={{ marginTop: 32, padding: 20, background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
+          Income from Other Sources - Summary (Backend Computed)
+          <span title="Schedule OS - Sec 56-59 (Calculated by backend as per CBDT rules)" style={{ cursor: 'help', fontSize: 12, color: 'var(--gold)', border: '1px solid var(--gold)', borderRadius: '50%', width: 16, height: 16, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, marginLeft: 8 }}>i</span>
+        </h3>
+        
+        <div style={{ marginBottom: 16 }}>
+          {/* Interest Income - ITD Tags 17A-17H */}
+          {(taxResult.intrFrmSavingBank || taxResult.intrFrmTermDeposit || taxResult.intrFrmIncmTaxRefund || 
+            taxResult.intrSec10XIFirstProviso || taxResult.intrSec10XISecondProviso || taxResult.intrSec10XIIFirstProviso) > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#1565c0', marginBottom: 8 }}>Interest Income (17A-17H)</div>
+              {(taxResult.intrFrmSavingBank ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>17A - Savings Bank</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.intrFrmSavingBank ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.intrFrmTermDeposit ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>17B - Term Deposit</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.intrFrmTermDeposit ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.intrSec10XIFirstProviso ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>17D - Post Office</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.intrSec10XIFirstProviso ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.intrSec10XISecondProviso ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>17E - NSC (Exempt)</span>
+                  <span style={{ fontWeight: 500, color: '#2e7d32' }}>₹{(taxResult.intrSec10XISecondProviso ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.intrSec10XIIFirstProviso ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>17F - SCSS (Exempt)</span>
+                  <span style={{ fontWeight: 500, color: '#2e7d32' }}>₹{(taxResult.intrSec10XIIFirstProviso ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Dividend - ITD Taxable (2(22)(e), 2(22)(f), 194) */}
+          {(taxResult.dividend22e || taxResult.dividend22f || taxResult.dividend) > 0 && (
+            <>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#2e7d32', margin: '12px 0 8px' }}>Dividend Income</div>
+              {(taxResult.dividend ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>194 - Regular Dividend</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.dividend ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.dividend22e ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>2(22)(e) - Deemed Dividend</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.dividend22e ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+              {(taxResult.dividend22f ?? 0) > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>2(22)(f) - Capital Reduction</span>
+                  <span style={{ fontWeight: 500 }}>₹{(taxResult.dividend22f ?? 0).toLocaleString('en-IN')}</span>
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Family Pension */}
+          {(taxResult.familyPensionIncome ?? 0) > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--border)', marginTop: 8 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Family Pension (Gross)</span>
+              <span style={{ fontWeight: 600 }}>₹{(taxResult.familyPensionIncome ?? 0).toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          {(taxResult.familyPensionDed ?? 0) > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>Less: Deduction u/s 57(iia)</span>
+              <span style={{ fontWeight: 500, color: '#2e7d32' }}>-₹{(taxResult.familyPensionDed ?? 0).toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          
+          {/* Winnings */}
+          {(taxResult.totalWinnings ?? 0) > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--border)', marginTop: 8 }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Winnings (194B/194BB) @ 30%</span>
+              <span style={{ fontWeight: 600 }}>₹{(taxResult.totalWinnings ?? 0).toLocaleString('en-IN')}</span>
+            </div>
+          )}
+          
+          {/* VDA */}
+          {(taxResult.vdaGains ?? 0) > 0 && (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderTop: '1px solid var(--border)', marginTop: 8 }}>
+                <span style={{ color: 'var(--text-secondary)' }}>VDA Gains (115BBH)</span>
+                <span style={{ fontWeight: 600 }}>₹{(taxResult.vdaGains ?? 0).toLocaleString('en-IN')}</span>
+              </div>
+            </>
+          )}
         </div>
-        <div style={{ marginTop: 8, fontSize: 11, color: '#888', fontStyle: 'italic' }}>
-          Note: Gifts &gt; ₹50,000 from non-relatives taxable under Sec 56(2)(x). Lottery/Card game winnings taxed @ 30%.
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderTop: '2px solid var(--gold)', marginTop: 8 }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Gross Income from Other Sources</span>
+          <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--gold)' }}>₹{(taxResult.otherIncome ?? 0).toLocaleString('en-IN')}</span>
         </div>
-      </div>
-
-      <div style={{ marginTop: 24 }}>
-        <Field label="Total Other Sources" value={taxResult.otherIncome} computed />
+        <div style={{ marginTop: 12, fontSize: 11, color: 'var(--text-muted)' }}>
+          Note: Winnings (Lottery/Betting/Horse Race) and VDA are taxed at 30% + 4% cess. Family pension deduction u/s 57(iia) applied by backend.
+        </div>
       </div>
     </div>
   );
@@ -375,14 +546,16 @@ export function TDSTab({ formData, setFormData, taxResult }: any) {
 
   return (
     <div>
-      {/* Auto-populated TDS entries from AIS */}
-      {formData.aisImported && (
+      {/* Auto-populated TDS entries from AIS/26AS */}
+      {(formData.aisImported || formData.imported26AS) && (
         <div style={{ marginBottom: 24, padding: 16, background: 'var(--success-bg)', borderRadius: 6, border: '1px solid var(--success)' }}>
           <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: 'var(--success)' }}>
-            ✓ AIS Data Imported
+            ✓ 26AS Data Imported
           </h3>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            TDS entries have been auto-populated from your AIS/26AS. Review and update if needed.
+            TDS entries have been auto-populated from Form 26AS. 
+            {formData.imported26AS && `Found ${(formData.tdsEntries || []).length} deductor(s) with total TDS of ₹${((formData.imported26AS || {}).totalTDS || 0).toLocaleString('en-IN')}.`}
+            Review and update if needed.
           </div>
         </div>
       )}

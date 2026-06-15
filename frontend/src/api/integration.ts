@@ -26,18 +26,26 @@ export const integrationApi = {
     return multipartPost('/integration/tis/import', file, { pan, dob });
   },
   
-  import26AS: async (file: File, pan: string, dob: string): Promise<Form26ASData> => {
-    // Use the proper endpoint at /prefill/26as/upload
+  import26AS: async (file: File, clientId: number): Promise<Form26ASData> => {
     const fd = new FormData();
     fd.append('file', file);
-    const { data } = await axiosInstance.post('/prefill/26as/upload', fd, {
+    fd.append('clientId', clientId.toString());
+    const { data } = await axiosInstance.post('/integration/26as/import', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
-      params: { pan, dob },
     });
     return data;
   },
   
-  importITDPrefill: (file: File) => multipartPost('/integration/prefill/import', file),
+  // Fixed: pass clientId and assessmentYear to backend for proper storage
+  importITDPrefill: (file: File, clientId: number, assessmentYear: string) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('clientId', clientId.toString());
+    fd.append('assessmentYear', assessmentYear);
+    return axiosInstance.post('/integration/prefill/import', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   
   autoPopulateFromForm16: async (itrData: any, form16Data: any) => {
     const { data } = await axiosInstance.post('/integration/autopopulate/form16', {
