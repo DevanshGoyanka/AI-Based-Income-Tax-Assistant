@@ -60,10 +60,29 @@ const F = ({ label, hint, children }: any) => (
   </div>
 );
 
-const Inp = (p: any) => (
-  <input type={p.type || 'text'} value={p.value ?? ''} onChange={(e: any) => p.onChange(p.field === 'number' ? parseInt(e.target.value) || 0 : e.target.value)}
-    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...p.style }} />
-);
+const Inp = (p: any) => {
+  const val = p.value ?? '';
+  // Ensure we always pass a valid number to parent
+  const handleChange = (e: any) => {
+    let raw = e.target.value;
+    // Only allow digits
+    let clean = raw.replace(/[^\d]/g, '');
+    let num = clean === '' ? 0 : parseInt(clean, 10);
+    if (isNaN(num)) num = 0;
+    // Cap at reasonable max (10 crore = 100000000)
+    if (num > 100000000) num = 100000000;
+    p.onChange(num);
+  };
+  return (
+    <input 
+      type="text" 
+      inputMode="numeric"
+      value={val === 0 || val === '' ? '' : val.toString()} 
+      onChange={handleChange}
+      style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13, ...p.style }} 
+    />
+  );
+};
 
 export function EmployerEntryManager({ entries = [], onChange }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
