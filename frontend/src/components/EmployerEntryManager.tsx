@@ -30,9 +30,14 @@ interface Props {
   onChange: (entries: EmployerEntry[]) => void;
 }
 
-const generateId = () => Math.random().toString(36).substr(2, 9);
+const generateId = () => {
+  return 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+};
 
-const formatINR = (num?: number): string => (!num || num === 0) ? '0' : Math.round(num).toLocaleString('en-IN');
+const formatINR = (num?: number): string => {
+  if (!num || isNaN(num) || num === 0) return '0';
+  return Math.round(num).toLocaleString('en-IN');
+};
 
 const Section = ({ title, expanded, onClick, badge, children }: any) => (
   <div style={{ marginBottom: 8, border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'hidden' }}>
