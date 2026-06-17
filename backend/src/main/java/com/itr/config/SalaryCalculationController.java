@@ -110,12 +110,20 @@ public class SalaryCalculationController {
                 // For gratuity: use 15/26 rule; provide average monthly salary
                 long avgMonthlySalary = nvl(basic) / 12;
                 int yrs = 5; // default years of service
+                // Default numberOfChildren: if CEA or hostel entered, assume 2 children
+                int numChildren = 2;
+                // Default transport allowance for disabled employee: ₹38,400/yr in paise
+                long resolvedTransport = nvl(transportAllowance);
+                boolean disabled = isDisabledEmployee != null && isDisabledEmployee;
+                if (disabled && resolvedTransport == 0L) {
+                    resolvedTransport = 38_40000L; // ₹38,400/year in paise
+                }
                 
                 return new EmployerEntry(
                     employerName, tan,
                     nvl(basic), nvl(da), 0L,
                     nvl(hraReceived), nvl(ltaReceived),
-                    nvl(transportAllowance), nvl(childrenEducationAllowance),
+                    resolvedTransport, nvl(childrenEducationAllowance),
                     nvl(hostelExpenditureAllowance), 0L,
                     nvl(allowances), nvl(bonus), 0L,
                     nvl(perquisitesValue),
@@ -124,7 +132,7 @@ public class SalaryCalculationController {
                     nvl(annualRentPaid), resolvedCity, 0L, false, 0L,
                     nvl(commutedPensionReceived), false,
                     nvl(gratuityReceived), nvl(leaveEncashmentReceived),
-                    avgMonthlySalary, 0, 0L, 0L, 0, false, 0, yrs,
+                    avgMonthlySalary, 0, 0L, 0L, numChildren, false, 0, yrs,
                     isGovernmentEmployee != null && isGovernmentEmployee,
                     isDisabledEmployee != null && isDisabledEmployee,
                     nvl(professionalTax), 0L, 0L,
