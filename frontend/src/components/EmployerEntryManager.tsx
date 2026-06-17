@@ -124,20 +124,22 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         }));
 
         const res = await calculateSalary(assessmentYear, inputs, taxRegime || 'OLD');
-        console.log('[SALARY] Backend result:', res);
-        // Backend returns paise; convert to rupees for display
-        if (res.grossSalary) {
-          res.grossSalary = Math.round(res.grossSalary / 100);
-        }
-        if (res.hraExempt) res.hraExempt = Math.round(res.hraExempt / 100);
-        if (res.ltaExempt) res.ltaExempt = Math.round(res.ltaExempt / 100);
-        if (res.gratuityExempt) res.gratuityExempt = Math.round(res.gratuityExempt / 100);
-        if (res.leaveEncashmentExempt) res.leaveEncashmentExempt = Math.round(res.leaveEncashmentExempt / 100);
-        if (res.totalExemptions) res.totalExemptions = Math.round(res.totalExemptions / 100);
-        if (res.standardDeduction) res.standardDeduction = Math.round(res.standardDeduction / 100);
-        if (res.professionalTax) res.professionalTax = Math.round(res.professionalTax / 100);
-        if (res.netTaxableSalary) res.netTaxableSalary = Math.round(res.netTaxableSalary / 100);
-        setResult(res);
+        console.log('[SALARY] Raw backend response:', res);
+        // Backend returns ALL values in PAISE; convert to rupees for display
+        const toRupees = (v: number | undefined | null): number => 
+          v ? Math.round(v / 100) : 0;
+        setResult({
+          ...res,
+          grossSalary: toRupees(res.grossSalary),
+          hraExempt: toRupees(res.hraExempt),
+          ltaExempt: toRupees(res.ltaExempt),
+          gratuityExempt: toRupees(res.gratuityExempt),
+          leaveEncashmentExempt: toRupees(res.leaveEncashmentExempt),
+          totalExemptions: toRupees(res.totalExemptions),
+          standardDeduction: toRupees(res.standardDeduction),
+          professionalTax: toRupees(res.professionalTax),
+          netTaxableSalary: toRupees(res.netTaxableSalary),
+        });
       } catch (err) {
         console.error('[SALARY] Backend error:', err);
         setResult(null);
