@@ -1178,7 +1178,7 @@ export default function ITRComputationPage() {
         border: '1px solid var(--border)'
       }}>
         {activeTab === 0 && <PersonalInfoTab formData={formData} setFormData={setFormData} />}
-        {activeTab === 1 && <SalaryTab formData={formData} setFormData={setFormData} taxResult={taxResult} ayParam={ayParam} />}
+        {activeTab === 1 && <SalaryTab formData={formData} setFormData={setFormData} taxResult={taxResult} ayParam={ayParam} regime={regime} />}
         {activeTab === 2 && <HousePropertyTab formData={formData} setFormData={setFormData} taxResult={taxResult} itrForm={itrForm} />}
         {activeTab === 3 && <CapitalGainsTab formData={formData} setFormData={setFormData} taxResult={taxResult} year={year!} />}
         {activeTab === 4 && <BusinessTab formData={formData} setFormData={setFormData} taxResult={taxResult} />}
@@ -1669,7 +1669,7 @@ function PersonalInfoTab({ formData, setFormData }: any) {
   );
 }
 
-function SalaryTab({ formData, setFormData, ayParam }: any) {
+function SalaryTab({ formData, setFormData, ayParam, regime }: any) {
   return (
     <div>
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
