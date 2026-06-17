@@ -125,7 +125,19 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
         const res = await calculateSalary(assessmentYear, inputs, taxRegime || 'OLD');
         console.log('[SALARY] Backend result:', res);
-        setResult(res);
+        // Convert paise to rupees for display
+        setResult({
+          ...res,
+          grossSalary: res.grossSalary ? Math.round(res.grossSalary / 100) : 0,
+          hraExempt: res.hraExempt ? Math.round(res.hraExempt / 100) : 0,
+          ltaExempt: res.ltaExempt ? Math.round(res.ltaExempt / 100) : 0,
+          gratuityExempt: res.gratuityExempt ? Math.round(res.gratuityExempt / 100) : 0,
+          leaveEncashmentExempt: res.leaveEncashmentExempt ? Math.round(res.leaveEncashmentExempt / 100) : 0,
+          totalExemptions: res.totalExemptions ? Math.round(res.totalExemptions / 100) : 0,
+          standardDeduction: res.standardDeduction ? Math.round(res.standardDeduction / 100) : 0,
+          professionalTax: res.professionalTax ? Math.round(res.professionalTax / 100) : 0,
+          netTaxableSalary: res.netTaxableSalary ? Math.round(res.netTaxableSalary / 100) : 0,
+        });
       } catch (err) {
         console.error('[SALARY] Backend error:', err);
         setResult(null);
