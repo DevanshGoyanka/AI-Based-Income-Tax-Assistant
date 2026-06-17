@@ -110,31 +110,29 @@ public class SalaryCalculationController {
                 // For gratuity: use 15/26 rule; provide average monthly salary
                 long avgMonthlySalary = nvl(basic) / 12;
                 int yrs = 5; // default years of service
-                // Default numberOfChildren: if CEA or hostel entered, assume 2 children
+                // Default numberOfChildren: if CEA or hostel entered
                 int numChildren = (nvl(childrenEducationAllowance) > 0 || nvl(hostelExpenditureAllowance) > 0) ? 2 : 1;
                 
-                // Set sensible defaults for special allowances
+                // Handle flag fields properly
+                boolean isGovtEmp = isGovernmentEmployee != null && isGovernmentEmployee;
+                boolean isDisabledEmp = isDisabledEmployee != null && isDisabledEmployee;
+                
+                // Transport: default ₹38,400 for disabled, ₹19,200 for regular (annual in paise)
                 long resolvedTransport = nvl(transportAllowance);
+                if (resolvedTransport == 0L || resolvedTransport < 1000000L) { // if entered small value or 0
+                    resolvedTransport = isDisabledEmp ? 38_40000L : 19_20000L;
+                }
+                
+                // For Children Education and Hostel - use what user entered, convert to paise if needed
                 long resolvedChildren = nvl(childrenEducationAllowance);
-                long resolvedHostel = nvl(hostelExpenditureAllowance);
-                
-                boolean disabled = isDisabledEmployee != null && isDisabledEmployee;
-                
-                // Transport: default ₹38,400 for disabled, ₹19,200 for regular
-                if (resolvedTransport == 0L) {
-                    resolvedTransport = disabled ? 38_40000L : 19_20000L;
-                }
-                // Children Education: default ₹2,400/year (2×1,200) if entered
                 if (resolvedChildren > 0 && resolvedChildren < 1000000L) {
-                    // Already entered by user in rupees, convert to paise
-                } else if (resolvedChildren == 0) {
-                    resolvedChildren = 2_40000L; // ₹2,400 * 100 paise
+                    // User entered in rupees - convert to paise
+                    resolvedChildren = resolvedChildren * 100;
                 }
-                // Hostel: default ₹7,200/year (2×3,600) if entered
+                
+                long resolvedHostel = nvl(hostelExpenditureAllowance);
                 if (resolvedHostel > 0 && resolvedHostel < 1000000L) {
-                    // Already entered by user
-                } else if (resolvedHostel == 0) {
-                    resolvedHostel = 7_20000L; // ₹7,200 * 100 paise
+                    resolvedHostel = resolvedHostel * 100;
                 }
                 
                 return new EmployerEntry(
@@ -151,8 +149,8 @@ public class SalaryCalculationController {
                     nvl(commutedPensionReceived), false,
                     nvl(gratuityReceived), nvl(leaveEncashmentReceived),
                     avgMonthlySalary, 0, 0L, 0L, numChildren, false, 0, yrs,
-                    isGovernmentEmployee != null && isGovernmentEmployee,
-                    isDisabledEmployee != null && isDisabledEmployee,
+                    isGovtEmp,
+                    isDisabledEmp,
                     nvl(professionalTax), 0L, 0L,
                     nvl(tdsDeducted)
                 );

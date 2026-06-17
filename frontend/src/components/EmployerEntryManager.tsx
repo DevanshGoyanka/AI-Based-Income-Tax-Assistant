@@ -88,13 +88,16 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   const removeEntry = (id: string) => onChange(entries.filter(e => e.id !== id));
 
-  // Call backend when data changes
+  // Call backend when data changes OR when taxRegime changes
   useEffect(() => {
     const hasData = entries.some(e => (e.basic || e.hra || e.bonus) > 0);
     if (!hasData) {
       setResult(null);
       return;
     }
+
+    // Clear result when regime changes so we show loading/calc state
+    setResult(null);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -121,6 +124,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
           isGovernmentEmployee: e.isGovernmentEmployee,
           childrenEducationAllowance: (e.childrenEducationAllowance || 0) * 100,
           hostelExpenditureAllowance: (e.hostelExpenditureAllowance || 0) * 100,
+          transportAllowance: (e.isDisabledEmployee ? 38_40000 : 19_20000), // Send default based on disabled status
         }));
 
         const res = await calculateSalary(assessmentYear, inputs, taxRegime || 'OLD');
