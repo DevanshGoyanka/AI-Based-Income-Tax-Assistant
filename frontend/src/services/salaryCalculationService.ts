@@ -227,7 +227,7 @@ export const calculateSalary = async (
   const salaryInput = buildSalaryInput(employerInputs, taxRegime);
   
   const response = await axiosInstance.post<SalaryCalculationResponse>(
-    '/api/v1/calculations/salary',
+    '/calculations/salary',
     salaryInput
   );
   
