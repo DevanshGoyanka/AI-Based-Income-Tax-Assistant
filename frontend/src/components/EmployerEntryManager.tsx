@@ -17,7 +17,7 @@ interface EmployerEntry {
   isMetroCity?: boolean;
   commutedPension?: number;
   gratuity?: number;
-  leaveEncashment?: boolean;
+  leaveEncashment?: number;
   isGovernmentEmployee?: boolean;
   isDisabledEmployee?: boolean;
   childrenEducationAllowance?: number;
@@ -113,7 +113,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
           pension: 0,
           commutedPension: (e.commutedPension || 0) * 100,
           gratuity: (e.gratuity || 0) * 100,
-          leaveEncashment: 0,
+          leaveEncashment: (e.leaveEncashment || 0) * 100,
           professionalTax: (e.professionalTax || 0) * 100,
           entertainmentAllowance: 0,
           tdsDeducted: (e.tdsDeducted || 0) * 100,
@@ -237,7 +237,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               <F label="Commuted"><Inp type="number" value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
               <F label="Gratuity"><Inp type="number" value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
-              <F label="Leave"><Inp type="number" value={e.leaveEncashment ? 1 : 0} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v > 0 })} /></F>
+              <F label="Leave"><Inp type="number" value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
             </div>
           </Section>
 
