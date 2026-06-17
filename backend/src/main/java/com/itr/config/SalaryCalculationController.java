@@ -111,12 +111,13 @@ public class SalaryCalculationController {
                 long avgMonthlySalary = nvl(basic) / 12;
                 int yrs = 5; // default years of service
                 // Default numberOfChildren: if CEA or hostel entered, assume 2 children
-                int numChildren = 2;
-                // Default transport allowance for disabled employee: ₹38,400/yr in paise
+                int numChildren = (nvl(childrenEducationAllowance) > 0 || nvl(hostelExpenditureAllowance) > 0) ? 2 : 1;
+                // Default transport allowance for regular employee: ₹19,200/yr in paise = 1,920,000
+                // For disabled employee: ₹38,400/yr in paise
                 long resolvedTransport = nvl(transportAllowance);
                 boolean disabled = isDisabledEmployee != null && isDisabledEmployee;
-                if (disabled && resolvedTransport == 0L) {
-                    resolvedTransport = 38_40000L; // ₹38,400/year in paise
+                if (resolvedTransport == 0L) {
+                    resolvedTransport = disabled ? 38_40000L : 19_20000L;
                 }
                 
                 return new EmployerEntry(
