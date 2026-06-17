@@ -18,14 +18,18 @@ import com.itr.domain.common.TaxRegime;
  */
 public final class SpecialAllowanceExemption {
 
-    // Rs 1,600/month in paise
+    // Rs 1,600/month in paise (Rs 19,200/year)
     private static final long TRANSPORT_MONTHLY = 1_60000L;
-    // Rs 3,200/month in paise (disabled employees)
+    private static final long TRANSPORT_ANNUAL = 19_20000L;  // Rs 19,200/year
+    // Rs 3,200/month in paise (disabled employees) (Rs 38,400/year)
     private static final long TRANSPORT_DISABLED_MONTHLY = 3_20000L;
-    // Rs 100/month in paise
+    private static final long TRANSPORT_DISABLED_ANNUAL = 38_40000L;  // Rs 38,400/year
+    // Rs 100/month per child in paise (Rs 1,200/year)
     private static final long CEA_MONTHLY_PER_CHILD = 100_000L;
-    // Rs 300/month in paise
+    private static final long CEA_ANNUAL_PER_CHILD = 1_20000L;  // Rs 1,200/year
+    // Rs 300/month per child in paise (Rs 3,600/year)
     private static final long HOSTEL_MONTHLY_PER_CHILD = 300_000L;
+    private static final long HOSTEL_ANNUAL_PER_CHILD = 3_60000L;  // Rs 3,600/year
 
     private SpecialAllowanceExemption() {}
 
@@ -44,7 +48,7 @@ public final class SpecialAllowanceExemption {
         if (regime == TaxRegime.NEW) {
             return 0L;
         }
-        long cap = isDisabledEmployee ? TRANSPORT_DISABLED_MONTHLY : TRANSPORT_MONTHLY;
+        long cap = isDisabledEmployee ? TRANSPORT_DISABLED_ANNUAL : TRANSPORT_ANNUAL;
         return Math.min(transportReceived, cap);
     }
 
@@ -63,7 +67,7 @@ public final class SpecialAllowanceExemption {
             return 0L;
         }
         int eligibleChildren = Math.min(numberOfChildren, 2);
-        long cap = CEA_MONTHLY_PER_CHILD * 12 * eligibleChildren;
+        long cap = CEA_ANNUAL_PER_CHILD * eligibleChildren;
         return Math.min(allowanceReceived, cap);
     }
 
@@ -82,7 +86,7 @@ public final class SpecialAllowanceExemption {
             return 0L;
         }
         int eligibleChildren = Math.min(numberOfChildren, 2);
-        long cap = HOSTEL_MONTHLY_PER_CHILD * 12 * eligibleChildren;
+        long cap = HOSTEL_ANNUAL_PER_CHILD * eligibleChildren;
         return Math.min(allowanceReceived, cap);
     }
 

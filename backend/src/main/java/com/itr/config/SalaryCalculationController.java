@@ -112,20 +112,37 @@ public class SalaryCalculationController {
                 int yrs = 5; // default years of service
                 // Default numberOfChildren: if CEA or hostel entered, assume 2 children
                 int numChildren = (nvl(childrenEducationAllowance) > 0 || nvl(hostelExpenditureAllowance) > 0) ? 2 : 1;
-                // Default transport allowance for regular employee: ₹19,200/yr in paise = 1,920,000
-                // For disabled employee: ₹38,400/yr in paise
+                
+                // Set sensible defaults for special allowances
                 long resolvedTransport = nvl(transportAllowance);
+                long resolvedChildren = nvl(childrenEducationAllowance);
+                long resolvedHostel = nvl(hostelExpenditureAllowance);
+                
                 boolean disabled = isDisabledEmployee != null && isDisabledEmployee;
+                
+                // Transport: default ₹38,400 for disabled, ₹19,200 for regular
                 if (resolvedTransport == 0L) {
                     resolvedTransport = disabled ? 38_40000L : 19_20000L;
+                }
+                // Children Education: default ₹2,400/year (2×1,200) if entered
+                if (resolvedChildren > 0 && resolvedChildren < 1000000L) {
+                    // Already entered by user in rupees, convert to paise
+                } else if (resolvedChildren == 0) {
+                    resolvedChildren = 2_40000L; // ₹2,400 * 100 paise
+                }
+                // Hostel: default ₹7,200/year (2×3,600) if entered
+                if (resolvedHostel > 0 && resolvedHostel < 1000000L) {
+                    // Already entered by user
+                } else if (resolvedHostel == 0) {
+                    resolvedHostel = 7_20000L; // ₹7,200 * 100 paise
                 }
                 
                 return new EmployerEntry(
                     employerName, tan,
                     nvl(basic), nvl(da), 0L,
                     nvl(hraReceived), nvl(ltaReceived),
-                    resolvedTransport, nvl(childrenEducationAllowance),
-                    nvl(hostelExpenditureAllowance), 0L,
+                    resolvedTransport, resolvedChildren,
+                    resolvedHostel, 0L,
                     nvl(allowances), nvl(bonus), 0L,
                     nvl(perquisitesValue),
                     nvl(profitsInLieu),
