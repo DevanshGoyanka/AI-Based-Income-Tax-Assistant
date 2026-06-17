@@ -1681,6 +1681,7 @@ function SalaryTab({ formData, setFormData, ayParam }: any) {
         entries={formData.employerEntries || []}
         onChange={(entries) => setFormData({ ...formData, employerEntries: entries })}
         assessmentYear={ayParam || '2025-26'}
+        taxRegime={regime === 'new' ? 'NEW' : 'OLD'}
       />
     </div>
   );
