@@ -102,42 +102,42 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         const inputs: EmployerInput[] = entries.map(e => ({
           employerName: e.employerName || 'Employer',
           employerTAN: e.employerTAN || '',
-          basic: e.basic || 0,
-          da: e.da || 0,
-          hra: e.hra || 0,
-          bonus: e.bonus || 0,
-          allowances: e.allowances || 0,
-          lta: e.lta || 0,
-          rentPaid: e.rentPaid,
+          basic: (e.basic || 0) * 100,
+          da: (e.da || 0) * 100,
+          hra: (e.hra || 0) * 100,
+          bonus: (e.bonus || 0) * 100,
+          allowances: (e.allowances || 0) * 100,
+          lta: (e.lta || 0) * 100,
+          rentPaid: (e.rentPaid || 0) * 100,
           isMetroCity: e.isMetroCity,
           pension: 0,
-          commutedPension: e.commutedPension || 0,
-          gratuity: e.gratuity || 0,
+          commutedPension: (e.commutedPension || 0) * 100,
+          gratuity: (e.gratuity || 0) * 100,
           leaveEncashment: 0,
-          professionalTax: e.professionalTax || 0,
+          professionalTax: (e.professionalTax || 0) * 100,
           entertainmentAllowance: 0,
-          tdsDeducted: e.tdsDeducted || 0,
+          tdsDeducted: (e.tdsDeducted || 0) * 100,
           isDisabledEmployee: e.isDisabledEmployee,
           isGovernmentEmployee: e.isGovernmentEmployee,
-          childrenEducationAllowance: e.childrenEducationAllowance,
-          hostelExpenditureAllowance: e.hostelExpenditureAllowance,
+          childrenEducationAllowance: (e.childrenEducationAllowance || 0) * 100,
+          hostelExpenditureAllowance: (e.hostelExpenditureAllowance || 0) * 100,
         }));
 
         const res = await calculateSalary(assessmentYear, inputs, taxRegime || 'OLD');
         console.log('[SALARY] Backend result:', res);
-        // Convert paise to rupees for display
-        setResult({
-          ...res,
-          grossSalary: res.grossSalary ? Math.round(res.grossSalary / 100) : 0,
-          hraExempt: res.hraExempt ? Math.round(res.hraExempt / 100) : 0,
-          ltaExempt: res.ltaExempt ? Math.round(res.ltaExempt / 100) : 0,
-          gratuityExempt: res.gratuityExempt ? Math.round(res.gratuityExempt / 100) : 0,
-          leaveEncashmentExempt: res.leaveEncashmentExempt ? Math.round(res.leaveEncashmentExempt / 100) : 0,
-          totalExemptions: res.totalExemptions ? Math.round(res.totalExemptions / 100) : 0,
-          standardDeduction: res.standardDeduction ? Math.round(res.standardDeduction / 100) : 0,
-          professionalTax: res.professionalTax ? Math.round(res.professionalTax / 100) : 0,
-          netTaxableSalary: res.netTaxableSalary ? Math.round(res.netTaxableSalary / 100) : 0,
-        });
+        // Backend returns paise; convert to rupees for display
+        if (res.grossSalary) {
+          res.grossSalary = Math.round(res.grossSalary / 100);
+        }
+        if (res.hraExempt) res.hraExempt = Math.round(res.hraExempt / 100);
+        if (res.ltaExempt) res.ltaExempt = Math.round(res.ltaExempt / 100);
+        if (res.gratuityExempt) res.gratuityExempt = Math.round(res.gratuityExempt / 100);
+        if (res.leaveEncashmentExempt) res.leaveEncashmentExempt = Math.round(res.leaveEncashmentExempt / 100);
+        if (res.totalExemptions) res.totalExemptions = Math.round(res.totalExemptions / 100);
+        if (res.standardDeduction) res.standardDeduction = Math.round(res.standardDeduction / 100);
+        if (res.professionalTax) res.professionalTax = Math.round(res.professionalTax / 100);
+        if (res.netTaxableSalary) res.netTaxableSalary = Math.round(res.netTaxableSalary / 100);
+        setResult(res);
       } catch (err) {
         console.error('[SALARY] Backend error:', err);
         setResult(null);
