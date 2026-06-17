@@ -96,6 +96,21 @@ public class SalaryCalculationController {
             private Long transportAllowance;
             
             public EmployerEntry toEmployerEntry() {
+                // Convert boolean isMetroCity to a proper city name
+                String resolvedCity = city;
+                if (resolvedCity == null || resolvedCity.isBlank()) {
+                    if (Boolean.TRUE.equals(isMetroCity)) {
+                        resolvedCity = "MUMBAI";  // 50% for metro
+                    } else {
+                        resolvedCity = "PUNE";     // 40% for non-metro
+                    }
+                }
+                // Compute proper salary for HRA: basic + da
+                long salaryForHRA = nvl(basic) + nvl(da);
+                // For gratuity: use 15/26 rule; provide average monthly salary
+                long avgMonthlySalary = nvl(basic) / 12;
+                int yrs = 5; // default years of service
+                
                 return new EmployerEntry(
                     employerName, tan,
                     nvl(basic), nvl(da), 0L,
@@ -106,10 +121,10 @@ public class SalaryCalculationController {
                     nvl(perquisitesValue),
                     nvl(profitsInLieu),
                     0L, 0L, 0L, 0L,
-                    nvl(annualRentPaid), city, 0L, false, 0L,
+                    nvl(annualRentPaid), resolvedCity, 0L, false, 0L,
                     nvl(commutedPensionReceived), false,
                     nvl(gratuityReceived), nvl(leaveEncashmentReceived),
-                    0L, 0, 0L, 0L, 0, false, 0, 0,
+                    avgMonthlySalary, 0, 0L, 0L, 0, false, 0, yrs,
                     isGovernmentEmployee != null && isGovernmentEmployee,
                     isDisabledEmployee != null && isDisabledEmployee,
                     nvl(professionalTax), 0L, 0L,
@@ -128,6 +143,9 @@ public class SalaryCalculationController {
         private Long ltaExempt;
         private Long gratuityExempt;
         private Long leaveEncashmentExempt;
+        private Long transportExempt;
+        private Long childrenEducationExempt;
+        private Long hostelExempt;
         private Long totalExemptions;
         private Long standardDeduction;
         private Long professionalTax;
@@ -145,6 +163,9 @@ public class SalaryCalculationController {
             resp.setLtaExempt(r.ltaExempt());
             resp.setGratuityExempt(r.gratuityExempt());
             resp.setLeaveEncashmentExempt(r.leaveEncashmentExempt());
+            resp.setTransportExempt(r.transportAllowanceExempt());
+            resp.setChildrenEducationExempt(r.childrenEducationExempt());
+            resp.setHostelExempt(r.hostelExpenditureExempt());
             resp.setTotalExemptions(r.totalSection10Exempt());
             resp.setStandardDeduction(r.standardDeduction());
             resp.setProfessionalTax(r.professionalTaxDed());

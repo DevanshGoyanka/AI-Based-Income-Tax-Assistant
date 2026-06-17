@@ -135,6 +135,9 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
           ltaExempt: toRupees(res.ltaExempt),
           gratuityExempt: toRupees(res.gratuityExempt),
           leaveEncashmentExempt: toRupees(res.leaveEncashmentExempt),
+          transportExempt: toRupees((res as any).transportExempt),
+          childrenEducationExempt: toRupees((res as any).childrenEducationExempt),
+          hostelExempt: toRupees((res as any).hostelExempt),
           totalExemptions: toRupees(res.totalExemptions),
           standardDeduction: toRupees(res.standardDeduction),
           professionalTax: toRupees(res.professionalTax),
@@ -187,9 +190,12 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
               <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div></div>
             </div>
             {result && (
-              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #fed7aa', fontSize: 11, color: '#64748b', display: 'flex', gap: 16 }}>
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed #fed7aa', fontSize: 11, color: '#64748b', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                 <span>HRA: ₹{formatINR(result.hraExempt)}</span>
                 <span>LTA: ₹{formatINR(result.ltaExempt)}</span>
+                <span>Transport: ₹{formatINR((result as any).transportExempt)}</span>
+                <span>CEA: ₹{formatINR((result as any).childrenEducationExempt)}</span>
+                <span>Hostel: ₹{formatINR((result as any).hostelExempt)}</span>
                 <span>Std Ded: ₹{formatINR(result.standardDeduction)}</span>
               </div>
             )}
