@@ -271,16 +271,25 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
       {entries.length > 0 && (
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
           {/* Calculate Section 10 exemptions only (NOT including Std Ded) */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>-₹{result ? formatINR((result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0)) : '0'}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{result ? formatINR(totalGross() - ((result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0) - (result.standardDeduction||0)) : formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
-          </div>
-          {/* Show breakdown */}
-          {result && <div style={{ fontSize: 11, marginTop: 8, textAlign: 'center', opacity: 0.7, display: 'flex', gap: 16, justifyContent: 'center' }}>
-            <span>Std Ded: ₹{formatINR(result.standardDeduction)}</span>
-          </div>}
+          {(() => {
+            const sec10Exempt = result 
+              ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0)
+              : 0;
+            const taxable = totalGross() - sec10Exempt - (result?.standardDeduction || 0);
+            return (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
+                  <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
+                  <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>-₹{formatINR(sec10Exempt)}</div></div>
+                  <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(taxable)}</div></div>
+                  <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
+                </div>
+                {result && <div style={{ fontSize: 11, marginTop: 8, textAlign: 'center', opacity: 0.7, display: 'flex', gap: 16, justifyContent: 'center' }}>
+                  <span>Std Ded: ₹{formatINR(result.standardDeduction)}</span>
+                </div>}
+              </>
+            );
+          })()}
         </div>
       )}
     </div>
