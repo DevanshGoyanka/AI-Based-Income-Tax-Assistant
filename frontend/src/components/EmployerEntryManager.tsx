@@ -146,15 +146,10 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     }
   }, [entries, assessmentYear, taxRegime]);
 
-  // Re-trigger calculation when entries, taxRegime, or entry count changes
+  // Re-trigger calculation immediately when entries or taxRegime change
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      console.log('[SALARY] Triggering recalculation...');
-      calculate();
-    }, 600);
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [entries.length, taxRegime, calculate]);
+    calculate();
+  }, [entries.length, taxRegime, JSON.stringify(entries.map(e => `${e.basic}-${e.hra}-${e.gratuity}-${e.leaveEncashment}-${e.professionalTax}`)]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
