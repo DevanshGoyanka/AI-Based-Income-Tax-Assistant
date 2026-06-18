@@ -117,16 +117,16 @@ public class SalaryCalculationController {
                 boolean isGovtEmp = isGovernmentEmployee != null && isGovernmentEmployee;
                 boolean isDisabledEmp = isDisabledEmployee != null && isDisabledEmployee;
                 
-                // Transport: default ₹38,400 for disabled, ₹19,200 for regular (annual in paise)
+                // Transport: only use what user entered, convert to paise if needed
                 long resolvedTransport = nvl(transportAllowance);
-                if (resolvedTransport == 0L || resolvedTransport < 1000000L) { // if entered small value or 0
-                    resolvedTransport = isDisabledEmp ? 38_40000L : 19_20000L;
+                if (resolvedTransport > 0 && resolvedTransport < 1000000L) {
+                    resolvedTransport = resolvedTransport * 100;
                 }
+                // If user entered 0 or nothing, keep it as 0 - NO DEFAULT</
                 
-                // For Children Education and Hostel - use what user entered, convert to paise if needed
+                // For Children Education and Hostel - use what user entered
                 long resolvedChildren = nvl(childrenEducationAllowance);
                 if (resolvedChildren > 0 && resolvedChildren < 1000000L) {
-                    // User entered in rupees - convert to paise
                     resolvedChildren = resolvedChildren * 100;
                 }
                 

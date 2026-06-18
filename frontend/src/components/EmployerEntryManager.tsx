@@ -82,20 +82,14 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   const removeEntry = (id: string) => onChange(entries.filter(e => e.id !== id));
 
-  // Central calculation function - recalculates with current entries and taxRegime
+  // Central calculation function
   const calculate = useCallback(async () => {
     const hasData = entries.some(e => (e.basic || e.hra || e.bonus || e.gratuity || e.leaveEncashment || e.professionalTax) > 0);
-    console.log('[SALARY] hasData:', hasData, 'entries count:', entries.length);
-    console.log('[SALARY] basic values:', entries.map(function(e) { return e.basic; }));
-    console.log('[SALARY] gratuity values:', entries.map(function(e) { return e.gratuity; }));
-    console.log('[SALARY] profTax values:', entries.map(function(e) { return e.professionalTax; }));
-    
     if (!hasData) {
       setResult(null);
       return;
     }
 
-    // Force clear and recalculate
     setResult(null);
 
     // Small delay to ensure state update
@@ -124,7 +118,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         isGovernmentEmployee: e.isGovernmentEmployee,
         childrenEducationAllowance: (e.childrenEducationAllowance || 0) * 100,
         hostelExpenditureAllowance: (e.hostelExpenditureAllowance || 0) * 100,
-        transportAllowance: (e.isDisabledEmployee ? 38_40000 : 19_20000),
+        // Send actual value - backend will handle defaults
+        transportAllowance: (e.transportAllowance || 0) * 100,
       }));
 
       const regimeToUse = taxRegime === 'NEW' ? 'NEW' : 'OLD';
@@ -153,13 +148,11 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   // Force recalculation when taxRegime changes
   useEffect(() => {
-    console.log('[SALARY] Regime changed to:', taxRegime, 'entries:', entries.length);
     calculate();
   }, [taxRegime]);
   
   // Also recalc when entry values change
   useEffect(() => {
-    console.log('[SALARY] Entries changed, count:', entries.length);
     calculate();
   }, [entries, taxRegime]);
 
