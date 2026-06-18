@@ -157,15 +157,19 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const bn = typeof e.bonus === 'number' && e.bonus > 0 ? e.bonus : 0;
     const a = typeof e.allowances === 'number' && e.allowances > 0 ? e.allowances : 0;
     const l = typeof e.lta === 'number' && e.lta > 0 ? e.lta : 0;
-    return b + d + h + bn + a + l;
+    const g = typeof e.gratuity === 'number' && e.gratuity > 0 ? e.gratuity : 0;
+    const leave = typeof e.leaveEncashment === 'number' && e.leaveEncashment > 0 ? e.leaveEncashment : 0;
+    return b + d + h + bn + a + l + g + leave;
   };
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
-  // Calculate Section 10 exemptions for display
+  // Calculate Section 10 exemptions for display (include gratuity & leave encashment)
   const sec10Exempt = result 
-    ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0)
+    ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + 
+      ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0) +
+      (result.gratuityExempt||0) + (result.leaveEncashmentExempt||0)
     : 0;
   const stdDed = result?.standardDeduction || 0;
   const taxable = totalGross() - sec10Exempt - stdDed;
