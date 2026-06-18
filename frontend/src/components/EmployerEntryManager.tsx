@@ -85,6 +85,9 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   // Central calculation function - recalculates with current entries and taxRegime
   const calculate = useCallback(async () => {
     const hasData = entries.some(e => (e.basic || e.hra || e.bonus || e.gratuity || e.leaveEncashment || e.professionalTax) > 0);
+    console.log('[SALARY] hasData check:', hasData, 'entries:', entries);
+    console.log('[SALARY] Entry values:', entries.map(e => ({basic: e.basic, gratuity: e.gratuity, leave: e.leaveEncashment, profTax: e.professionalTax}));
+    
     if (!hasData) {
       setResult(null);
       return;
