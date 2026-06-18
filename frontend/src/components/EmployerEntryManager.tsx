@@ -146,8 +146,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     }
   }, [entries, assessmentYear, taxRegime]);
 
-  // Re-trigger calculation immediately when entries or taxRegime change
+  // Force recalculation when taxRegime changes
   useEffect(() => {
+    console.log('[SALARY] Regime changed to:', taxRegime, 'entries:', entries.length);
+    calculate();
+  }, [taxRegime]);
+  
+  // Also recalc when entry values change
+  useEffect(() => {
+    console.log('[SALARY] Entries changed, count:', entries.length);
     calculate();
   }, [entries, taxRegime]);
 
