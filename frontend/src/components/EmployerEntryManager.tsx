@@ -82,15 +82,19 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   const removeEntry = (id: string) => onChange(entries.filter(e => e.id !== id));
 
-  // Central calculation function - recalculates with current taxRegime
+  // Central calculation function - recalculates with current entries and taxRegime
   const calculate = useCallback(async () => {
-    const hasData = entries.some(e => (e.basic || e.hra || e.bonus) > 0);
+    const hasData = entries.some(e => (e.basic || e.hra || e.bonus || e.gratuity || e.leaveEncashment || e.professionalTax) > 0);
     if (!hasData) {
       setResult(null);
       return;
     }
 
+    // Force clear and recalculate
     setResult(null);
+
+    // Small delay to ensure state update
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     try {
       const inputs: EmployerInput[] = entries.map(e => ({
@@ -119,14 +123,13 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
       }));
 
       const regimeToUse = taxRegime === 'NEW' ? 'NEW' : 'OLD';
-      console.log('[SALARY] Calculating with regime:', regimeToUse);
+      console.log('[SALARY] Recalculating with regime:', regimeToUse, 'entries:', entries.length);
       
       const res = await calculateSalary(assessmentYear, inputs, regimeToUse);
-      console.log('[SALARY] Response:', regimeToUse, res);
+      console.log('[SALARY] Result:', res);
       
       const toRupees = (v: number | undefined | null): number => v ? Math.round(v / 100) : 0;
       setResult({
-        ...res,
         hraExempt: toRupees(res.hraExempt),
         ltaExempt: toRupees(res.ltaExempt),
         gratuityExempt: toRupees(res.gratuityExempt),
@@ -143,12 +146,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     }
   }, [entries, assessmentYear, taxRegime]);
 
-  // Re-trigger calculation when entries OR taxRegime change
+  // Re-trigger calculation when entries, taxRegime, or entry count changes
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(calculate, 500);
+    debounceRef.current = setTimeout(() => {
+      console.log('[SALARY] Triggering recalculation...');
+      calculate();
+    }, 600);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
-  }, [calculate]);
+  }, [entries.length, taxRegime, calculate]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
