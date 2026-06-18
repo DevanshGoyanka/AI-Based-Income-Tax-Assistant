@@ -149,7 +149,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   // Re-trigger calculation immediately when entries or taxRegime change
   useEffect(() => {
     calculate();
-  }, [entries.length, taxRegime, JSON.stringify(entries.map(e => `${e.basic}-${e.hra}-${e.gratuity}-${e.leaveEncashment}-${e.professionalTax}`)]);
+  }, [entries, taxRegime]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
