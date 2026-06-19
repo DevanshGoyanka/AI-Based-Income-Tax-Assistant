@@ -183,13 +183,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
-  // Calculate Section 10 exemptions for display (include gratuity & leave encashment)
-  const sec10Exempt = result 
+  // Calculate Section 10 exemptions for display - ALWAYS 0 for NEW regime
+  const isNewRegime = taxRegime === 'NEW';
+  const sec10Exempt = isNewRegime ? 0 : (result 
     ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + 
       ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0) +
       (result.gratuityExempt||0) + (result.leaveEncashmentExempt||0)
-    : 0;
-  const stdDed = result?.standardDeduction || 0;
+    : 0);
+  // Std deduction: 75K for NEW regime, 50K for OLD
+  const stdDed = isNewRegime ? 75000 : (result?.standardDeduction || 50000);
   const taxable = totalGross() - sec10Exempt - stdDed;
 
   return (
