@@ -34,6 +34,7 @@ public final class HRAExemption {
      * @param city                City of employment
      * @param assessmentYear      Assessment year e.g. "2026-27"
      * @param regime              Tax regime (OLD or NEW)
+     * @param isGovtEmployee     Is employee a government employee (gets full HRA exempt)
      * @return Exempt amount in paise (0 if new regime)
      */
     public static long compute(
@@ -44,11 +45,17 @@ public final class HRAExemption {
             long annualRentPaid,
             String city,
             String assessmentYear,
-            TaxRegime regime
+            TaxRegime regime,
+            boolean isGovtEmployee
     ) {
         // GATE: HRA not exempt under new regime
         if (regime == TaxRegime.NEW) {
             return 0L;
+        }
+
+        // Government employee gets FULL HRA exempt without any conditions
+        if (isGovtEmployee) {
+            return actualHRAReceived;
         }
 
         long salaryForHRA = basicSalary + da + commission;
@@ -77,7 +84,7 @@ public final class HRAExemption {
             String city,
             TaxRegime regime
     ) {
-        return compute(actualHRAReceived, basicSalary, da, commission, annualRentPaid, city, "2026-27", regime);
+        return compute(actualHRAReceived, basicSalary, da, commission, annualRentPaid, city, "2026-27", regime, false);
     }
 
     // ── Backward-compatible overloads for existing controllers ─────────────────

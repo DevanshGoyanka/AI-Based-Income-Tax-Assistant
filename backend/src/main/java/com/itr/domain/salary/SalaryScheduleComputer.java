@@ -134,6 +134,7 @@ public final class SalaryScheduleComputer {
 
         // HRA: Use first employer's city (primary employer)
         String primaryCity = employers.get(0).city();
+        boolean isGovtEmp = employers.get(0).isGovernmentEmployee();
         long hraExempt = HRAExemption.compute(
             totalHRAReceived,
             totalBasicSalary,
@@ -142,7 +143,8 @@ public final class SalaryScheduleComputer {
             totalAnnualRentPaid,
             primaryCity,
             ay,
-            regime
+            regime,
+            isGovtEmp
         );
 
         // LTA
