@@ -146,21 +146,26 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     }
   }, [entries, assessmentYear, taxRegime]);
 
-  // Use timestamp key to force fresh calculation on every regime change
-  const [calcKey, setCalcKey] = useState(0);
+  // Force fresh calculation when taxRegime changes
+  const [regimeVersion, setRegimeVersion] = useState(0);
 
-  // Force recalculation when taxRegime changes - use timestamp to prevent caching
+  // When taxRegime changes, clear everything and force recalc
   useEffect(() => {
-    setResult(null); // Clear previous result
-    setCalcKey(prev => prev + 1); // Force fresh calculation
+    setResult(null);
+    // Force a new calculation cycle
+    setTimeout(() => {
+      setRegimeVersion(v => v + 1);
+    }, 50);
   }, [taxRegime]);
 
-  // Recalculate with the latest key
+  // Main calculation effect - depends on regimeVersion to force refresh
   useEffect(() => {
-    if (calcKey > 0) {
+    if (regimeVersion === 0) return;
+    const timer = setTimeout(() => {
       calculate();
-    }
-  }, [calcKey, entries, taxRegime]);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [entries, taxRegime, regimeVersion]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
