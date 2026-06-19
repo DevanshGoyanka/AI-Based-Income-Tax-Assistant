@@ -177,14 +177,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
-  // Use ONLY backend values - no local overrides
+  // Use ONLY backend values - taxable comes from backend
   const sec10Exempt = result 
     ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + 
       ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0) +
       (result.gratuityExempt||0) + (result.leaveEncashmentExempt||0)
     : 0;
   const stdDed = result?.standardDeduction || 0;
-  const taxable = result?.netTaxableSalary ?? (totalGross() > 0 ? Math.max(0, totalGross() - sec10Exempt - stdDed) : 0);
+  // Taxable MUST come from backend - use 0 if not available
+  const taxable = result?.netTaxableSalary ?? 0;
 
   return (
     <div style={{ marginBottom: 24 }}>
