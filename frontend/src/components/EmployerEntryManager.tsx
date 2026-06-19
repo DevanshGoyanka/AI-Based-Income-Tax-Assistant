@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { calculateSalary, type EmployerInput, type SalaryCalculationResponse } from '../services/salaryCalculationService';
 
 interface EmployerEntry {
@@ -155,15 +155,12 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     calculate();
   }, [taxRegime]);
   
-  // Also recalc when ANY entry data changes - stringified to capture full change
+  // Memoize entry data to detect changes
+  const entryDataKey = useMemo(() => JSON.stringify(entries), [entries]);
   useEffect(() => {
-    const dataHash = JSON.stringify(entries.map(e => ({
-      b: e.basic || 0, h: e.hra || 0, da: e.da || 0,
-      g: e.gratuity || 0, l: e.leaveEncashment || 0, p: e.professionalTax || 0
-    })));
     setResult(null);
     calculate();
-  }, [JSON.stringify(entries.map(e => JSON.stringify(e))]);
+  }, [entryDataKey, taxRegime]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
