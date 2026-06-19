@@ -72,24 +72,64 @@ public class TaxComputationOrchestrator {
             }
 
             // ==================== SALARY INCOME ====================
-            // Use 26AS value if already set, otherwise get from form
-            long formBasic = getLong(formData, "basic");
-            if (basic == 0 && formBasic > 0) basic = formBasic;
-            if (basic == 0) {
-                log.info("No salary found in form or 26AS, using 0");
+            // PRIORITY 1: Check employerEntries (user entered in UI) - HIGHEST PRIORITY
+            Object employerEntriesObj = formData.get("employerEntries");
+            boolean hasUserSalary = false;
+            long da = 0, bonus = 0, hra = 0, allowances = 0;
+            long tdsFromUser = 0;
+            if (employerEntriesObj instanceof List && !((List<?>) employerEntriesObj).isEmpty()) {
+                log.info("Found employerEntries - using user-entered salary data");
+                long empBasic = 0, empDA = 0, empBonus = 0, empHRA = 0, empAllow = 0, empTDS = 0;
+                for (Object empObj : (List<?>) employerEntriesObj) {
+                    if (empObj instanceof Map) {
+                        Map<String, Object> emp = (Map<String, Object>) empObj;
+                        empBasic += getLong(emp, "basic");
+                        empDA += getLong(emp, "da");
+                        empBonus += getLong(emp, "bonus");
+                        empHRA += getLong(emp, "hra");
+                        empAllow += getLong(emp, "allowances");
+                        empTDS += getLong(emp, "tdsDeducted");
+                    }
+                }
+                if (empBasic > 0) { basic = empBasic; hasUserSalary = true; log.info("Using basic from employerEntries: {}", basic); }
+                if (empDA > 0) da = empDA;
+                if (empBonus > 0) bonus = empBonus;
+                if (empHRA > 0) hra = empHRA;
+                if (empAllow > 0) allowances = empAllow;
+                if (empTDS > 0) tdsFromUser = empTDS;
+                log.info("Using TDS from employerEntries: {}", tdsFromUser);
             }
             
-            long da = getLong(formData, "da");
-            long bonus = getLong(formData, "bonus");
+            // PRIORITY 2: Top-level formData fields (single employer)
+            if (!hasUserSalary) {
+                long formBasic = getLong(formData, "basic");
+                if (formBasic > 0) { basic = formBasic; log.info("Using basic from formData: {}", basic); }
+                da = getLong(formData, "da");
+                bonus = getLong(formData, "bonus");
+                hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
+                allowances = getLong(formData, "allowances");
+                if (basic > 0) hasUserSalary = true;
+            }
+            
+            // PRIORITY 3: 26AS imports - only if user hasn't entered data
+            if (!hasUserSalary && basic == 0) {
+                log.info("No user salary found - using 26AS data");
+            } else if (hasUserSalary) {
+                log.info("User salary data found, ignoring 26AS");
+            }
+            
+            // Now initialize all salary components - but keep existing values if user entered
             long commission = getLong(formData, "commission");
-            long allowances = getLong(formData, "allowances");
             long perquisites = getLong(formData, "perquisites");
-            long hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
             long lta = getLong(formData, "ltaReceived");
             long otherAllow = getLong(formData, "otherAllowance");
             long profitsInLieu = getLong(formData, "profitsInLieu");
             
-            // Use 26AS salary if frontend doesn't have it (already set from imported26AS if present)
+            // For values that weren't already set from employerEntries, get from formData
+            if (da == 0) da = getLong(formData, "da");
+            if (bonus == 0) bonus = getLong(formData, "bonus");
+            if (hra == 0) hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
+            if (allowances == 0) allowances = getLong(formData, "allowances");
             
             long salaryIncome = basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu;
 
@@ -205,9 +245,16 @@ public class TaxComputationOrchestrator {
             long totalTaxLiability = taxAfterRebate + surcharge + (taxAfterRebate + surcharge) * 4 / 100;
 
             // ==================== TDS ====================
-            long totalTds = getLong(formData, "totalTds");
-            if (totalTds == 0) totalTds = getLong(formData, "tdsS192");
-            if (totalTds == 0 && tdsFrom26AS > 0) totalTds = tdsFrom26AS;
+            // Priority: user entered TDS > formData TDS > 26AS TDS
+            long totalTds = 0;
+            if (tdsFromUser > 0) {
+                totalTds = tdsFromUser;
+                log.info("Using TDS from employerEntries: {}", totalTds);
+            } else {
+                totalTds = getLong(formData, "totalTds");
+                if (totalTds == 0) totalTds = getLong(formData, "tdsS192");
+                if (totalTds == 0 && tdsFrom26AS > 0) totalTds = tdsFrom26AS;
+            }
 
             // ==================== BALANCE ====================
             long advanceTax = getLong(formData, "totalAdvanceTax");
