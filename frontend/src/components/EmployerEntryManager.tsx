@@ -192,7 +192,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     : 0);
   // Std deduction: 75K for NEW regime, 50K for OLD
   const stdDed = isNewRegime ? 75000 : (result?.standardDeduction || 50000);
-  const taxable = totalGross() - sec10Exempt - stdDed;
+  // Taxable: when gross is 0, taxable should also be 0
+  const taxable = totalGross() > 0 ? Math.max(0, totalGross() - sec10Exempt - stdDed) : 0;
 
   return (
     <div style={{ marginBottom: 24 }}>
