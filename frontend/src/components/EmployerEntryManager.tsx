@@ -155,11 +155,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     calculate();
   }, [taxRegime]);
   
-  // Also recalc when entries value changes (length)
+  // Also recalc when ANY entry data changes - stringified to capture full change
   useEffect(() => {
+    const dataHash = JSON.stringify(entries.map(e => ({
+      b: e.basic || 0, h: e.hra || 0, da: e.da || 0,
+      g: e.gratuity || 0, l: e.leaveEncashment || 0, p: e.professionalTax || 0
+    })));
     setResult(null);
     calculate();
-  }, [entries.map(e => e.basic + e.hra + e.gratuity + e.leaveEncashment).join(',')]);
+  }, [JSON.stringify(entries.map(e => JSON.stringify(e))]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
