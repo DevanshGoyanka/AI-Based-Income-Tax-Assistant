@@ -163,9 +163,10 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const bn = typeof e.bonus === 'number' && e.bonus > 0 ? e.bonus : 0;
     const a = typeof e.allowances === 'number' && e.allowances > 0 ? e.allowances : 0;
     const l = typeof e.lta === 'number' && e.lta > 0 ? e.lta : 0;
+    const cp = typeof e.commutedPension === 'number' && e.commutedPension > 0 ? e.commutedPension : 0;
     const g = typeof e.gratuity === 'number' && e.gratuity > 0 ? e.gratuity : 0;
     const leave = typeof e.leaveEncashment === 'number' && e.leaveEncashment > 0 ? e.leaveEncashment : 0;
-    return b + d + h + bn + a + l + g + leave;
+    return b + d + h + bn + a + l + cp + g + leave;
   };
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
