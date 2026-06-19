@@ -30,10 +30,14 @@ public class TaxController {
     @PostMapping({"/api/tax/compute", "/tax-summary/compute"})
     public ResponseEntity<Map<String, Object>> computeTaxSummary(
             @RequestBody Map<String, Object> formData,
-            @RequestParam(defaultValue = "NEW") String regime) {
-        log.info("Computing tax summary for regime: {}", regime);
+            @RequestParam(required = false) String regime) {
+        // Get regime from formData body OR query param - default to OLD if not provided
+        String regimeFromBody = (String) formData.getOrDefault("regime", "OLD");
+        String effectiveRegime = (regime != null && !regime.isEmpty()) ? regime : regimeFromBody;
+        if (effectiveRegime == null || effectiveRegime.isEmpty()) effectiveRegime = "OLD";
+        log.info("Computing tax summary for regime: {}", effectiveRegime);
         try {
-            TaxRegime taxRegime = "OLD".equalsIgnoreCase(regime) ? TaxRegime.OLD : TaxRegime.NEW;
+            TaxRegime taxRegime = "OLD".equalsIgnoreCase(effectiveRegime) ? TaxRegime.OLD : TaxRegime.NEW;
             
             log.info("Form data keys: {}", formData.keySet());
             log.info("Has dividendEntries: {}", formData.get("dividendEntries") instanceof java.util.List ? ((java.util.List<?>)formData.get("dividendEntries")).size() + " entries" : "no");
