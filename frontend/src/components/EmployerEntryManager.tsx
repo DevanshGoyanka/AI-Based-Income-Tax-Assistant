@@ -109,9 +109,11 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   // Calculate exemptions for OLD regime
   const calculateExemptions = (e: EmployerEntry) => {
+    const gross = getGross(e);
+    if (gross <= 0) return 0;
     if (taxRegime === 'NEW') {
-      // New Regime: Only Standard Deduction of ₹75,000
-      return 75000;
+      // New Regime: Only Standard Deduction of ₹75,000 (capped at gross)
+      return Math.min(75000, gross);
     }
     if (taxRegime !== 'OLD') return 0;
     const basic = e.basic || 0;
@@ -171,7 +173,6 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
            vrsExempt + retrenchExempt + commutedExempt + otherExempt;
 
     // Cap exemptions at gross salary (can't exempt more than earned)
-    const gross = getGross(e);
     return Math.min(total, gross);
   };
 
