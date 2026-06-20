@@ -140,6 +140,14 @@ public class TaxComputationOrchestrator {
             long ltaExempt = 0;
             long gratuityExempt = 0;
             long leaveEncashmentExempt = 0;
+            long standardDeductionExempt = 0;
+            long professionalTaxExempt = 0;
+            long entertainmentExempt = 0;
+            long otherExempt = 0;
+            long vrsExempt = 0;
+            long retrenchmentExempt = 0;
+            long commutedPensionExempt = 0;
+            long voluntaryRetirementExempt = 0;
             long totalExemptions = 0;
 
             if (regime == TaxRegime.OLD) {
@@ -192,12 +200,61 @@ public class TaxComputationOrchestrator {
                     leaveEncashmentExempt = Math.min(leaveEncashment, 2500000);
                 }
 
-                totalExemptions = hraExempt + transportExempt + childrenEducationExempt +
-                                  hostelExempt + ltaExempt + gratuityExempt + leaveEncashmentExempt;
+                // Standard Deduction u/s 16(ia): ₹50,000 for OLD regime
+                standardDeductionExempt = 50000;
 
-                log.info("=== EXEMPTIONS (OLD REGIME): HRA={}, Transport={}, CEA={}, Hostel={}, LTA={}, Gratuity={}, Leave={}, Total={}",
+                // Professional Tax u/s 16(iii): max ₹2,500
+                long profTaxPaid = getLong(formData, "profTax");
+                if (profTaxPaid > 0) {
+                    professionalTaxExempt = Math.min(profTaxPaid, 2500);
+                }
+
+                // Entertainment Allowance u/s 16(ii): ₹5,000 (only for govt employees)
+                boolean isGovt = Boolean.TRUE.equals(formData.get("isGovernmentEmployee"));
+                if (isGovt) {
+                    long entAllow = getLong(formData, "entertainmentAllowance");
+                    if (entAllow > 0) {
+                        entertainmentExempt = Math.min(entAllow, 5000);
+                    }
+                }
+
+                // VRS Compensation Exemption u/s 10(10C): max ₹5,00,000
+                long vrs = getLong(formData, "vrsCompensation");
+                if (vrs > 0) {
+                    vrsExempt = Math.min(vrs, 500000);
+                }
+
+                // Retrenchment Compensation u/s 10(10B): max ₹5,00,000
+                long retrench = getLong(formData, "retrenchmentCompensation");
+                if (retrench > 0) {
+                    retrenchmentExempt = Math.min(retrench, 500000);
+                }
+
+                // Commuted Pension u/s 10(10A): 1/3 for non-govt, 1/2 for govt
+                long commutedPension = getLong(formData, "commutationOfPensionReceived");
+                if (commutedPension > 0) {
+                    if (isGovt) {
+                        commutedPensionExempt = commutedPension * 50 / 100;
+                    } else {
+                        commutedPensionExempt = commutedPension * 33 / 100;
+                    }
+                }
+
+                // Voluntary Retirement u/s 10(10C) - already covered in VRS
+
+                // Other Exemptions (Schedule EI)
+                otherExempt = getLong(formData, "otherExempt");
+
+                totalExemptions = hraExempt + transportExempt + childrenEducationExempt +
+                                  hostelExempt + ltaExempt + gratuityExempt + leaveEncashmentExempt +
+                                  standardDeductionExempt + professionalTaxExempt + entertainmentExempt +
+                                  vrsExempt + retrenchmentExempt + commutedPensionExempt + otherExempt;
+
+                log.info("=== EXEMPTIONS (OLD REGIME): HRA={}, Transport={}, CEA={}, Hostel={}, LTA={}, Gratuity={}, Leave={}, StdDed={}, ProfTax={}, Ent={}, VRS={}, Retrench={}, CommutedPen={}, Other={}, Total={}",
                     hraExempt, transportExempt, childrenEducationExempt, hostelExempt,
-                    ltaExempt, gratuityExempt, leaveEncashmentExempt, totalExemptions);
+                    ltaExempt, gratuityExempt, leaveEncashmentExempt, standardDeductionExempt,
+                    professionalTaxExempt, entertainmentExempt, vrsExempt, retrenchmentExempt,
+                    commutedPensionExempt, otherExempt, totalExemptions);
             }
 
             // Net salary = Gross salary - Exemptions (only for OLD regime)
@@ -296,8 +353,10 @@ public class TaxComputationOrchestrator {
             long totalDeductions = s80C + s80D + s80TTA + s80G;
 
             // ==================== STANDARD DEDUCTION ====================
-            long standardDeduction = (regime == TaxRegime.NEW) ? 75000 : 50000;
-            long profTax = Math.min(getLong(formData, "profTax"), 250000);
+            // For OLD regime, std deduction is already included in totalExemptions
+            // For NEW regime, apply ₹75,000
+            long standardDeduction = (regime == TaxRegime.NEW) ? 75000 : 0;
+            long profTax = (regime == TaxRegime.OLD) ? 0 : Math.min(getLong(formData, "profTax"), 2500);
 
             // ==================== NET TAXABLE ====================
             long netTaxableIncome = Math.max(0, grossTotalIncome - totalDeductions - standardDeduction - profTax);
