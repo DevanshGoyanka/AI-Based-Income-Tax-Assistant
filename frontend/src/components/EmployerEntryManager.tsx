@@ -23,6 +23,17 @@ interface EmployerEntry {
   hostelExpenditureAllowance?: number;
   professionalTax?: number;
   tdsDeducted?: number;
+  // New exemption fields
+  transportAllowance?: number;
+  entertainmentAllowance?: number;
+  vrsCompensation?: number;
+  retrenchmentCompensation?: number;
+  perquisites?: number;
+  profitsInLieu?: number;
+  commission?: number;
+  otherAllowance?: number;
+  ltaExempt?: number;
+  otherExempt?: number;
 }
 
 interface Props {
@@ -89,10 +100,75 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const cp = typeof e.commutedPension === 'number' && e.commutedPension > 0 ? e.commutedPension : 0;
     const g = typeof e.gratuity === 'number' && e.gratuity > 0 ? e.gratuity : 0;
     const leave = typeof e.leaveEncashment === 'number' && e.leaveEncashment > 0 ? e.leaveEncashment : 0;
-    return b + d + h + bn + a + l + cp + g + leave;
+    const perq = typeof e.perquisites === 'number' && e.perquisites > 0 ? e.perquisites : 0;
+    const pil = typeof e.profitsInLieu === 'number' && e.profitsInLieu > 0 ? e.profitsInLieu : 0;
+    const comm = typeof e.commission === 'number' && e.commission > 0 ? e.commission : 0;
+    const oa = typeof e.otherAllowance === 'number' && e.otherAllowance > 0 ? e.otherAllowance : 0;
+    return b + d + h + bn + a + l + cp + g + leave + perq + pil + comm + oa;
+  };
+
+  // Calculate exemptions for OLD regime
+  const calculateExemptions = (e: EmployerEntry) => {
+    if (taxRegime !== 'OLD') return 0;
+    const basic = e.basic || 0;
+    const da = e.da || 0;
+    const basicDA = basic + da;
+    const hra = e.hra || 0;
+    const rentPaid = e.rentPaid || 0;
+    const isMetro = e.isMetroCity || false;
+    const isGovt = e.isGovernmentEmployee || false;
+
+    // HRA Exemption u/s 10(13A)
+    const percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
+    const rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
+    const hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
+
+    // Transport Allowance u/s 10(14): max ₹19,200
+    const transportExempt = Math.min(e.transportAllowance || 0, 19200);
+
+    // Children Education Allowance u/s 10(14): max ₹2,400
+    const ceaExempt = Math.min(e.childrenEducationAllowance || 0, 2400);
+
+    // Hostel Expenditure u/s 10(14): max ₹7,200
+    const hostelExempt = Math.min(e.hostelExpenditureAllowance || 0, 7200);
+
+    // LTA Exemption u/s 10(5)
+    const ltaExempt = Math.min(e.lta || 0, e.ltaExempt || 0);
+
+    // Gratuity Exemption u/s 10(10): max ₹20,00,000
+    const gratuityExempt = Math.min(e.gratuity || 0, 2000000);
+
+    // Leave Encashment u/s 10(10AA): max ₹25,00,000
+    const leaveExempt = Math.min(e.leaveEncashment || 0, 2500000);
+
+    // Standard Deduction u/s 16(ia): ₹50,000
+    const stdDed = 50000;
+
+    // Professional Tax u/s 16(iii): max ₹2,500
+    const profTaxExempt = Math.min(e.professionalTax || 0, 2500);
+
+    // Entertainment Allowance u/s 16(ii): ₹5,000 (Govt only)
+    const entExempt = isGovt ? Math.min(e.entertainmentAllowance || 0, 5000) : 0;
+
+    // VRS Compensation u/s 10(10C): max ₹5,00,000
+    const vrsExempt = Math.min(e.vrsCompensation || 0, 500000);
+
+    // Retrenchment Compensation u/s 10(10B): max ₹5,00,000
+    const retrenchExempt = Math.min(e.retrenchmentCompensation || 0, 500000);
+
+    // Commuted Pension u/s 10(10A): 50% (Govt) / 33% (Non-Govt)
+    const commutedExempt = isGovt ? (e.commutedPension || 0) * 50 / 100 : (e.commutedPension || 0) * 33 / 100;
+
+    // Other Exemptions
+    const otherExempt = e.otherExempt || 0;
+
+    return hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
+           gratuityExempt + leaveExempt + stdDed + profTaxExempt + entExempt +
+           vrsExempt + retrenchExempt + commutedExempt + otherExempt;
   };
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
+  const totalExemptions = () => entries.reduce((s, e) => s + calculateExemptions(e), 0);
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
   return (
@@ -115,8 +191,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
           <div style={{ padding: 16, background: 'linear-gradient(135deg, #fef3e2, #fff7ed)', borderRadius: 8, marginBottom: 16, border: '1px solid #fed7aa' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
               <div><div style={{ fontSize: 11, color: '#78716c' }}>Gross</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(e))}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Exempt</div><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>₹0</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(getGross(e))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Exempt</div><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>₹{formatINR(calculateExemptions(e))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(Math.max(0, getGross(e) - calculateExemptions(e)))}</div></div>
               <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div></div>
             </div>
           </div>
@@ -141,6 +217,10 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
               <F label="Bonus"><Inp type="number" value={e.bonus} onChange={(v: any) => updateEntry(e.id, { bonus: v })} /></F>
               <F label="Allowances"><Inp type="number" value={e.allowances} onChange={(v: any) => updateEntry(e.id, { allowances: v })} /></F>
               <F label="LTA"><Inp type="number" value={e.lta} onChange={(v: any) => updateEntry(e.id, { lta: v })} /></F>
+              <F label="Commission"><Inp type="number" value={e.commission} onChange={(v: any) => updateEntry(e.id, { commission: v })} /></F>
+              <F label="Perquisites"><Inp type="number" value={e.perquisites} onChange={(v: any) => updateEntry(e.id, { perquisites: v })} /></F>
+              <F label="Profits in Lieu"><Inp type="number" value={e.profitsInLieu} onChange={(v: any) => updateEntry(e.id, { profitsInLieu: v })} /></F>
+              <F label="Other Allowance"><Inp type="number" value={e.otherAllowance} onChange={(v: any) => updateEntry(e.id, { otherAllowance: v })} /></F>
             </div>
           </Section>
 
@@ -159,19 +239,24 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
             </div>
           </Section>
 
-          <Section title="Retirement" expanded={expandedId === `ret-${e.id}`} onClick={() => toggleExpand(`ret-${e.id}`)} badge="">
+          <Section title="Retirement & VRS" expanded={expandedId === `ret-${e.id}`} onClick={() => toggleExpand(`ret-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Commuted"><Inp type="number" value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
-              <F label="Gratuity"><Inp type="number" value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
-              <F label="Leave"><Inp type="number" value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
+              <F label="Commuted Pension" hint="u/s 10(10A)"><Inp type="number" value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
+              <F label="Gratuity (max ₹20L)" hint="u/s 10(10)"><Inp type="number" value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
+              <F label="Leave Encash (max ₹25L)" hint="u/s 10(10AA)"><Inp type="number" value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
+              <F label="VRS Compensation (max ₹5L)" hint="u/s 10(10C)"><Inp type="number" value={e.vrsCompensation} onChange={(v: any) => updateEntry(e.id, { vrsCompensation: v })} /></F>
+              <F label="Retrenchment (max ₹5L)" hint="u/s 10(10B)"><Inp type="number" value={e.retrenchmentCompensation} onChange={(v: any) => updateEntry(e.id, { retrenchmentCompensation: v })} /></F>
             </div>
           </Section>
 
-          <Section title="Allowances" expanded={expandedId === `all-${e.id}`} onClick={() => toggleExpand(`all-${e.id}`)} badge="">
+          <Section title="Allowances & Exemptions" expanded={expandedId === `all-${e.id}`} onClick={() => toggleExpand(`all-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Transport"><input type="checkbox" checked={e.isDisabledEmployee || false} onChange={(ev: any) => updateEntry(e.id, { isDisabledEmployee: ev.target.checked })} /><span style={{fontSize:11, marginLeft:4}}>Disabled</span></F>
-              <F label="Children"><Inp type="number" value={e.childrenEducationAllowance} onChange={(v: any) => updateEntry(e.id, { childrenEducationAllowance: v })} /></F>
-              <F label="Hostel"><Inp type="number" value={e.hostelExpenditureAllowance} onChange={(v: any) => updateEntry(e.id, { hostelExpenditureAllowance: v })} /></F>
+              <F label="Transport (max ₹19,200)" hint="u/s 10(14)"><Inp type="number" value={e.transportAllowance} onChange={(v: any) => updateEntry(e.id, { transportAllowance: v })} /></F>
+              <F label="Children Edu (max ₹2,400)" hint="u/s 10(14)"><Inp type="number" value={e.childrenEducationAllowance} onChange={(v: any) => updateEntry(e.id, { childrenEducationAllowance: v })} /></F>
+              <F label="Hostel (max ₹7,200)" hint="u/s 10(14)"><Inp type="number" value={e.hostelExpenditureAllowance} onChange={(v: any) => updateEntry(e.id, { hostelExpenditureAllowance: v })} /></F>
+              <F label="Entertainment (Govt only, max ₹5,000)" hint="u/s 16(ii)"><Inp type="number" value={e.entertainmentAllowance} onChange={(v: any) => updateEntry(e.id, { entertainmentAllowance: v })} /></F>
+              <F label="LTA Exempt Claimed" hint="u/s 10(5)"><Inp type="number" value={e.ltaExempt} onChange={(v: any) => updateEntry(e.id, { ltaExempt: v })} /></F>
+              <F label="Other Exemptions" hint="Schedule EI"><Inp type="number" value={e.otherExempt} onChange={(v: any) => updateEntry(e.id, { otherExempt: v })} /></F>
             </div>
           </Section>
 
@@ -188,8 +273,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹0</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(totalGross())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹{formatINR(totalExemptions())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(Math.max(0, totalGross() - totalExemptions()))}</div></div>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
           </div>
           <div style={{ fontSize: 11, marginTop: 8, textAlign: 'center', opacity: 0.7 }}>
