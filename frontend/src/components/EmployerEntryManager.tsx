@@ -109,6 +109,10 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   // Calculate exemptions for OLD regime
   const calculateExemptions = (e: EmployerEntry) => {
+    if (taxRegime === 'NEW') {
+      // New Regime: Only Standard Deduction of ₹75,000
+      return 75000;
+    }
     if (taxRegime !== 'OLD') return 0;
     const basic = e.basic || 0;
     const da = e.da || 0;
