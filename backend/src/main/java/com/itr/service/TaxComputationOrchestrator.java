@@ -258,15 +258,17 @@ public class TaxComputationOrchestrator {
             }
 
             // Net salary = Gross salary - Exemptions (only for OLD regime)
+            long grossSalary = basic + da + bonus + commission + allowances + perquisites +
+                              hra + lta + otherAllow + profitsInLieu;
             long salaryIncome;
             if (regime == TaxRegime.OLD && totalExemptions > 0) {
-                salaryIncome = Math.max(0, basic + da + bonus + commission + allowances + perquisites +
-                              hra + lta + otherAllow + profitsInLieu - totalExemptions);
-                log.info("=== SALARY (OLD): Gross={}, Exemptions={}, NetTaxable={}",
-                    basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu,
-                    totalExemptions, salaryIncome);
+                // Cap exemptions at gross salary (can't exempt more than earned)
+                long cappedExemptions = Math.min(totalExemptions, grossSalary);
+                salaryIncome = Math.max(0, grossSalary - cappedExemptions);
+                log.info("=== SALARY (OLD): Gross={}, Exemptions={} (capped from {}), NetTaxable={}",
+                    grossSalary, cappedExemptions, totalExemptions, salaryIncome);
             } else {
-                salaryIncome = basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu;
+                salaryIncome = grossSalary;
             }
 
             // ==================== HOUSE PROPERTY ====================

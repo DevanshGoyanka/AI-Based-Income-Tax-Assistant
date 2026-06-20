@@ -162,9 +162,13 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     // Other Exemptions
     const otherExempt = e.otherExempt || 0;
 
-    return hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
+    const total = hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
            gratuityExempt + leaveExempt + stdDed + profTaxExempt + entExempt +
            vrsExempt + retrenchExempt + commutedExempt + otherExempt;
+
+    // Cap exemptions at gross salary (can't exempt more than earned)
+    const gross = getGross(e);
+    return Math.min(total, gross);
   };
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
