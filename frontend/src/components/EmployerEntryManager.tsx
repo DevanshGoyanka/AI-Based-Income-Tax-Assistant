@@ -104,7 +104,9 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const pil = typeof e.profitsInLieu === 'number' && e.profitsInLieu > 0 ? e.profitsInLieu : 0;
     const comm = typeof e.commission === 'number' && e.commission > 0 ? e.commission : 0;
     const oa = typeof e.otherAllowance === 'number' && e.otherAllowance > 0 ? e.otherAllowance : 0;
-    return b + d + h + bn + a + l + cp + g + leave + perq + pil + comm + oa;
+    const vrs = typeof e.vrsCompensation === 'number' && e.vrsCompensation > 0 ? e.vrsCompensation : 0;
+    const retrench = typeof e.retrenchmentCompensation === 'number' && e.retrenchmentCompensation > 0 ? e.retrenchmentCompensation : 0;
+    return b + d + h + bn + a + l + cp + g + leave + perq + pil + comm + oa + vrs + retrench;
   };
 
   // Calculate exemptions for OLD regime
@@ -120,6 +122,10 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const da = e.da || 0;
     const basicDA = basic + da;
     const hra = e.hra || 0;
+    const lta = e.lta || 0;
+    const gratuity = e.gratuity || 0;
+    const leaveEnc = e.leaveEncashment || 0;
+    const commutedPen = e.commutedPension || 0;
     const rentPaid = e.rentPaid || 0;
     const isMetro = e.isMetroCity || false;
     const isGovt = e.isGovernmentEmployee || false;
@@ -138,14 +144,14 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     // Hostel Expenditure u/s 10(14): max ₹7,200
     const hostelExempt = Math.min(e.hostelExpenditureAllowance || 0, 7200);
 
-    // LTA Exemption u/s 10(5)
-    const ltaExempt = Math.min(e.lta || 0, e.ltaExempt || 0);
+    // LTA Exemption u/s 10(5): min of LTA received, LTA exempt claimed
+    const ltaExempt = Math.min(lta, e.ltaExempt || 0);
 
     // Gratuity Exemption u/s 10(10): max ₹20,00,000
-    const gratuityExempt = Math.min(e.gratuity || 0, 2000000);
+    const gratuityExempt = Math.min(gratuity, 2000000);
 
     // Leave Encashment u/s 10(10AA): max ₹25,00,000
-    const leaveExempt = Math.min(e.leaveEncashment || 0, 2500000);
+    const leaveExempt = Math.min(leaveEnc, 2500000);
 
     // Standard Deduction u/s 16(ia): ₹50,000
     const stdDed = 50000;
@@ -163,7 +169,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     const retrenchExempt = Math.min(e.retrenchmentCompensation || 0, 500000);
 
     // Commuted Pension u/s 10(10A): 50% (Govt) / 33% (Non-Govt)
-    const commutedExempt = isGovt ? (e.commutedPension || 0) * 50 / 100 : (e.commutedPension || 0) * 33 / 100;
+    const commutedExempt = isGovt ? commutedPen * 50 / 100 : commutedPen * 33 / 100;
 
     // Other Exemptions
     const otherExempt = e.otherExempt || 0;
