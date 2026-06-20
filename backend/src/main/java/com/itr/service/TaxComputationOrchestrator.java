@@ -217,7 +217,7 @@ public class TaxComputationOrchestrator {
             long totalDeductions = s80C + s80D + s80TTA + s80G;
 
             // ==================== STANDARD DEDUCTION ====================
-            long standardDeduction = (regime == TaxRegime.NEW) ? 7500000 : 5000000;
+            long standardDeduction = (regime == TaxRegime.NEW) ? 75000 : 50000;
             long profTax = Math.min(getLong(formData, "profTax"), 250000);
 
             // ==================== NET TAXABLE ====================
@@ -231,8 +231,8 @@ public class TaxComputationOrchestrator {
 
             // ==================== REBATE 87A ====================
             long rebate = 0;
-            if (regime == TaxRegime.NEW && netTaxableIncome <= 7000000) rebate = Math.min(6000000, totalTaxBeforeRebate);
-            else if (regime == TaxRegime.OLD && netTaxableIncome <= 5000000) rebate = Math.min(2500000, totalTaxBeforeRebate);
+            if (regime == TaxRegime.NEW && netTaxableIncome <= 700000) rebate = Math.min(25000, totalTaxBeforeRebate);
+            else if (regime == TaxRegime.OLD && netTaxableIncome <= 500000) rebate = Math.min(12500, totalTaxBeforeRebate);
 
             long taxAfterRebate = Math.max(0, totalTaxBeforeRebate - rebate);
 
