@@ -281,7 +281,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹{formatINR(totalExemptions())}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 16(ia)</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹{formatINR(totalExemptions())}</div></div>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(Math.max(0, totalGross() - totalExemptions()))}</div></div>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
           </div>
