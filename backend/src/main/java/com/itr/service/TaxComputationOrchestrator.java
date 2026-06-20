@@ -130,8 +130,87 @@ public class TaxComputationOrchestrator {
             if (bonus == 0) bonus = getLong(formData, "bonus");
             if (hra == 0) hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
             if (allowances == 0) allowances = getLong(formData, "allowances");
-            
-            long salaryIncome = basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu;
+
+            // ==================== SECTION 10 EXEMPTIONS (OLD REGIME) ====================
+            // Calculate exemptions for OLD regime only
+            long hraExempt = 0;
+            long transportExempt = 0;
+            long childrenEducationExempt = 0;
+            long hostelExempt = 0;
+            long ltaExempt = 0;
+            long gratuityExempt = 0;
+            long leaveEncashmentExempt = 0;
+            long totalExemptions = 0;
+
+            if (regime == TaxRegime.OLD) {
+                // HRA Exemption u/s 10(13A): min of (HRA received, 50%/40% of basic+da, rent paid - 10% of basic+da)
+                long basicDA = basic + da;
+                long rentPaid = getLong(formData, "hraRent");
+                if (rentPaid == 0) rentPaid = getLong(formData, "rentPaid");
+                boolean isMetro = Boolean.TRUE.equals(formData.get("hraMetro"));
+                if (isMetro == false && formData.get("isMetroCity") != null) {
+                    isMetro = Boolean.TRUE.equals(formData.get("isMetroCity"));
+                }
+                long percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
+                long rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
+                hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
+                if (hraExempt < 0) hraExempt = 0;
+
+                // Transport Allowance Exemption u/s 10(14): ₹1,600/month = ₹19,200/year
+                long transportAllowance = getLong(formData, "transportAllowanceReceived");
+                if (transportAllowance > 0) {
+                    transportExempt = Math.min(transportAllowance, 19200);
+                }
+
+                // Children Education Allowance u/s 10(14): ₹100/month/child = ₹1,200/year/child (max 2)
+                long cea = getLong(formData, "ceaReceived");
+                if (cea > 0) {
+                    childrenEducationExempt = Math.min(cea, 2400); // 2 children max
+                }
+
+                // Hostel Expenditure Allowance u/s 10(14): ₹300/month/child = ₹3,600/year/child (max 2)
+                long hostel = getLong(formData, "hostelAllowanceReceived");
+                if (hostel > 0) {
+                    hostelExempt = Math.min(hostel, 7200); // 2 children max
+                }
+
+                // LTA Exemption u/s 10(5): actual travel cost (simplified - assume LTA received if claimed)
+                long ltaClaimed = getLong(formData, "ltaExempt");
+                if (ltaClaimed > 0) {
+                    ltaExempt = Math.min(lta, ltaClaimed);
+                }
+
+                // Gratuity Exemption u/s 10(10): min of (received, ₹20,00,000)
+                long gratuity = getLong(formData, "gratuityReceived");
+                if (gratuity > 0) {
+                    gratuityExempt = Math.min(gratuity, 2000000);
+                }
+
+                // Leave Encashment Exemption u/s 10(10AA): min of (received, ₹25,00,000)
+                long leaveEncashment = getLong(formData, "leaveEncashmentReceived");
+                if (leaveEncashment > 0) {
+                    leaveEncashmentExempt = Math.min(leaveEncashment, 2500000);
+                }
+
+                totalExemptions = hraExempt + transportExempt + childrenEducationExempt +
+                                  hostelExempt + ltaExempt + gratuityExempt + leaveEncashmentExempt;
+
+                log.info("=== EXEMPTIONS (OLD REGIME): HRA={}, Transport={}, CEA={}, Hostel={}, LTA={}, Gratuity={}, Leave={}, Total={}",
+                    hraExempt, transportExempt, childrenEducationExempt, hostelExempt,
+                    ltaExempt, gratuityExempt, leaveEncashmentExempt, totalExemptions);
+            }
+
+            // Net salary = Gross salary - Exemptions (only for OLD regime)
+            long salaryIncome;
+            if (regime == TaxRegime.OLD && totalExemptions > 0) {
+                salaryIncome = Math.max(0, basic + da + bonus + commission + allowances + perquisites +
+                              hra + lta + otherAllow + profitsInLieu - totalExemptions);
+                log.info("=== SALARY (OLD): Gross={}, Exemptions={}, NetTaxable={}",
+                    basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu,
+                    totalExemptions, salaryIncome);
+            } else {
+                salaryIncome = basic + da + bonus + commission + allowances + perquisites + hra + lta + otherAllow + profitsInLieu;
+            }
 
             // ==================== HOUSE PROPERTY ====================
             long hpIncome = getLong(formData, "hpIncome");
