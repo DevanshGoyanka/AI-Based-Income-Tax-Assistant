@@ -183,7 +183,63 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   };
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
-  const totalExemptions = () => entries.reduce((s, e) => s + calculateExemptions(e), 0);
+
+  // CBDT Guidelines: Standard Deduction u/s 16(ia) is allowed ONLY ONCE per year,
+  // not per employer. Same applies to Professional Tax u/s 16(iii).
+  // HRA, LTA, Gratuity, etc. are per-employer specific.
+  const totalExemptions = () => {
+    if (taxRegime === 'NEW') {
+      // NEW Regime: Standard Deduction ₹75,000 allowed only ONCE
+      const totalGrossSalary = totalGross();
+      return totalGrossSalary > 0 ? Math.min(75000, totalGrossSalary) : 0;
+    }
+    // OLD Regime: Sum per-employer exemptions, but Std Ded & Prof Tax only ONCE
+    let perEmployerExemptions = 0;
+    let totalProfTax = 0;
+    for (const e of entries) {
+      const gross = getGross(e);
+      if (gross <= 0) continue;
+      const basic = e.basic || 0;
+      const da = e.da || 0;
+      const basicDA = basic + da;
+      const hra = e.hra || 0;
+      const lta = e.lta || 0;
+      const gratuity = e.gratuity || 0;
+      const leaveEnc = e.leaveEncashment || 0;
+      const commutedPen = e.commutedPension || 0;
+      const rentPaid = e.rentPaid || 0;
+      const isMetro = e.isMetroCity || false;
+      const isGovt = e.isGovernmentEmployee || false;
+
+      const percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
+      const rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
+      const hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
+      const transportExempt = Math.min(e.transportAllowance || 0, 19200);
+      const ceaExempt = Math.min(e.childrenEducationAllowance || 0, 2400);
+      const hostelExempt = Math.min(e.hostelExpenditureAllowance || 0, 7200);
+      const ltaExempt = Math.min(lta, e.ltaExempt || 0);
+      const gratuityExempt = Math.min(gratuity, 2000000);
+      const leaveExempt = Math.min(leaveEnc, 2500000);
+      const entExempt = isGovt ? Math.min(e.entertainmentAllowance || 0, 5000) : 0;
+      const vrsExempt = Math.min(e.vrsCompensation || 0, 500000);
+      const retrenchExempt = Math.min(e.retrenchmentCompensation || 0, 500000);
+      const commutedExempt = isGovt ? commutedPen * 50 / 100 : commutedPen * 33 / 100;
+      const otherExempt = e.otherExempt || 0;
+
+      const perEmpTotal = hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
+             gratuityExempt + leaveExempt + entExempt + vrsExempt + retrenchExempt +
+             commutedExempt + otherExempt;
+
+      perEmployerExemptions += Math.min(perEmpTotal, gross);
+      totalProfTax += e.professionalTax || 0;
+    }
+    // Standard Deduction ₹50,000 only ONCE
+    const stdDed = 50000;
+    // Professional Tax max ₹2,500 only ONCE (aggregate from all employers)
+    const profTaxExempt = Math.min(totalProfTax, 2500);
+    return perEmployerExemptions + stdDed + profTaxExempt;
+  };
+
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
 
   return (

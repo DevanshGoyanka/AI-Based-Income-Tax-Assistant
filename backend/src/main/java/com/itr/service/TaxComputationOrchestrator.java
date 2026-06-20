@@ -245,6 +245,9 @@ public class TaxComputationOrchestrator {
                 // Other Exemptions (Schedule EI)
                 otherExempt = getLong(formData, "otherExempt");
 
+                // CBDT Guidelines: Standard Deduction u/s 16(ia) and Professional Tax u/s 16(iii)
+                // are allowed ONLY ONCE per year, not per employer.
+                // HRA, LTA, Gratuity, etc. are per-employer specific.
                 totalExemptions = hraExempt + transportExempt + childrenEducationExempt +
                                   hostelExempt + ltaExempt + gratuityExempt + leaveEncashmentExempt +
                                   standardDeductionExempt + professionalTaxExempt + entertainmentExempt +
