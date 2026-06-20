@@ -369,7 +369,9 @@ public class TaxComputationOrchestrator {
 
             // ==================== REBATE 87A ====================
             long rebate = 0;
+            // New Regime: Full rebate up to ₹7L taxable income (max ₹25,000)
             if (regime == TaxRegime.NEW && netTaxableIncome <= 700000) rebate = Math.min(25000, totalTaxBeforeRebate);
+            // Old Regime: Full rebate up to ₹5L taxable income (max ₹12,500)
             else if (regime == TaxRegime.OLD && netTaxableIncome <= 500000) rebate = Math.min(12500, totalTaxBeforeRebate);
 
             long taxAfterRebate = Math.max(0, totalTaxBeforeRebate - rebate);
@@ -427,11 +429,13 @@ public class TaxComputationOrchestrator {
     private long computeTax(long income, TaxRegime regime) {
         if (income <= 0) return 0;
         if (regime == TaxRegime.NEW) {
-            if (income <= 400000) return 0;
-            else if (income <= 800000) return (income - 400000) * 10 / 100;
-            else if (income <= 1200000) return 40000 + (income - 800000) * 15 / 100;
-            else if (income <= 1600000) return 100000 + (income - 1200000) * 20 / 100;
-            else return 180000 + (income - 1600000) * 30 / 100;
+            // New Regime FY 2024-25 onwards (Section 115BAC)
+            if (income <= 300000) return 0;
+            else if (income <= 700000) return (income - 300000) * 5 / 100;
+            else if (income <= 1000000) return 20000 + (income - 700000) * 10 / 100;
+            else if (income <= 1200000) return 50000 + (income - 1000000) * 15 / 100;
+            else if (income <= 1500000) return 80000 + (income - 1200000) * 20 / 100;
+            else return 140000 + (income - 1500000) * 30 / 100;
         } else {
             if (income <= 250000) return 0;
             else if (income <= 500000) return (income - 250000) * 10 / 100;
