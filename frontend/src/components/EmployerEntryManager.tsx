@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { calculateSalary, type EmployerInput, type SalaryCalculationResponse } from '../services/salaryCalculationService';
+import React, { useState } from 'react';
 
 interface EmployerEntry {
   id: string;
@@ -69,8 +68,6 @@ const Inp = (p: any) => (
 
 export function EmployerEntryManager({ entries = [], onChange, assessmentYear, taxRegime = 'OLD' }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [result, setResult] = useState<SalaryCalculationResponse | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const toggleExpand = (id: string) => setExpandedId(expandedId === id ? null : id);
 
@@ -81,86 +78,6 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
   };
 
   const removeEntry = (id: string) => onChange(entries.filter(e => e.id !== id));
-
-  // Central calculation function
-  const calculate = useCallback(async () => {
-    const hasData = entries.some(e => (e.basic || e.hra || e.bonus || e.gratuity || e.leaveEncashment || e.professionalTax) > 0);
-    if (!hasData) {
-      setResult(null);
-      return;
-    }
-
-    setResult(null);
-
-    // Small delay to ensure state update
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    try {
-      const inputs: EmployerInput[] = entries.map(e => ({
-        employerName: e.employerName || 'Employer',
-        employerTAN: e.employerTAN || '',
-        basic: (e.basic || 0) * 100,
-        da: (e.da || 0) * 100,
-        hra: (e.hra || 0) * 100,
-        bonus: (e.bonus || 0) * 100,
-        allowances: (e.allowances || 0) * 100,
-        lta: (e.lta || 0) * 100,
-        rentPaid: (e.rentPaid || 0) * 100,
-        isMetroCity: e.isMetroCity,
-        pension: 0,
-        commutedPension: (e.commutedPension || 0) * 100,
-        gratuity: (e.gratuity || 0) * 100,
-        leaveEncashment: (e.leaveEncashment || 0) * 100,
-        professionalTax: (e.professionalTax || 0) * 100,
-        entertainmentAllowance: 0,
-        tdsDeducted: (e.tdsDeducted || 0) * 100,
-        isDisabledEmployee: e.isDisabledEmployee,
-        isGovernmentEmployee: e.isGovernmentEmployee,
-        childrenEducationAllowance: (e.childrenEducationAllowance || 0) * 100,
-        hostelExpenditureAllowance: (e.hostelExpenditureAllowance || 0) * 100,
-        // Send actual value - backend will handle defaults
-        transportAllowance: (e.transportAllowance || 0) * 100,
-      }));
-
-      const regimeToUse = taxRegime === 'NEW' ? 'NEW' : 'OLD';
-      console.log('[SALARY] Recalculating with regime:', regimeToUse, 'entries:', entries.length);
-      
-      const res = await calculateSalary(assessmentYear, inputs, regimeToUse);
-      console.log('[SALARY] Result:', res);
-      
-      const toRupees = (v: number | undefined | null): number => v ? Math.round(v / 100) : 0;
-      setResult({
-        hraExempt: toRupees(res.hraExempt),
-        ltaExempt: toRupees(res.ltaExempt),
-        gratuityExempt: toRupees(res.gratuityExempt),
-        leaveEncashmentExempt: toRupees(res.leaveEncashmentExempt),
-        transportExempt: toRupees((res as any).transportExempt),
-        childrenEducationExempt: toRupees((res as any).childrenEducationExempt),
-        hostelExempt: toRupees((res as any).hostelExempt),
-        totalExemptions: toRupees(res.totalExemptions),
-        standardDeduction: toRupees(res.standardDeduction),
-        netTaxableSalary: toRupees(res.netTaxableSalary),
-      });
-    } catch (err) {
-      console.error('[SALARY] Calc error:', err);
-    }
-  }, [entries, assessmentYear, taxRegime]);
-
-  // Force fresh calculation when taxRegime changes
-  const [regimeVersion, setRegimeVersion] = useState(0);
-
-  // Clear and recalculate when regime changes
-  useEffect(() => {
-    setResult(null);
-    calculate();
-  }, [taxRegime]);
-  
-  // Memoize entry data to detect changes
-  const entryDataKey = useMemo(() => JSON.stringify(entries), [entries]);
-  useEffect(() => {
-    setResult(null);
-    calculate();
-  }, [entryDataKey, taxRegime]);
 
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
@@ -177,16 +94,6 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
-
-  // Use ONLY backend values - taxable comes from backend
-  const sec10Exempt = result 
-    ? (result.hraExempt||0) + (result.ltaExempt||0) + ((result as any).transportExempt||0) + 
-      ((result as any).childrenEducationExempt||0) + ((result as any).hostelExempt||0) +
-      (result.gratuityExempt||0) + (result.leaveEncashmentExempt||0)
-    : 0;
-  const stdDed = result?.standardDeduction || 0;
-  // Taxable MUST come from backend - use 0 if not available
-  const taxable = result?.netTaxableSalary ?? 0;
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -208,8 +115,8 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
           <div style={{ padding: 16, background: 'linear-gradient(135deg, #fef3e2, #fff7ed)', borderRadius: 8, marginBottom: 16, border: '1px solid #fed7aa' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
               <div><div style={{ fontSize: 11, color: '#78716c' }}>Gross</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(e))}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Exempt</div><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>-₹{result ? formatINR((result.hraExempt||0) + ((result as any).transportExempt||0)) : '0'}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{result ? formatINR(taxable) : formatINR(getGross(e))}</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Exempt</div><div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>₹0</div></div>
+              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(getGross(e))}</div></div>
               <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div></div>
             </div>
           </div>
@@ -237,7 +144,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
             </div>
           </Section>
 
-          <Section title="HRA Exemption" expanded={expandedId === `hra-${e.id}`} onClick={() => toggleExpand(`hra-${e.id}`)} badge={result?.hraExempt || 0}>
+          <Section title="HRA Exemption" expanded={expandedId === `hra-${e.id}`} onClick={() => toggleExpand(`hra-${e.id}`)} badge={taxRegime}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               <F label="Rent Paid"><Inp type="number" value={e.rentPaid} onChange={(v: any) => updateEntry(e.id, { rentPaid: v })} hint="Required" /></F>
               <F label="Metro">
@@ -281,12 +188,12 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>-₹{formatINR(sec10Exempt)}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(taxable)}</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>EXEMPT u/s 10</div><div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹0</div></div>
+            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(totalGross())}</div></div>
             <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
           </div>
           <div style={{ fontSize: 11, marginTop: 8, textAlign: 'center', opacity: 0.7 }}>
-            Std Ded: ₹{formatINR(stdDed)}
+            Final tax computation in Tax Computation tab
           </div>
         </div>
       )}

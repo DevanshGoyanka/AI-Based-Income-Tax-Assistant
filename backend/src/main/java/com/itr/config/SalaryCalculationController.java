@@ -18,6 +18,11 @@ import java.util.List;
  * All salary calculations done HERE in backend.
  * Frontend only displays results.
  */
+// ========== SALARY CALCULATION CONTROLLER - COMMENTED OUT ==========
+// Reason: Salary calculation now handled by TaxComputationOrchestrator
+// The employerEntries are saved to formData and used when full tax computation is done
+// To re-enable: Uncomment this entire class
+/*
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/calculations")
@@ -61,168 +66,7 @@ public class SalaryCalculationController {
                 .body(SalaryComputationResponse.error(e.getMessage()));
         }
     }
+*/
 
-    @Data
-    public static class SalaryCalculationRequest {
-        private String taxRegime;
-        private String assessmentYear;
-        private List<EmployerInput> employers;
+/* — Commented out along with controller above — */
 
-        @Data
-        public static class EmployerInput {
-            private String employerName;
-            private String tan;
-            private Long basic;
-            private Long da;
-            private Long hraReceived;
-            private Long ltaReceived;
-            private Long bonus;
-            private Long allowances;
-            private Long perquisitesValue;
-            private Long profitsInLieu;
-            private Long annualRentPaid;
-            private String city;
-            private Boolean isMetroCity;
-            private Boolean isGovernmentEmployee;
-            private Boolean isDisabledEmployee;
-            private Long gratuityReceived;
-            private Long leaveEncashmentReceived;
-            private Long commutedPensionReceived;
-            private Long professionalTax;
-            private Long tdsDeducted;
-            private Integer numberOfChildren;
-            private Long childrenEducationAllowance;
-            private Long hostelExpenditureAllowance;
-            private Long transportAllowance;
-            
-            public EmployerEntry toEmployerEntry() {
-                // Convert boolean isMetroCity to a proper city name
-                String resolvedCity = city;
-                if (resolvedCity == null || resolvedCity.isBlank()) {
-                    if (Boolean.TRUE.equals(isMetroCity)) {
-                        resolvedCity = "MUMBAI";  // 50% for metro
-                    } else {
-                        resolvedCity = "PUNE";     // 40% for non-metro
-                    }
-                }
-                // Compute proper salary for HRA: basic + da
-                long salaryForHRA = nvl(basic) + nvl(da);
-                // For gratuity: use 15/26 rule; provide average monthly salary
-                long avgMonthlySalary = nvl(basic) / 12;
-                int yrs = 5; // default years of service
-                // Default numberOfChildren: if CEA or hostel entered
-                int numChildren = (nvl(childrenEducationAllowance) > 0 || nvl(hostelExpenditureAllowance) > 0) ? 2 : 1;
-                
-                // Handle flag fields properly
-                boolean isGovtEmp = isGovernmentEmployee != null && isGovernmentEmployee;
-                boolean isDisabledEmp = isDisabledEmployee != null && isDisabledEmployee;
-                
-                // Transport: only use what user entered, convert to paise if needed
-                long resolvedTransport = nvl(transportAllowance);
-                if (resolvedTransport > 0 && resolvedTransport < 1000000L) {
-                    resolvedTransport = resolvedTransport * 100;
-                }
-                // If user entered 0 or nothing, keep it as 0 - NO DEFAULT</
-                
-                // For Children Education and Hostel - use what user entered
-                long resolvedChildren = nvl(childrenEducationAllowance);
-                if (resolvedChildren > 0 && resolvedChildren < 1000000L) {
-                    resolvedChildren = resolvedChildren * 100;
-                }
-                
-                long resolvedHostel = nvl(hostelExpenditureAllowance);
-                if (resolvedHostel > 0 && resolvedHostel < 1000000L) {
-                    resolvedHostel = resolvedHostel * 100;
-                }
-                
-                return new EmployerEntry(
-                    employerName, tan,
-                    nvl(basic), nvl(da), 0L,
-                    nvl(hraReceived), nvl(ltaReceived),
-                    resolvedTransport, resolvedChildren,
-                    resolvedHostel, 0L,
-                    nvl(allowances), nvl(bonus), 0L,
-                    nvl(perquisitesValue),
-                    nvl(profitsInLieu),
-                    0L, 0L, 0L, 0L,
-                    nvl(annualRentPaid), resolvedCity, 0L, false, 0L,
-                    nvl(commutedPensionReceived), false,
-                    nvl(gratuityReceived), nvl(leaveEncashmentReceived),
-                    avgMonthlySalary, 0, 0L, 0L, numChildren, false, 0, yrs,
-                    isGovtEmp,
-                    isDisabledEmp,
-                    nvl(professionalTax), 0L, 0L,
-                    nvl(tdsDeducted)
-                );
-            }
-            
-            private Long nvl(Long v) { return v != null ? v : 0L; }
-        }
-    }
-
-    @Data
-    public static class SalaryComputationResponse {
-        private Long grossSalary;
-        private Long hraExempt;
-        private Long ltaExempt;
-        private Long gratuityExempt;
-        private Long leaveEncashmentExempt;
-        private Long transportExempt;
-        private Long childrenEducationExempt;
-        private Long hostelExempt;
-        private Long totalExemptions;
-        private Long standardDeduction;
-        private Long professionalTax;
-        private Long netTaxableSalary;
-        private Long tdsDeducted;
-        private List<EmployerResult> employers;
-        private String assessmentYear;
-        private String taxRegime;
-        private String error;
-
-        public static SalaryComputationResponse fromResult(SalaryComputationResult r) {
-            SalaryComputationResponse resp = new SalaryComputationResponse();
-            resp.setGrossSalary(r.grossSalaryTotal());
-            resp.setHraExempt(r.hraExempt());
-            resp.setLtaExempt(r.ltaExempt());
-            resp.setGratuityExempt(r.gratuityExempt());
-            resp.setLeaveEncashmentExempt(r.leaveEncashmentExempt());
-            resp.setTransportExempt(r.transportAllowanceExempt());
-            resp.setChildrenEducationExempt(r.childrenEducationExempt());
-            resp.setHostelExempt(r.hostelExpenditureExempt());
-            resp.setTotalExemptions(r.totalSection10Exempt());
-            resp.setStandardDeduction(r.standardDeduction());
-            resp.setProfessionalTax(r.professionalTaxDed());
-            resp.setNetTaxableSalary(r.netTaxableSalary());
-            resp.setTdsDeducted(r.totalTDSDeducted());
-            resp.setAssessmentYear(r.assessmentYear());
-            resp.setTaxRegime(r.regimeUsed() != null ? r.regimeUsed().name() : "OLD");
-            resp.setEmployers(List.of(
-                new EmployerResult("Employer 1", r.grossSalaryTotal(), 
-                    r.totalSection10Exempt(), r.netTaxableSalary())
-            ));
-            return resp;
-        }
-
-        public static SalaryComputationResponse error(String msg) {
-            SalaryComputationResponse resp = new SalaryComputationResponse();
-            resp.setError(msg);
-            resp.setGrossSalary(0L);
-            resp.setNetTaxableSalary(0L);
-            return resp;
-        }
-    }
-
-    @Data
-    public static class EmployerResult {
-        private String name;
-        private Long grossSalary;
-        private Long exemptions;
-        private Long netSalary;
-        
-        public EmployerResult() {}
-        public EmployerResult(String n, Long g, Long e, Long net) {
-            this.name = n; this.grossSalary = g; this.exemptions = e; this.netSalary = net;
-        }
-    }
-}
