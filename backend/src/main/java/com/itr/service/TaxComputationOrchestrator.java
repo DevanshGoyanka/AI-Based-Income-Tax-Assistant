@@ -1,14 +1,25 @@
 package com.itr.service;
 
 import com.itr.domain.common.*;
+import com.itr.domain.salary.EmployerEntry;
+import com.itr.domain.salary.SalaryComputationResult;
+import com.itr.domain.salary.SalaryScheduleComputer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * TaxComputationOrchestrator — computes tax from form data
+ * TaxComputationOrchestrator — computes tax from form data.
+ *
+ * NOTE: Salary income is computed using SalaryScheduleComputer
+ * (the authoritative CBDT-compliant salary engine). This replaces
+ * all inline salary math from the previous implementation.
+ *
+ * TaxController also calls SalaryScheduleComputer independently
+ * to populate the REST response with ITD-tagged salary fields.
  */
 @Slf4j
 @Service
@@ -21,257 +32,37 @@ public class TaxComputationOrchestrator {
 
     public TaxComputationResult computeTax(Map<String, Object> formData, TaxRegime regime) {
         log.info("Computing tax from form data, regime: {}", regime);
-        
+
         try {
-            // Debug: Log incoming data for OTHER SOURCES
-            log.info("=== OTHER SOURCES DEBUG ===");
-            log.info("dividendEntries in formData: {}", formData.get("dividendEntries") instanceof List ? "Yes (" + ((List<?>)formData.get("dividendEntries")).size() + ")" : "No/null");
-            log.info("bankInterestEntries in formData: {}", formData.get("bankInterestEntries") instanceof List ? "Yes (" + ((List<?>)formData.get("bankInterestEntries")).size() + ")" : "No/null");
-            log.info("winningsEntries in formData: {}", formData.get("winningsEntries") instanceof List ? "Yes (" + ((List<?>)formData.get("winningsEntries")).size() + ")" : "No/null");
-            log.info("imported26AS in formData: {}", formData.get("imported26AS") != null ? "Yes" : "No");
-            
-            // ==================== CHECK FOR IMPORTED 26AS DATA FIRST ====================
+            // ==================== SALARY INCOME — via SalaryScheduleComputer ====================
+            // SalaryScheduleComputer returns values in PAISE.
+            // Convert to RUPEES for the rest of the orchestrator (which works in rupees).
+            SalaryComputationResult salaryResult = computeSalaryFromFormData(formData, regime);
+            long salaryIncome = paiseToRupees(salaryResult.netTaxableSalary());
+            log.info("=== SALARY (SalaryScheduleComputer): Gross={}, Exempt={}, Net={}",
+                    paiseToRupees(salaryResult.grossSalaryTotal()),
+                    paiseToRupees(salaryResult.totalSection10Exempt()),
+                    salaryIncome);
+
+            // ==================== TDS from 26AS ====================
             Map<String, Object> imported26AS = getMap(formData, "imported26AS");
-            Map<String, Object> incomeBreakdown26AS = getMap(formData, "incomeBreakdown26AS");
-            Map<String, Object> incomeByHead = getMap(formData, "incomeByHead");
-            
             long tdsFrom26AS = 0;
-            long basic = 0; // Will be set from 26AS if available
-            
             if (imported26AS != null && !imported26AS.isEmpty()) {
-                log.info("Found imported26AS - extracting data");
-                log.info("  imported26AS keys: {}", imported26AS.keySet());
-                
-                // Extract TDS
                 tdsFrom26AS = getLong(imported26AS, "totalTDS");
                 if (tdsFrom26AS == 0) tdsFrom26AS = getLong(imported26AS, "totalTds");
-                
-                // Extract income from incomeBreakdown field inside imported26AS
-                Map<String, Object> ib = getMap(imported26AS, "incomeBreakdown");
-                if (ib != null && !ib.isEmpty()) {
-                    log.info("  incomeBreakdown keys: {}", ib.keySet());
-                    long sal = getLong(ib, "salaryIncome");
-                    if (sal == 0) sal = getLong(ib, "SALARY");
-                    if (sal > 0) { basic = sal; log.info("  Set basic from incomeBreakdown: {}", basic); }
-                }
-            }
-            
-            // Also check top-level incomeBreakdown26AS from formData
-            if (incomeBreakdown26AS != null && !incomeBreakdown26AS.isEmpty()) {
-                log.info("Found incomeBreakdown26AS keys: {}", incomeBreakdown26AS.keySet());
-                long sal = getLong(incomeBreakdown26AS, "salaryIncome");
-                if (sal == 0) sal = getLong(incomeBreakdown26AS, "SALARY");
-                if (sal > 0) { basic = sal; log.info("  Set basic from incomeBreakdown26AS: {}", basic); }
-            }
-            
-            // Check incomeByHead (SALARY, HOUSE_PROPERTY, etc.)
-            if (incomeByHead != null && !incomeByHead.isEmpty()) {
-                log.info("Found incomeByHead keys: {}", incomeByHead.keySet());
-                long sal = getLong(incomeByHead, "SALARY");
-                if (sal > 0) { basic = sal; log.info("  Set basic from incomeByHead: {}", basic); }
             }
 
-            // ==================== SALARY INCOME ====================
-            // PRIORITY 1: Check employerEntries (user entered in UI) - HIGHEST PRIORITY
-            Object employerEntriesObj = formData.get("employerEntries");
-            boolean hasUserSalary = false;
-            long da = 0, bonus = 0, hra = 0, allowances = 0;
-            long tdsFromUser = 0;
-            if (employerEntriesObj instanceof List && !((List<?>) employerEntriesObj).isEmpty()) {
-                log.info("Found employerEntries - using user-entered salary data");
-                long empBasic = 0, empDA = 0, empBonus = 0, empHRA = 0, empAllow = 0, empTDS = 0;
-                for (Object empObj : (List<?>) employerEntriesObj) {
-                    if (empObj instanceof Map) {
-                        Map<String, Object> emp = (Map<String, Object>) empObj;
-                        empBasic += getLong(emp, "basic");
-                        empDA += getLong(emp, "da");
-                        empBonus += getLong(emp, "bonus");
-                        empHRA += getLong(emp, "hra");
-                        empAllow += getLong(emp, "allowances");
-                        empTDS += getLong(emp, "tdsDeducted");
+            // TDS from employerEntries (user-entered) — highest priority
+            long tdsFromUser = paiseToRupees(salaryResult.totalTDSDeducted());
+            if (tdsFromUser == 0) {
+                Object employerEntriesObj = formData.get("employerEntries");
+                if (employerEntriesObj instanceof List) {
+                    for (Object empObj : (List<?>) employerEntriesObj) {
+                        if (empObj instanceof Map) {
+                            tdsFromUser += getLong((Map<String, Object>) empObj, "tdsDeducted");
+                        }
                     }
                 }
-                if (empBasic > 0) { basic = empBasic; hasUserSalary = true; log.info("Using basic from employerEntries: {}", basic); }
-                if (empDA > 0) da = empDA;
-                if (empBonus > 0) bonus = empBonus;
-                if (empHRA > 0) hra = empHRA;
-                if (empAllow > 0) allowances = empAllow;
-                if (empTDS > 0) tdsFromUser = empTDS;
-                log.info("Using TDS from employerEntries: {}", tdsFromUser);
-            }
-            
-            // PRIORITY 2: Top-level formData fields (single employer)
-            if (!hasUserSalary) {
-                long formBasic = getLong(formData, "basic");
-                if (formBasic > 0) { basic = formBasic; log.info("Using basic from formData: {}", basic); }
-                da = getLong(formData, "da");
-                bonus = getLong(formData, "bonus");
-                hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
-                allowances = getLong(formData, "allowances");
-                if (basic > 0) hasUserSalary = true;
-            }
-            
-            // PRIORITY 3: 26AS imports - only if user hasn't entered data
-            if (!hasUserSalary && basic == 0) {
-                log.info("No user salary found - using 26AS data");
-            } else if (hasUserSalary) {
-                log.info("User salary data found, ignoring 26AS");
-            }
-            
-            // Now initialize all salary components - but keep existing values if user entered
-            long commission = getLong(formData, "commission");
-            long perquisites = getLong(formData, "perquisites");
-            long lta = getLong(formData, "ltaReceived");
-            long otherAllow = getLong(formData, "otherAllowance");
-            long profitsInLieu = getLong(formData, "profitsInLieu");
-            
-            // For values that weren't already set from employerEntries, get from formData
-            if (da == 0) da = getLong(formData, "da");
-            if (bonus == 0) bonus = getLong(formData, "bonus");
-            if (hra == 0) hra = getLong(formData, "hraReceived") + getLong(formData, "hra");
-            if (allowances == 0) allowances = getLong(formData, "allowances");
-
-            // ==================== SECTION 10 EXEMPTIONS (OLD REGIME) ====================
-            // Calculate exemptions for OLD regime only
-            long hraExempt = 0;
-            long transportExempt = 0;
-            long childrenEducationExempt = 0;
-            long hostelExempt = 0;
-            long ltaExempt = 0;
-            long gratuityExempt = 0;
-            long leaveEncashmentExempt = 0;
-            long standardDeductionExempt = 0;
-            long professionalTaxExempt = 0;
-            long entertainmentExempt = 0;
-            long otherExempt = 0;
-            long vrsExempt = 0;
-            long retrenchmentExempt = 0;
-            long commutedPensionExempt = 0;
-            long voluntaryRetirementExempt = 0;
-            long totalExemptions = 0;
-
-            if (regime == TaxRegime.OLD) {
-                // HRA Exemption u/s 10(13A): min of (HRA received, 50%/40% of basic+da, rent paid - 10% of basic+da)
-                long basicDA = basic + da;
-                long rentPaid = getLong(formData, "hraRent");
-                if (rentPaid == 0) rentPaid = getLong(formData, "rentPaid");
-                boolean isMetro = Boolean.TRUE.equals(formData.get("hraMetro"));
-                if (isMetro == false && formData.get("isMetroCity") != null) {
-                    isMetro = Boolean.TRUE.equals(formData.get("isMetroCity"));
-                }
-                long percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
-                long rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
-                hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
-                if (hraExempt < 0) hraExempt = 0;
-
-                // Transport Allowance Exemption u/s 10(14): ₹1,600/month = ₹19,200/year
-                long transportAllowance = getLong(formData, "transportAllowanceReceived");
-                if (transportAllowance > 0) {
-                    transportExempt = Math.min(transportAllowance, 19200);
-                }
-
-                // Children Education Allowance u/s 10(14): ₹100/month/child = ₹1,200/year/child (max 2)
-                long cea = getLong(formData, "ceaReceived");
-                if (cea > 0) {
-                    childrenEducationExempt = Math.min(cea, 2400); // 2 children max
-                }
-
-                // Hostel Expenditure Allowance u/s 10(14): ₹300/month/child = ₹3,600/year/child (max 2)
-                long hostel = getLong(formData, "hostelAllowanceReceived");
-                if (hostel > 0) {
-                    hostelExempt = Math.min(hostel, 7200); // 2 children max
-                }
-
-                // LTA Exemption u/s 10(5): actual travel cost (simplified - assume LTA received if claimed)
-                long ltaClaimed = getLong(formData, "ltaExempt");
-                if (ltaClaimed > 0) {
-                    ltaExempt = Math.min(lta, ltaClaimed);
-                }
-
-                // Gratuity Exemption u/s 10(10): min of (received, ₹20,00,000)
-                long gratuity = getLong(formData, "gratuityReceived");
-                if (gratuity > 0) {
-                    gratuityExempt = Math.min(gratuity, 2000000);
-                }
-
-                // Leave Encashment Exemption u/s 10(10AA): min of (received, ₹25,00,000)
-                long leaveEncashment = getLong(formData, "leaveEncashmentReceived");
-                if (leaveEncashment > 0) {
-                    leaveEncashmentExempt = Math.min(leaveEncashment, 2500000);
-                }
-
-                // Standard Deduction u/s 16(ia): ₹50,000 for OLD regime
-                standardDeductionExempt = 50000;
-
-                // Professional Tax u/s 16(iii): max ₹2,500
-                long profTaxPaid = getLong(formData, "profTax");
-                if (profTaxPaid > 0) {
-                    professionalTaxExempt = Math.min(profTaxPaid, 2500);
-                }
-
-                // Entertainment Allowance u/s 16(ii): ₹5,000 (only for govt employees)
-                boolean isGovt = Boolean.TRUE.equals(formData.get("isGovernmentEmployee"));
-                if (isGovt) {
-                    long entAllow = getLong(formData, "entertainmentAllowance");
-                    if (entAllow > 0) {
-                        entertainmentExempt = Math.min(entAllow, 5000);
-                    }
-                }
-
-                // VRS Compensation Exemption u/s 10(10C): max ₹5,00,000
-                long vrs = getLong(formData, "vrsCompensation");
-                if (vrs > 0) {
-                    vrsExempt = Math.min(vrs, 500000);
-                }
-
-                // Retrenchment Compensation u/s 10(10B): max ₹5,00,000
-                long retrench = getLong(formData, "retrenchmentCompensation");
-                if (retrench > 0) {
-                    retrenchmentExempt = Math.min(retrench, 500000);
-                }
-
-                // Commuted Pension u/s 10(10A): 1/3 for non-govt, 1/2 for govt
-                long commutedPension = getLong(formData, "commutationOfPensionReceived");
-                if (commutedPension > 0) {
-                    if (isGovt) {
-                        commutedPensionExempt = commutedPension * 50 / 100;
-                    } else {
-                        commutedPensionExempt = commutedPension * 33 / 100;
-                    }
-                }
-
-                // Voluntary Retirement u/s 10(10C) - already covered in VRS
-
-                // Other Exemptions (Schedule EI)
-                otherExempt = getLong(formData, "otherExempt");
-
-                // CBDT Guidelines: Standard Deduction u/s 16(ia) and Professional Tax u/s 16(iii)
-                // are allowed ONLY ONCE per year, not per employer.
-                // HRA, LTA, Gratuity, etc. are per-employer specific.
-                totalExemptions = hraExempt + transportExempt + childrenEducationExempt +
-                                  hostelExempt + ltaExempt + gratuityExempt + leaveEncashmentExempt +
-                                  standardDeductionExempt + professionalTaxExempt + entertainmentExempt +
-                                  vrsExempt + retrenchmentExempt + commutedPensionExempt + otherExempt;
-
-                log.info("=== EXEMPTIONS (OLD REGIME): HRA={}, Transport={}, CEA={}, Hostel={}, LTA={}, Gratuity={}, Leave={}, StdDed={}, ProfTax={}, Ent={}, VRS={}, Retrench={}, CommutedPen={}, Other={}, Total={}",
-                    hraExempt, transportExempt, childrenEducationExempt, hostelExempt,
-                    ltaExempt, gratuityExempt, leaveEncashmentExempt, standardDeductionExempt,
-                    professionalTaxExempt, entertainmentExempt, vrsExempt, retrenchmentExempt,
-                    commutedPensionExempt, otherExempt, totalExemptions);
-            }
-
-            // Net salary = Gross salary - Exemptions (only for OLD regime)
-            long grossSalary = basic + da + bonus + commission + allowances + perquisites +
-                              hra + lta + otherAllow + profitsInLieu;
-            long salaryIncome;
-            if (regime == TaxRegime.OLD && totalExemptions > 0) {
-                // Cap exemptions at gross salary (can't exempt more than earned)
-                long cappedExemptions = Math.min(totalExemptions, grossSalary);
-                salaryIncome = Math.max(0, grossSalary - cappedExemptions);
-                log.info("=== SALARY (OLD): Gross={}, Exemptions={} (capped from {}), NetTaxable={}",
-                    grossSalary, cappedExemptions, totalExemptions, salaryIncome);
-            } else {
-                salaryIncome = grossSalary;
             }
 
             // ==================== HOUSE PROPERTY ====================
@@ -294,7 +85,6 @@ public class TaxComputationOrchestrator {
             long totalInterest = interestSB + interestFD + nsc + scss;
 
             // ==================== OTHER SOURCES - DIVIDEND ====================
-            // First check dividendEntries array (from 26AS import) - this takes priority
             long dividend = 0;
             Object dividendEntries = formData.get("dividendEntries");
             if (dividendEntries instanceof List) {
@@ -307,21 +97,20 @@ public class TaxComputationOrchestrator {
                     }
                 }
             }
-            // If still 0, check flat dividend field
             if (dividend == 0) dividend = getLong(formData, "dividends");
             if (dividend == 0) dividend = getLong(formData, "totalDividend");
-            
-            log.info("DIVIDEND: dividendEntries sum = {}, flat dividends = {}", 
-                (dividendEntries instanceof List ? "present" : "null"), dividend);
 
             // ==================== OTHER SOURCES - WINNINGS ====================
-            long winnings = getLong(formData, "lotteryIncome") + getLong(formData, "horseRaceIncome") + 
-                          getLong(formData, "cardGameIncome");
+            long winnings = getLong(formData, "lotteryIncome")
+                         + getLong(formData, "horseRaceIncome")
+                         + getLong(formData, "cardGameIncome");
             if (winnings == 0) {
                 Object winningsEntries = formData.get("winningsEntries");
                 if (winningsEntries instanceof List) {
                     for (Object obj : (List<?>) winningsEntries) {
-                        if (obj instanceof Map) winnings += getLong((Map<String, Object>) obj, "grossAmount");
+                        if (obj instanceof Map) {
+                            winnings += getLong((Map<String, Object>) obj, "grossAmount");
+                        }
                     }
                 }
             }
@@ -331,7 +120,9 @@ public class TaxComputationOrchestrator {
                 Object bankInterestEntries = formData.get("bankInterestEntries");
                 if (bankInterestEntries instanceof List) {
                     for (Object obj : (List<?>) bankInterestEntries) {
-                        if (obj instanceof Map) totalInterest += getLong((Map<String, Object>) obj, "interestAmount");
+                        if (obj instanceof Map) {
+                            totalInterest += getLong((Map<String, Object>) obj, "interestAmount");
+                        }
                     }
                 }
             }
@@ -344,27 +135,34 @@ public class TaxComputationOrchestrator {
             long otherMisc = getLong(formData, "otherMisc");
             long taxableGifts = getLong(formData, "taxableGifts");
 
-            long otherSources = totalInterest + dividend + winnings + vdaGains + familyPension + otherMisc + taxableGifts;
+            long otherSources = totalInterest + dividend + winnings + vdaGains
+                              + familyPension + otherMisc + taxableGifts;
 
             // ==================== GROSS TOTAL INCOME ====================
-            long grossTotalIncome = salaryIncome + hpIncome + stcgIncome + ltcgIncome + businessIncome + otherSources;
+            long grossTotalIncome = salaryIncome + hpIncome + stcgIncome
+                                 + ltcgIncome + businessIncome + otherSources;
 
             // ==================== DEDUCTIONS ====================
-            long s80C = getLong(formData, "s80C") + getLong(formData, "s80C_epf") + getLong(formData, "s80C_lic") + 
-                      getLong(formData, "s80C_ppf") + getLong(formData, "s80C_home");
-            long s80D = getLong(formData, "s80D") + getLong(formData, "s80D_self");
+            long s80C = getLong(formData, "s80C")
+                      + getLong(formData, "s80C_epf")
+                      + getLong(formData, "s80C_lic")
+                      + getLong(formData, "s80C_ppf")
+                      + getLong(formData, "s80C_home");
+            long s80D = getLong(formData, "s80D")
+                      + getLong(formData, "s80D_self");
             long s80TTA = getLong(formData, "s80TTA");
             long s80G = getLong(formData, "s80G");
             long totalDeductions = s80C + s80D + s80TTA + s80G;
 
             // ==================== STANDARD DEDUCTION ====================
-            // For OLD regime, std deduction is already included in totalExemptions
-            // For NEW regime, apply ₹75,000
+            // For OLD regime, std deduction is already included in salaryResult.totalSection16Deductions
+            // For NEW regime, apply ₹75,000 (SalaryScheduleComputer already applied it)
             long standardDeduction = (regime == TaxRegime.NEW) ? 75000 : 0;
             long profTax = (regime == TaxRegime.OLD) ? 0 : Math.min(getLong(formData, "profTax"), 2500);
 
             // ==================== NET TAXABLE ====================
-            long netTaxableIncome = Math.max(0, grossTotalIncome - totalDeductions - standardDeduction - profTax);
+            long netTaxableIncome = Math.max(0,
+                grossTotalIncome - totalDeductions - standardDeduction - profTax);
 
             // ==================== TAX ====================
             long tax = computeTax(netTaxableIncome, regime);
@@ -374,10 +172,11 @@ public class TaxComputationOrchestrator {
 
             // ==================== REBATE 87A ====================
             long rebate = 0;
-            // New Regime: Full rebate up to ₹7L taxable income (max ₹25,000)
-            if (regime == TaxRegime.NEW && netTaxableIncome <= 700000) rebate = Math.min(25000, totalTaxBeforeRebate);
-            // Old Regime: Full rebate up to ₹5L taxable income (max ₹12,500)
-            else if (regime == TaxRegime.OLD && netTaxableIncome <= 500000) rebate = Math.min(12500, totalTaxBeforeRebate);
+            if (regime == TaxRegime.NEW && netTaxableIncome <= 700000) {
+                rebate = Math.min(25000, totalTaxBeforeRebate);
+            } else if (regime == TaxRegime.OLD && netTaxableIncome <= 500000) {
+                rebate = Math.min(12500, totalTaxBeforeRebate);
+            }
 
             long taxAfterRebate = Math.max(0, totalTaxBeforeRebate - rebate);
 
@@ -387,14 +186,13 @@ public class TaxComputationOrchestrator {
             else if (netTaxableIncome > 10000000) surcharge = taxAfterRebate * 15 / 100;
             else if (netTaxableIncome > 5000000) surcharge = taxAfterRebate * 10 / 100;
 
-            long totalTaxLiability = taxAfterRebate + surcharge + (taxAfterRebate + surcharge) * 4 / 100;
+            long totalTaxLiability = taxAfterRebate + surcharge
+                                 + (long) Math.round((taxAfterRebate + surcharge) * 4.0 / 100.0);
 
             // ==================== TDS ====================
-            // Priority: user entered TDS > formData TDS > 26AS TDS
             long totalTds = 0;
             if (tdsFromUser > 0) {
                 totalTds = tdsFromUser;
-                log.info("Using TDS from employerEntries: {}", totalTds);
             } else {
                 totalTds = getLong(formData, "totalTds");
                 if (totalTds == 0) totalTds = getLong(formData, "tdsS192");
@@ -405,15 +203,16 @@ public class TaxComputationOrchestrator {
             long advanceTax = getLong(formData, "totalAdvanceTax");
             long selfTax = getLong(formData, "totalSelfAssessmentTax");
             long totalTaxPaid = totalTds + advanceTax + selfTax;
-            
+
             long balanceTaxPayable = Math.max(0, totalTaxLiability - totalTaxPaid);
             long refundAmount = Math.max(0, totalTaxPaid - totalTaxLiability);
-            
-            log.info("=== INCOME: Salary={}, HP={}, CG={}, Business={}, Other={}, Gross={}", 
-                salaryIncome, hpIncome, stcgIncome+ltcgIncome, businessIncome, otherSources, grossTotalIncome);
-            log.info("=== TAX: Normal={}, Special={}, Total={}, TDS={}, Balance={}", 
-                tax, winningsTax+vdaTax, totalTaxLiability, totalTds, balanceTaxPayable);
-            
+
+            log.info("=== INCOME: Salary={}, HP={}, CG={}, Business={}, Other={}, Gross={}",
+                    salaryIncome, hpIncome, stcgIncome + ltcgIncome, businessIncome,
+                    otherSources, grossTotalIncome);
+            log.info("=== TAX: Normal={}, Special={}, Total={}, TDS={}, Balance={}",
+                    tax, winningsTax + vdaTax, totalTaxLiability, totalTds, balanceTaxPayable);
+
             return TaxComputationResult.builder()
                 .grossTotalIncome(grossTotalIncome)
                 .netTaxableIncome(netTaxableIncome)
@@ -423,18 +222,159 @@ public class TaxComputationOrchestrator {
                 .tdsAmount(totalTds)
                 .taxRegime(regime)
                 .build();
-                
+
         } catch (Exception e) {
             log.error("Tax computation error", e);
             return TaxComputationResult.builder()
-                .grossTotalIncome(0).netTaxableIncome(0).totalTaxLiability(0).taxRegime(regime).build();
+                .grossTotalIncome(0).netTaxableIncome(0)
+                .totalTaxLiability(0).taxRegime(regime).build();
         }
     }
-    
+
+    // ── Salary computation via SalaryScheduleComputer ─────────────────────────────────
+
+    /**
+     * Convert formData.employerEntries[] into backend EmployerEntry records
+     * and compute via SalaryScheduleComputer.
+     *
+     * This is the SAME logic as TaxController.calculateSalaryIncome —
+     * kept here so TaxComputationOrchestrator is self-contained.
+     */
+    private SalaryComputationResult computeSalaryFromFormData(
+            Map<String, Object> formData, TaxRegime regime) {
+
+        try {
+            Object employerEntriesObj = formData.get("employerEntries");
+            if (!(employerEntriesObj instanceof List)) {
+                log.info("No employerEntries — returning empty salary result");
+                return SalaryComputationResult.empty("2026-27", regime);
+            }
+
+            List<?> rawList = (List<?>) employerEntriesObj;
+            if (rawList.isEmpty()) {
+                return SalaryComputationResult.empty("2026-27", regime);
+            }
+
+            List<EmployerEntry> employers = new ArrayList<>();
+            for (Object item : rawList) {
+                if (item instanceof Map) {
+                    employers.add(mapToEmployerEntry((Map<String, Object>) item));
+                }
+            }
+
+            if (employers.isEmpty()) {
+                return SalaryComputationResult.empty("2026-27", regime);
+            }
+
+            String ay = (String) formData.getOrDefault("assessmentYear", "2026-27");
+            long stdDed = regime == TaxRegime.NEW
+                    ? AssessmentYear.NEW_REGIME_STANDARD_DEDUCTION
+                    : AssessmentYear.OLD_REGIME_STANDARD_DEDUCTION;
+
+            return SalaryScheduleComputer.compute(employers, stdDed, regime, ay);
+
+        } catch (Exception e) {
+            log.error("Error computing salary: {}", e.getMessage(), e);
+            return SalaryComputationResult.empty("2026-27", regime);
+        }
+    }
+
+    /**
+     * Convert a single employer Map from formData into a backend EmployerEntry record.
+     * Field names match EmployerEntryManager.tsx interface.
+     *
+     * Frontend sends values in RUPEES. Backend EmployerEntry expects PAISE.
+     * Multiply by 100 to convert rupees → paise.
+     */
+    private EmployerEntry mapToEmployerEntry(Map<String, Object> m) {
+        String employerName = str(m, "customEmployerName");
+        String tan = str(m, "employerTAN");
+
+        // Section 17(1)
+        long basic = rupeesToPaise(l(m, "basic"));
+        long da = rupeesToPaise(l(m, "da"));
+        long commission = rupeesToPaise(l(m, "commission"));
+        long hraReceived = rupeesToPaise(l(m, "hra"));
+        long ltaReceived = rupeesToPaise(l(m, "lta"));
+        long transportAllowance = rupeesToPaise(l(m, "transportAllowance"));
+        long childrenEducationAllowance = rupeesToPaise(l(m, "childrenEducationAllowance"));
+        long hostelExpenditureAllowance = rupeesToPaise(l(m, "hostelExpenditureAllowance"));
+        long uniformAllowance = rupeesToPaise(l(m, "uniformAllowance"));
+        long otherAllowances = rupeesToPaise(l(m, "otherAllowance"));
+        long bonus = rupeesToPaise(l(m, "bonus"));
+        long arrearSalary = rupeesToPaise(l(m, "arrearSalary"));
+
+        // 17(2) & 17(3)
+        long perquisitesValue = rupeesToPaise(l(m, "perquisites"));
+        long profitsInLieu = rupeesToPaise(l(m, "profitsInLieu"));
+
+        // HRA
+        long annualRentPaid = rupeesToPaise(l(m, "rentPaid"));
+        String city = str(m, "city");
+        boolean isMetroCity = Boolean.TRUE.equals(m.get("isMetroCity"));
+        // FIX: Map natureOfEmployment ('GOV'/'NGOV'/'PSU') to isGovernmentEmployee boolean
+        String natureOfEmployment = str(m, "natureOfEmployment");
+        boolean isGovernmentEmployee = "GOV".equalsIgnoreCase(natureOfEmployment)
+                                    || "PSU".equalsIgnoreCase(natureOfEmployment)
+                                    || Boolean.TRUE.equals(m.get("isGovernmentEmployee"));
+        boolean isDisabledEmployee = Boolean.TRUE.equals(m.get("isDisabledEmployee"));
+
+        // Retirement
+        long commutedPensionReceived = rupeesToPaise(l(m, "commutedPension"));
+        // FIX: Read gratuityAlsoReceived from frontend (was hardcoded to false)
+        boolean gratuityAlsoReceived = Boolean.TRUE.equals(m.get("gratuityAlsoReceived"));
+        long gratuityReceived = rupeesToPaise(l(m, "gratuity"));
+        long leaveEncashmentReceived = rupeesToPaise(l(m, "leaveEncashment"));
+        long averageMonthlySalary = rupeesToPaise(l(m, "averageMonthlySalary"));
+        int unavailedLeaveDays = i(m, "unavailedLeaveDays");
+        long actualLtaFare = rupeesToPaise(l(m, "actualLtaFare"));
+        int numberOfChildren = i(m, "numberOfChildren");
+        // FIX: Read isDomesticTravel from frontend (was hardcoded to true)
+        boolean isDomesticTravel = m.get("isDomesticTravel") == null ? true : Boolean.TRUE.equals(m.get("isDomesticTravel"));
+        int journeysInBlock = i(m, "journeysInBlock");
+        int yearsOfService = i(m, "yearsOfService");
+
+        // Deductions
+        long professionalTax = rupeesToPaise(l(m, "professionalTax"));
+        long entertainmentAllowanceReceived = rupeesToPaise(l(m, "entertainmentAllowance"));
+        long employerNPSContribution = rupeesToPaise(l(m, "employerNPS"));
+
+        // TDS
+        long tdsDeducted = rupeesToPaise(l(m, "tdsDeducted"));
+
+        return new EmployerEntry(
+                employerName, tan,
+                basic, da, commission,
+                hraReceived, ltaReceived,
+                transportAllowance, childrenEducationAllowance,
+                hostelExpenditureAllowance, uniformAllowance,
+                otherAllowances, bonus, arrearSalary,
+                perquisitesValue,
+                profitsInLieu,
+                // Additional perquisites (0 — frontend uses single aggregate)
+                0L, 0L, 0L, 0L,
+                // HRA inputs
+                annualRentPaid, city, 0L, false, 0L,
+                // Taxable benefits
+                commutedPensionReceived, gratuityAlsoReceived,
+                gratuityReceived, leaveEncashmentReceived,
+                averageMonthlySalary, unavailedLeaveDays, 0L,
+                actualLtaFare, numberOfChildren, isDomesticTravel,
+                journeysInBlock, yearsOfService,
+                // Employer details
+                isGovernmentEmployee, isDisabledEmployee,
+                // Deductions
+                professionalTax, entertainmentAllowanceReceived, employerNPSContribution,
+                // TDS
+                tdsDeducted
+        );
+    }
+
+    // ── Tax slab calculation ───────────────────────────────────────────────────────
+
     private long computeTax(long income, TaxRegime regime) {
         if (income <= 0) return 0;
         if (regime == TaxRegime.NEW) {
-            // New Regime FY 2024-25 onwards (Section 115BAC)
             if (income <= 300000) return 0;
             else if (income <= 700000) return (income - 300000) * 5 / 100;
             else if (income <= 1000000) return 20000 + (income - 700000) * 10 / 100;
@@ -448,19 +388,53 @@ public class TaxComputationOrchestrator {
             else return 125000 + (income - 1000000) * 30 / 100;
         }
     }
-    
+
+    // ── Helpers ───────────────────────────────────────────────────────────────────
+
+    /**
+     * Convert paise (1 rupee = 100 paise) to rupees.
+     * SalaryScheduleComputer returns all monetary values in paise.
+     */
+    private long paiseToRupees(long paise) {
+        return paise / 100L;
+    }
+
+    /**
+     * Convert rupees to paise (1 rupee = 100 paise).
+     * Frontend sends monetary values in rupees. Backend EmployerEntry
+     * record expects paise. Multiply by 100.
+     */
+    private long rupeesToPaise(long rupees) {
+        return rupees * 100L;
+    }
+
     private long getLong(Map<String, Object> map, String key) {
         try {
             Object value = map.get(key);
             if (value == null) return 0;
             if (value instanceof Number) return ((Number) value).longValue();
-            try {
-                double d = Double.parseDouble(value.toString().replaceAll("[^0-9.-]", ""));
-                return (long) d;
-            } catch (NumberFormatException e) { return 0; }
+            return (long) Double.parseDouble(value.toString().replaceAll("[^0-9.-]", ""));
         } catch (Exception e) { return 0; }
     }
-    
+
+    private long l(Map<String, Object> m, String key) {
+        return getLong(m, key);
+    }
+
+    private int i(Map<String, Object> m, String key) {
+        try {
+            Object v = m.get(key);
+            if (v == null) return 0;
+            if (v instanceof Number) return ((Number) v).intValue();
+            return Integer.parseInt(v.toString().replaceAll("[^0-9]", ""));
+        } catch (Exception e) { return 0; }
+    }
+
+    private String str(Map<String, Object> m, String key) {
+        Object v = m.get(key);
+        return v == null ? "" : v.toString();
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> getMap(Map<String, Object> map, String key) {
         try {

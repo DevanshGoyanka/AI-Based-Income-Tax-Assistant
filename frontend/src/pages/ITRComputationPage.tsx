@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAY } from '../contexts/AYContext';
 import { itrApi } from '../api/itr';
@@ -162,23 +162,44 @@ export default function ITRComputationPage() {
   const [backendTaxResult, setBackendTaxResult] = useState<any>(null);
   const [taxResultLoading, setTaxResultLoading] = useState(false);
 
+  // Debounce timer ref for tax summary API calls
+  const taxResultDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Fetch backend-computed tax summary - replaces local computeTax()
+  // Debounced: only fires 500ms after user stops typing
   useEffect(() => {
     if (!clientId || !ayParam) return;
-    console.log('[TAX] Calling computeTaxSummary for Other Sources...', { ayParam, regime });
-    setTaxResultLoading(true);
-    itrApi.computeTaxSummary(formData, ayParam || '2025-26', regime)
-      .then((result: any) => {
-        console.log('[TAX] computeTaxSummary result:', result);
-        setBackendTaxResult(result);
-      })
-      .catch((err: any) => {
-        console.error('[TAX] computeTaxSummary ERROR:', err);
-        // If backend call fails, clear result (no fallback to local)
-        setBackendTaxResult(null);
-      })
-      .finally(() => setTaxResultLoading(false));
+
+    // Cancel any pending call
+    if (taxResultDebounceRef.current) {
+      clearTimeout(taxResultDebounceRef.current);
+    }
+
+    taxResultDebounceRef.current = setTimeout(() => {
+      console.log('[TAX] Calling computeTaxSummary for Other Sources...', { ayParam, regime: regime, formDataKeys: Object.keys(formData || {}) });
+      setTaxResultLoading(true);
+      itrApi.computeTaxSummary(formData, ayParam || '2025-26', regime)
+        .then((result: any) => {
+          console.log('[TAX] computeTaxSummary result - regimeUsed:', result.taxRegime, 'result:', result);
+          setBackendTaxResult(result);
+        })
+        .catch((err: any) => {
+          console.error('[TAX] computeTaxSummary ERROR:', err);
+          // If backend call fails, clear result (no fallback to local)
+          setBackendTaxResult(null);
+        })
+        .finally(() => setTaxResultLoading(false));
+    }, 500);
   }, [clientId, ayParam, regime, formData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (taxResultDebounceRef.current) {
+        clearTimeout(taxResultDebounceRef.current);
+      }
+    };
+  }, []);
 
   const taxResult = useMemo(() => {
     // ALWAYS use backend-computed result - no local calculation
@@ -196,7 +217,17 @@ export default function ITRComputationPage() {
       familyPensionIncome: 0, // Added for Other Sources
       tdsS192: 0, tds194A: 0, tdsOther: 0,
       adv15Jun: 0, adv15Sep: 0, adv15Dec: 0, adv15Mar: 0,
-      selfTax: 0, tdsEntries: [], selfAssessmentTaxEntries: []
+      selfTax: 0, tdsEntries: [], selfAssessmentTaxEntries: [],
+      // Schedule S (Salary) fields — populated by backend SalaryScheduleComputer
+      salaryIncome: 0, salary171: 0, salary172: 0, salary173: 0,
+      ltaExempt: 0, gratuityExempt: 0, leaveEncashmentExempt: 0,
+      pensionCommutationExempt: 0, transportExempt: 0,
+      childrenEducationExempt: 0, hostelExempt: 0, uniformExempt: 0,
+      totalSection10Exempt: 0, standardDeduction: 0,
+      entertainmentAllowanceDed: 0, professionalTaxDed: 0,
+      totalSection16Deductions: 0, salaryTDS: 0, salaryEmployerCount: 0,
+      hraCondition1: 0, hraCondition2: 0, hraCondition3: 0,
+      hraIsMetro: false, hraCityClassified: ''
     };
   }, [backendTaxResult]);
 
@@ -952,7 +983,11 @@ export default function ITRComputationPage() {
             </select>
             <select
               value={regime}
-              onChange={(e) => setRegime(e.target.value as any)}
+              onChange={(e) => {
+                const newRegime = e.target.value as 'old' | 'new';
+                console.log('[REGIME] Changed from', regime, 'to', newRegime);
+                setRegime(newRegime);
+              }}
               style={{
                 padding: '6px 12px',
                 border: '1px solid var(--border)',
@@ -1669,19 +1704,44 @@ function PersonalInfoTab({ formData, setFormData }: any) {
   );
 }
 
-function SalaryTab({ formData, setFormData, ayParam, regime }: any) {
+function SalaryTab({ formData, setFormData, ayParam, regime, taxResult }: any) {
   return (
     <div>
       <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 16, color: 'var(--text-secondary)' }}>
         Income from Salary (CBDT Schedule S - Section 15-17)
       </h3>
-      
-      {/* Multi-Employer Entry Manager */}
+
+      {/* Multi-Employer Entry Manager — backend-computed results shown via taxResult */}
       <EmployerEntryManager
         entries={formData.employerEntries || []}
         onChange={(entries) => setFormData({ ...formData, employerEntries: entries })}
         assessmentYear={ayParam || '2025-26'}
         taxRegime={regime === 'new' ? 'NEW' : 'OLD'}
+        backendResult={{
+          grossSalaryTotal: taxResult?.grossSalary,
+          hraExempt: taxResult?.hraExempt,
+          ltaExempt: taxResult?.ltaExempt,
+          gratuityExempt: taxResult?.gratuityExempt,
+          leaveEncashmentExempt: taxResult?.leaveEncashmentExempt,
+          pensionCommutationExempt: taxResult?.pensionCommutationExempt,
+          transportAllowanceExempt: taxResult?.transportExempt,
+          childrenEducationExempt: taxResult?.childrenEducationExempt,
+          hostelExpenditureExempt: taxResult?.hostelExempt,
+          uniformAllowanceExempt: taxResult?.uniformExempt,
+          totalSection10Exempt: taxResult?.totalSection10Exempt,
+          standardDeduction: taxResult?.standardDeduction,
+          entertainmentAllowanceDed: taxResult?.entertainmentAllowanceDed,
+          professionalTaxDed: taxResult?.professionalTaxDed,
+          totalSection16Deductions: taxResult?.totalSection16Deductions,
+          netTaxableSalary: taxResult?.salaryIncome,
+          totalTDSDeducted: taxResult?.salaryTDS,
+          employerCount: taxResult?.salaryEmployerCount,
+          hraCondition1_Actual: taxResult?.hraCondition1,
+          hraCondition2_RentMinus10Pct: taxResult?.hraCondition2,
+          hraCondition3_MetroPct: taxResult?.hraCondition3,
+          hraIsMetroCity: taxResult?.hraIsMetro,
+          hraCityClassified: taxResult?.hraCityClassified,
+        }}
       />
     </div>
   );

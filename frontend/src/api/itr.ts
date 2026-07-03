@@ -35,11 +35,14 @@ export const itrApi = {
    * Compute complete tax summary in backend - replaces frontend computeTax() entirely.
    */
   computeTaxSummary: async (formData: any, assessmentYear: string, regime: string) => {
-    const { data } = await axiosInstance.post('/tax-summary/compute', {
+    const payload = {
       ...formData,
       assessmentYear,
       regime
-    });
+    };
+    console.log('[API] computeTaxSummary sending regime:', regime, 'payload keys:', Object.keys(payload));
+    // Use query param so backend's @RequestParam picks it up reliably
+    const { data } = await axiosInstance.post(`/tax-summary/compute?regime=${regime}`, payload);
     return data;
   },
   

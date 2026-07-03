@@ -1,39 +1,92 @@
 import React, { useState } from 'react';
 
+/**
+ * EmployerEntryManager — multi-employer salary data entry.
+ *
+ * IMPORTANT: This component is now a PURE DATA-ENTRY component.
+ * All exemption/tax calculations are done in the BACKEND via
+ * SalaryScheduleComputer (called by TaxController and
+ * TaxComputationOrchestrator). The frontend only:
+ *   1. Collects raw user input
+ *   2. Displays backend-computed results from `taxResult` prop
+ *
+ * Field names match the backend EmployerEntry record so the
+ * TaxController.mapToEmployerEntry() conversion is lossless.
+ */
+
 interface EmployerEntry {
   id: string;
   customEmployerName?: string;
   employerName?: string;
   employerTAN?: string;
   natureOfEmployment?: string;
+
+  // Section 17(1) — Gross Salary
   basic?: number;
   da?: number;
+  commission?: number;
   hra?: number;
   bonus?: number;
   allowances?: number;
   lta?: number;
+  otherAllowance?: number;
+  arrearSalary?: number;
+
+  // Section 17(2) — Perquisites (single aggregate field)
+  perquisites?: number;
+
+  // Section 17(3) — Profits in Lieu (single aggregate field)
+  profitsInLieu?: number;
+
+  // HRA inputs
   rentPaid?: number;
+  city?: string;
   isMetroCity?: boolean;
+  isGovernmentEmployee?: boolean;
+  isDisabledEmployee?: boolean;
+
+  // Retirement benefits
   commutedPension?: number;
   gratuity?: number;
   leaveEncashment?: number;
-  isGovernmentEmployee?: boolean;
-  isDisabledEmployee?: boolean;
+  averageMonthlySalary?: number;
+  yearsOfService?: number;
+  unavailedLeaveDays?: number;
+
+  // LTA inputs
+  actualLtaFare?: number;
+  isDomesticTravel?: boolean;
+  journeysInBlock?: number;
+  ltaExempt?: number;
+
+  // Children count (for CEA/hostel)
+  numberOfChildren?: number;
+
+  // Gratuity also received (for pension commutation)
+  gratuityAlsoReceived?: boolean;
+
+  // Section 10(14) allowances
+  transportAllowance?: number;
   childrenEducationAllowance?: number;
   hostelExpenditureAllowance?: number;
-  professionalTax?: number;
-  tdsDeducted?: number;
-  // New exemption fields
-  transportAllowance?: number;
+  uniformAllowance?: number;
+
+  // Section 16 deductions
   entertainmentAllowance?: number;
+  professionalTax?: number;
+
+  // VRS / Retrenchment
   vrsCompensation?: number;
   retrenchmentCompensation?: number;
-  perquisites?: number;
-  profitsInLieu?: number;
-  commission?: number;
-  otherAllowance?: number;
-  ltaExempt?: number;
+
+  // Other
   otherExempt?: number;
+
+  // TDS
+  tdsDeducted?: number;
+
+  // NPS
+  employerNPS?: number;
 }
 
 interface Props {
@@ -41,6 +94,32 @@ interface Props {
   onChange: (entries: EmployerEntry[]) => void;
   assessmentYear: string;
   taxRegime?: string;
+  /** Backend-computed salary result (from taxResult prop) */
+  backendResult?: {
+    grossSalaryTotal?: number;
+    hraExempt?: number;
+    ltaExempt?: number;
+    gratuityExempt?: number;
+    leaveEncashmentExempt?: number;
+    pensionCommutationExempt?: number;
+    transportAllowanceExempt?: number;
+    childrenEducationExempt?: number;
+    hostelExpenditureExempt?: number;
+    uniformAllowanceExempt?: number;
+    totalSection10Exempt?: number;
+    standardDeduction?: number;
+    entertainmentAllowanceDed?: number;
+    professionalTaxDed?: number;
+    totalSection16Deductions?: number;
+    netTaxableSalary?: number;
+    totalTDSDeducted?: number;
+    employerCount?: number;
+    hraCondition1_Actual?: number;
+    hraCondition2_RentMinus10Pct?: number;
+    hraCondition3_MetroPct?: number;
+    hraIsMetroCity?: boolean;
+    hraCityClassified?: string;
+  };
 }
 
 const generateId = () => 'emp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
@@ -72,12 +151,17 @@ const F = ({ label, hint, children }: any) => (
 );
 
 const Inp = (p: any) => (
-  <input type="text" inputMode="numeric" value={p.value === 0 || p.value === undefined ? '' : String(p.value)} 
+  <input type="text" inputMode="numeric" value={p.value === 0 || p.value === undefined ? '' : String(p.value)}
     onChange={(e: any) => { let val = String(e.target.value).replace(/[^\d]/g, ''); p.onChange(val === '' ? 0 : parseInt(val, 10) || 0); }}
     style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
 );
 
-export function EmployerEntryManager({ entries = [], onChange, assessmentYear, taxRegime = 'OLD' }: Props) {
+const TextInp = (p: any) => (
+  <input type="text" value={p.value || ''} onChange={(e: any) => p.onChange(e.target.value)}
+    style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 13 }} />
+);
+
+export function EmployerEntryManager({ entries = [], onChange, assessmentYear, taxRegime = 'OLD', backendResult }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => setExpandedId(expandedId === id ? null : id);
@@ -90,6 +174,7 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
 
   const removeEntry = (id: string) => onChange(entries.filter(e => e.id !== id));
 
+  // ── Local gross calculation (for display only — backend is authoritative) ──
   const getGross = (e: EmployerEntry) => {
     const b = typeof e.basic === 'number' && e.basic > 0 ? e.basic : 0;
     const d = typeof e.da === 'number' && e.da > 0 ? e.da : 0;
@@ -109,138 +194,15 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
     return b + d + h + bn + a + l + cp + g + leave + perq + pil + comm + oa + vrs + retrench;
   };
 
-  // Calculate exemptions for OLD regime
-  const calculateExemptions = (e: EmployerEntry) => {
-    const gross = getGross(e);
-    if (gross <= 0) return 0;
-    if (taxRegime === 'NEW') {
-      // New Regime: Only Standard Deduction of ₹75,000 (capped at gross)
-      return Math.min(75000, gross);
-    }
-    if (taxRegime !== 'OLD') return 0;
-    const basic = e.basic || 0;
-    const da = e.da || 0;
-    const basicDA = basic + da;
-    const hra = e.hra || 0;
-    const lta = e.lta || 0;
-    const gratuity = e.gratuity || 0;
-    const leaveEnc = e.leaveEncashment || 0;
-    const commutedPen = e.commutedPension || 0;
-    const rentPaid = e.rentPaid || 0;
-    const isMetro = e.isMetroCity || false;
-    const isGovt = e.isGovernmentEmployee || false;
-
-    // HRA Exemption u/s 10(13A)
-    const percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
-    const rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
-    const hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
-
-    // Transport Allowance u/s 10(14): max ₹19,200
-    const transportExempt = Math.min(e.transportAllowance || 0, 19200);
-
-    // Children Education Allowance u/s 10(14): max ₹2,400
-    const ceaExempt = Math.min(e.childrenEducationAllowance || 0, 2400);
-
-    // Hostel Expenditure u/s 10(14): max ₹7,200
-    const hostelExempt = Math.min(e.hostelExpenditureAllowance || 0, 7200);
-
-    // LTA Exemption u/s 10(5): min of LTA received, LTA exempt claimed
-    const ltaExempt = Math.min(lta, e.ltaExempt || 0);
-
-    // Gratuity Exemption u/s 10(10): max ₹20,00,000
-    const gratuityExempt = Math.min(gratuity, 2000000);
-
-    // Leave Encashment u/s 10(10AA): max ₹25,00,000
-    const leaveExempt = Math.min(leaveEnc, 2500000);
-
-    // Standard Deduction u/s 16(ia): ₹50,000
-    const stdDed = 50000;
-
-    // Professional Tax u/s 16(iii): max ₹2,500
-    const profTaxExempt = Math.min(e.professionalTax || 0, 2500);
-
-    // Entertainment Allowance u/s 16(ii): ₹5,000 (Govt only)
-    const entExempt = isGovt ? Math.min(e.entertainmentAllowance || 0, 5000) : 0;
-
-    // VRS Compensation u/s 10(10C): max ₹5,00,000
-    const vrsExempt = Math.min(e.vrsCompensation || 0, 500000);
-
-    // Retrenchment Compensation u/s 10(10B): max ₹5,00,000
-    const retrenchExempt = Math.min(e.retrenchmentCompensation || 0, 500000);
-
-    // Commuted Pension u/s 10(10A): 50% (Govt) / 33% (Non-Govt)
-    const commutedExempt = isGovt ? commutedPen * 50 / 100 : commutedPen * 33 / 100;
-
-    // Other Exemptions
-    const otherExempt = e.otherExempt || 0;
-
-    const total = hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
-           gratuityExempt + leaveExempt + stdDed + profTaxExempt + entExempt +
-           vrsExempt + retrenchExempt + commutedExempt + otherExempt;
-
-    // Cap exemptions at gross salary (can't exempt more than earned)
-    return Math.min(total, gross);
-  };
-
   const totalGross = () => entries.reduce((s, e) => s + getGross(e), 0);
-
-  // CBDT Guidelines: Standard Deduction u/s 16(ia) is allowed ONLY ONCE per year,
-  // not per employer. Same applies to Professional Tax u/s 16(iii).
-  // HRA, LTA, Gratuity, etc. are per-employer specific.
-  const totalExemptions = () => {
-    if (taxRegime === 'NEW') {
-      // NEW Regime: Standard Deduction ₹75,000 allowed only ONCE
-      const totalGrossSalary = totalGross();
-      return totalGrossSalary > 0 ? Math.min(75000, totalGrossSalary) : 0;
-    }
-    // OLD Regime: Sum per-employer exemptions, but Std Ded & Prof Tax only ONCE
-    let perEmployerExemptions = 0;
-    let totalProfTax = 0;
-    for (const e of entries) {
-      const gross = getGross(e);
-      if (gross <= 0) continue;
-      const basic = e.basic || 0;
-      const da = e.da || 0;
-      const basicDA = basic + da;
-      const hra = e.hra || 0;
-      const lta = e.lta || 0;
-      const gratuity = e.gratuity || 0;
-      const leaveEnc = e.leaveEncashment || 0;
-      const commutedPen = e.commutedPension || 0;
-      const rentPaid = e.rentPaid || 0;
-      const isMetro = e.isMetroCity || false;
-      const isGovt = e.isGovernmentEmployee || false;
-
-      const percentOfBasic = isMetro ? basicDA * 50 / 100 : basicDA * 40 / 100;
-      const rentMinusTenPercent = Math.max(0, rentPaid - basicDA * 10 / 100);
-      const hraExempt = Math.min(hra, Math.min(percentOfBasic, rentMinusTenPercent));
-      const transportExempt = Math.min(e.transportAllowance || 0, 19200);
-      const ceaExempt = Math.min(e.childrenEducationAllowance || 0, 2400);
-      const hostelExempt = Math.min(e.hostelExpenditureAllowance || 0, 7200);
-      const ltaExempt = Math.min(lta, e.ltaExempt || 0);
-      const gratuityExempt = Math.min(gratuity, 2000000);
-      const leaveExempt = Math.min(leaveEnc, 2500000);
-      const entExempt = isGovt ? Math.min(e.entertainmentAllowance || 0, 5000) : 0;
-      const vrsExempt = Math.min(e.vrsCompensation || 0, 500000);
-      const retrenchExempt = Math.min(e.retrenchmentCompensation || 0, 500000);
-      const commutedExempt = isGovt ? commutedPen * 50 / 100 : commutedPen * 33 / 100;
-      const otherExempt = e.otherExempt || 0;
-
-      const perEmpTotal = hraExempt + transportExempt + ceaExempt + hostelExempt + ltaExempt +
-             gratuityExempt + leaveExempt + entExempt + vrsExempt + retrenchExempt +
-             commutedExempt + otherExempt;
-
-      perEmployerExemptions += Math.min(perEmpTotal, gross);
-      totalProfTax += e.professionalTax || 0;
-    }
-    // Standard Deduction ₹50,000 only ONCE
-    const stdDed = 50000;
-    // Professional Tax max ₹2,500 only ONCE (aggregate from all employers)
-    const profTaxExempt = Math.min(totalProfTax, 2500);
-    return perEmployerExemptions + stdDed + profTaxExempt;
-  };
-
   const totalTDS = () => entries.reduce((s, e) => s + (e.tdsDeducted || 0), 0);
+
+  // ── Backend-computed values (preferred) ──
+  const backendGross = backendResult?.grossSalaryTotal ?? 0;
+  const backendExempt = (backendResult?.totalSection10Exempt ?? 0) + (backendResult?.totalSection16Deductions ?? 0);
+  const backendNet = backendResult?.netTaxableSalary ?? 0;
+  const backendTDS = backendResult?.totalTDSDeducted ?? 0;
+  const hasBackend = backendResult && (backendResult.grossSalaryTotal ?? 0) > 0;
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -259,24 +221,27 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
             <button onClick={() => removeEntry(e.id)} style={{ background: '#fef2f2', color: '#ef4444', border: 'none', width: 28, height: 28, borderRadius: '50%', cursor: 'pointer' }}>×</button>
           </div>
 
+          {/* Per-employer summary card — local gross only (backend aggregates across employers) */}
           <div style={{ padding: 16, background: 'linear-gradient(135deg, #fef3e2, #fff7ed)', borderRadius: 8, marginBottom: 16, border: '1px solid #fed7aa' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Gross</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(e))}</div></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
               <div>
-                <div style={{ fontSize: 11, color: '#78716c' }}>
-                  {taxRegime === 'NEW' ? 'Std Ded u/s 16(ia)' : 'Exempt u/s 10 & 16'}
-                </div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#16a34a' }}>₹{formatINR(calculateExemptions(e))}</div>
+                <div style={{ fontSize: 11, color: '#78716c' }}>This Employer Gross (Local)</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(getGross(e))}</div>
               </div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>Taxable</div><div style={{ fontSize: 16, fontWeight: 700, color: '#c9943a' }}>₹{formatINR(Math.max(0, getGross(e) - calculateExemptions(e)))}</div></div>
-              <div><div style={{ fontSize: 11, color: '#78716c' }}>TDS</div><div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div></div>
+              <div>
+                <div style={{ fontSize: 11, color: '#78716c' }}>TDS (This Employer)</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>₹{formatINR(e.tdsDeducted)}</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 10, color: '#78716c', marginTop: 8, fontStyle: 'italic' }}>
+              Aggregated Schedule S computation shown below (backend-computed)
             </div>
           </div>
 
           <Section title="Employer Details" expanded={expandedId === `emp-${e.id}`} onClick={() => toggleExpand(`emp-${e.id}`)} badge={e.employerName || 'Req'}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Name"><Inp value={e.employerName || ''} onChange={(v: any) => updateEntry(e.id, { employerName: v })} /></F>
-              <F label="TAN"><Inp value={e.employerTAN || ''} onChange={(v: any) => updateEntry(e.id, { employerTAN: v.toUpperCase() })} /></F>
+              <F label="Name"><TextInp value={e.employerName || ''} onChange={(v: any) => updateEntry(e.id, { employerName: v })} /></F>
+              <F label="TAN"><TextInp value={e.employerTAN || ''} onChange={(v: any) => updateEntry(e.id, { employerTAN: v.toUpperCase() })} /></F>
               <F label="Nature">
                 <select value={e.natureOfEmployment || 'NGOV'} onChange={(ev: any) => updateEntry(e.id, { natureOfEmployment: ev.target.value })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6 }}>
                   <option value="NGOV">Private</option><option value="GOV">Government</option><option value="PSU">PSU</option>
@@ -285,81 +250,189 @@ export function EmployerEntryManager({ entries = [], onChange, assessmentYear, t
             </div>
           </Section>
 
-          <Section title="Salary Components" expanded={expandedId === `sal-${e.id}`} onClick={() => toggleExpand(`sal-${e.id}`)} badge="">
+          <Section title="Salary Components (Section 17(1))" expanded={expandedId === `sal-${e.id}`} onClick={() => toggleExpand(`sal-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-              <F label="Basic"><Inp type="number" value={e.basic} onChange={(v: any) => updateEntry(e.id, { basic: v })} /></F>
-              <F label="DA"><Inp type="number" value={e.da} onChange={(v: any) => updateEntry(e.id, { da: v })} /></F>
-              <F label="HRA"><Inp type="number" value={e.hra} onChange={(v: any) => updateEntry(e.id, { hra: v })} /></F>
-              <F label="Bonus"><Inp type="number" value={e.bonus} onChange={(v: any) => updateEntry(e.id, { bonus: v })} /></F>
-              <F label="Allowances"><Inp type="number" value={e.allowances} onChange={(v: any) => updateEntry(e.id, { allowances: v })} /></F>
-              <F label="LTA"><Inp type="number" value={e.lta} onChange={(v: any) => updateEntry(e.id, { lta: v })} /></F>
-              <F label="Commission"><Inp type="number" value={e.commission} onChange={(v: any) => updateEntry(e.id, { commission: v })} /></F>
-              <F label="Perquisites"><Inp type="number" value={e.perquisites} onChange={(v: any) => updateEntry(e.id, { perquisites: v })} /></F>
-              <F label="Profits in Lieu"><Inp type="number" value={e.profitsInLieu} onChange={(v: any) => updateEntry(e.id, { profitsInLieu: v })} /></F>
-              <F label="Other Allowance"><Inp type="number" value={e.otherAllowance} onChange={(v: any) => updateEntry(e.id, { otherAllowance: v })} /></F>
+              <F label="Basic"><Inp value={e.basic} onChange={(v: any) => updateEntry(e.id, { basic: v })} /></F>
+              <F label="DA"><Inp value={e.da} onChange={(v: any) => updateEntry(e.id, { da: v })} /></F>
+              <F label="HRA"><Inp value={e.hra} onChange={(v: any) => updateEntry(e.id, { hra: v })} /></F>
+              <F label="Bonus"><Inp value={e.bonus} onChange={(v: any) => updateEntry(e.id, { bonus: v })} /></F>
+              <F label="Allowances"><Inp value={e.allowances} onChange={(v: any) => updateEntry(e.id, { allowances: v })} /></F>
+              <F label="LTA"><Inp value={e.lta} onChange={(v: any) => updateEntry(e.id, { lta: v })} /></F>
+              <F label="Commission"><Inp value={e.commission} onChange={(v: any) => updateEntry(e.id, { commission: v })} /></F>
+              <F label="Other Allowance"><Inp value={e.otherAllowance} onChange={(v: any) => updateEntry(e.id, { otherAllowance: v })} /></F>
+              <F label="Arrear Salary"><Inp value={e.arrearSalary} onChange={(v: any) => updateEntry(e.id, { arrearSalary: v })} /></F>
             </div>
           </Section>
 
-          <Section title="HRA Exemption" expanded={expandedId === `hra-${e.id}`} onClick={() => toggleExpand(`hra-${e.id}`)} badge={taxRegime}>
+          <Section title="Perquisites & Profits in Lieu (Section 17(2) & 17(3))" expanded={expandedId === `perq-${e.id}`} onClick={() => toggleExpand(`perq-${e.id}`)} badge="">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+              <F label="Perquisites u/s 17(2)" hint="Aggregate value of all perquisites"><Inp value={e.perquisites} onChange={(v: any) => updateEntry(e.id, { perquisites: v })} /></F>
+              <F label="Profits in Lieu u/s 17(3)" hint="Compensation, non-compete, etc."><Inp value={e.profitsInLieu} onChange={(v: any) => updateEntry(e.id, { profitsInLieu: v })} /></F>
+            </div>
+          </Section>
+
+          <Section title="HRA Exemption u/s 10(13A)" expanded={expandedId === `hra-${e.id}`} onClick={() => toggleExpand(`hra-${e.id}`)} badge={taxRegime}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Rent Paid"><Inp type="number" value={e.rentPaid} onChange={(v: any) => updateEntry(e.id, { rentPaid: v })} hint="Required" /></F>
-              <F label="Metro">
+              <F label="Rent Paid (Annual)"><Inp value={e.rentPaid} onChange={(v: any) => updateEntry(e.id, { rentPaid: v })} hint="Required for HRA exemption" /></F>
+              <F label="City of Employment" hint="For metro classification">
+                <TextInp value={e.city || ''} onChange={(v: any) => updateEntry(e.id, { city: v })} />
+              </F>
+              <F label="Metro City">
                 <select value={e.isMetroCity ? 'yes' : 'no'} onChange={(ev: any) => updateEntry(e.id, { isMetroCity: ev.target.value === 'yes' })} style={{ width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 6 }}>
                   <option value="no">No (40%)</option><option value="yes">Yes (50%)</option>
                 </select>
               </F>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
                 <input type="checkbox" checked={e.isGovernmentEmployee || false} onChange={(ev: any) => updateEntry(e.id, { isGovernmentEmployee: ev.target.checked })} />
-                <span style={{ fontSize: 12 }}>Govt Employee</span>
+                <span style={{ fontSize: 12 }}>Govt Employee (full HRA exempt)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
+                <input type="checkbox" checked={e.isDisabledEmployee || false} onChange={(ev: any) => updateEntry(e.id, { isDisabledEmployee: ev.target.checked })} />
+                <span style={{ fontSize: 12 }}>Disabled Employee (higher transport cap)</span>
               </div>
             </div>
           </Section>
 
-          <Section title="Retirement & VRS" expanded={expandedId === `ret-${e.id}`} onClick={() => toggleExpand(`ret-${e.id}`)} badge="">
+          <Section title="Retirement & VRS Benefits" expanded={expandedId === `ret-${e.id}`} onClick={() => toggleExpand(`ret-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Commuted Pension" hint="u/s 10(10A)"><Inp type="number" value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
-              <F label="Gratuity (max ₹20L)" hint="u/s 10(10)"><Inp type="number" value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
-              <F label="Leave Encash (max ₹25L)" hint="u/s 10(10AA)"><Inp type="number" value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
-              <F label="VRS Compensation (max ₹5L)" hint="u/s 10(10C)"><Inp type="number" value={e.vrsCompensation} onChange={(v: any) => updateEntry(e.id, { vrsCompensation: v })} /></F>
-              <F label="Retrenchment (max ₹5L)" hint="u/s 10(10B)"><Inp type="number" value={e.retrenchmentCompensation} onChange={(v: any) => updateEntry(e.id, { retrenchmentCompensation: v })} /></F>
+              <F label="Commuted Pension" hint="u/s 10(10A)"><Inp value={e.commutedPension} onChange={(v: any) => updateEntry(e.id, { commutedPension: v })} /></F>
+              <F label="Gratuity (max ₹20L)" hint="u/s 10(10)"><Inp value={e.gratuity} onChange={(v: any) => updateEntry(e.id, { gratuity: v })} /></F>
+              <F label="Leave Encash (max ₹25L)" hint="u/s 10(10AA)"><Inp value={e.leaveEncashment} onChange={(v: any) => updateEntry(e.id, { leaveEncashment: v })} /></F>
+              <F label="VRS Compensation (max ₹5L)" hint="u/s 10(10C)"><Inp value={e.vrsCompensation} onChange={(v: any) => updateEntry(e.id, { vrsCompensation: v })} /></F>
+              <F label="Retrenchment (max ₹5L)" hint="u/s 10(10B)"><Inp value={e.retrenchmentCompensation} onChange={(v: any) => updateEntry(e.id, { retrenchmentCompensation: v })} /></F>
+              <F label="Avg Monthly Salary" hint="For gratuity/leave encashment"><Inp value={e.averageMonthlySalary} onChange={(v: any) => updateEntry(e.id, { averageMonthlySalary: v })} /></F>
+              <F label="Years of Service" hint="For gratuity/leave encashment"><Inp value={e.yearsOfService} onChange={(v: any) => updateEntry(e.id, { yearsOfService: v })} /></F>
+              <F label="Unavailed Leave Days" hint="For leave encashment"><Inp value={e.unavailedLeaveDays} onChange={(v: any) => updateEntry(e.id, { unavailedLeaveDays: v })} /></F>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
+                <input type="checkbox" checked={e.gratuityAlsoReceived || false} onChange={(ev: any) => updateEntry(e.id, { gratuityAlsoReceived: ev.target.checked })} />
+                <span style={{ fontSize: 12 }}>Gratuity also received (affects pension commutation)</span>
+              </div>
             </div>
           </Section>
 
-          <Section title="Allowances & Exemptions" expanded={expandedId === `all-${e.id}`} onClick={() => toggleExpand(`all-${e.id}`)} badge="">
+          <Section title="LTA Exemption u/s 10(5)" expanded={expandedId === `lta-${e.id}`} onClick={() => toggleExpand(`lta-${e.id}`)} badge="">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              <F label="Transport (max ₹19,200)" hint="u/s 10(14)"><Inp type="number" value={e.transportAllowance} onChange={(v: any) => updateEntry(e.id, { transportAllowance: v })} /></F>
-              <F label="Children Edu (max ₹2,400)" hint="u/s 10(14)"><Inp type="number" value={e.childrenEducationAllowance} onChange={(v: any) => updateEntry(e.id, { childrenEducationAllowance: v })} /></F>
-              <F label="Hostel (max ₹7,200)" hint="u/s 10(14)"><Inp type="number" value={e.hostelExpenditureAllowance} onChange={(v: any) => updateEntry(e.id, { hostelExpenditureAllowance: v })} /></F>
-              <F label="Entertainment (Govt only, max ₹5,000)" hint="u/s 16(ii)"><Inp type="number" value={e.entertainmentAllowance} onChange={(v: any) => updateEntry(e.id, { entertainmentAllowance: v })} /></F>
-              <F label="LTA Exempt Claimed" hint="u/s 10(5)"><Inp type="number" value={e.ltaExempt} onChange={(v: any) => updateEntry(e.id, { ltaExempt: v })} /></F>
-              <F label="Other Exemptions" hint="Schedule EI"><Inp type="number" value={e.otherExempt} onChange={(v: any) => updateEntry(e.id, { otherExempt: v })} /></F>
+              <F label="Actual LTA Fare" hint="Shortest route, economy class"><Inp value={e.actualLtaFare} onChange={(v: any) => updateEntry(e.id, { actualLtaFare: v })} /></F>
+              <F label="Journeys in Block" hint="Max 2 per 4-year block">
+                <Inp value={e.journeysInBlock} onChange={(v: any) => updateEntry(e.id, { journeysInBlock: v })} />
+              </F>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 20 }}>
+                <input type="checkbox" checked={e.isDomesticTravel !== false} onChange={(ev: any) => updateEntry(e.id, { isDomesticTravel: ev.target.checked })} />
+                <span style={{ fontSize: 12 }}>Domestic travel only</span>
+              </div>
             </div>
           </Section>
 
-          <Section title="Deductions" expanded={expandedId === `ded-${e.id}`} onClick={() => toggleExpand(`ded-${e.id}`)} badge="">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-              <F label="Prof Tax"><Inp type="number" value={e.professionalTax} onChange={(v: any) => updateEntry(e.id, { professionalTax: v })} /></F>
-              <F label="TDS"><Inp type="number" value={e.tdsDeducted} onChange={(v: any) => updateEntry(e.id, { tdsDeducted: v })} /></F>
+          <Section title="Section 10(14) Allowances" expanded={expandedId === `all-${e.id}`} onClick={() => toggleExpand(`all-${e.id}`)} badge="">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <F label="Transport Allowance" hint="u/s 10(14) — max ₹19,200 (₹38,400 if disabled)"><Inp value={e.transportAllowance} onChange={(v: any) => updateEntry(e.id, { transportAllowance: v })} /></F>
+              <F label="Children Education" hint="u/s 10(14) — ₹1,200/child, max 2"><Inp value={e.childrenEducationAllowance} onChange={(v: any) => updateEntry(e.id, { childrenEducationAllowance: v })} /></F>
+              <F label="Hostel Expenditure" hint="u/s 10(14) — ₹3,600/child, max 2"><Inp value={e.hostelExpenditureAllowance} onChange={(v: any) => updateEntry(e.id, { hostelExpenditureAllowance: v })} /></F>
+              <F label="Uniform Allowance" hint="u/s 10(14) — actual expenditure"><Inp value={e.uniformAllowance} onChange={(v: any) => updateEntry(e.id, { uniformAllowance: v })} /></F>
+              <F label="Number of Children" hint="For CEA/hostel cap">
+                <Inp value={e.numberOfChildren} onChange={(v: any) => updateEntry(e.id, { numberOfChildren: v })} />
+              </F>
+              <F label="Entertainment Allowance" hint="u/s 16(ii) — Govt only, max ₹5,000"><Inp value={e.entertainmentAllowance} onChange={(v: any) => updateEntry(e.id, { entertainmentAllowance: v })} /></F>
+            </div>
+          </Section>
+
+          <Section title="Deductions u/s 16 & TDS" expanded={expandedId === `ded-${e.id}`} onClick={() => toggleExpand(`ded-${e.id}`)} badge="">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <F label="Professional Tax" hint="u/s 16(iii) — max ₹2,500/year"><Inp value={e.professionalTax} onChange={(v: any) => updateEntry(e.id, { professionalTax: v })} /></F>
+              <F label="TDS Deducted" hint="u/s 192"><Inp value={e.tdsDeducted} onChange={(v: any) => updateEntry(e.id, { tdsDeducted: v })} /></F>
+              <F label="Employer NPS (80CCD2)" hint="For deduction"><Inp value={e.employerNPS} onChange={(v: any) => updateEntry(e.id, { employerNPS: v })} /></F>
+              <F label="Other Exemptions" hint="Schedule EI"><Inp value={e.otherExempt} onChange={(v: any) => updateEntry(e.id, { otherExempt: v })} /></F>
             </div>
           </Section>
         </div>
       ))}
 
+      {/* ── Aggregated Schedule S Summary (Backend-Computed) ── */}
       {entries.length > 0 && (
         <div style={{ padding: 20, background: 'linear-gradient(135deg, #1e293b, #334155)', borderRadius: 12, color: 'white' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>GROSS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalGross())}</div></div>
-            <div>
-              <div style={{ fontSize: 12, opacity: 0.7 }}>
-                {taxRegime === 'NEW' ? 'STD DEDUCTION u/s 16(ia)' : 'EXEMPTIONS u/s 10 & 16'}
-              </div>
-              <div style={{ fontSize: 24, fontWeight: 700, color: '#4ade80' }}>₹{formatINR(totalExemptions())}</div>
-            </div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TAXABLE</div><div style={{ fontSize: 24, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(Math.max(0, totalGross() - totalExemptions()))}</div></div>
-            <div><div style={{ fontSize: 12, opacity: 0.7 }}>TDS</div><div style={{ fontSize: 24, fontWeight: 700 }}>₹{formatINR(totalTDS())}</div></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h4 style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#fbbf24' }}>
+              Schedule S — Income from Salary (Backend-Computed)
+            </h4>
+            <span style={{ fontSize: 10, padding: '2px 8px', background: hasBackend ? '#16a34a' : '#94a3b8', borderRadius: 4 }}>
+              {hasBackend ? '✓ LIVE' : '⏳ PENDING'}
+            </span>
           </div>
-          <div style={{ fontSize: 11, marginTop: 8, textAlign: 'center', opacity: 0.7 }}>
-            Final tax computation in Tax Computation tab
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center', marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.7 }}>GROSS SALARY</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>₹{formatINR(hasBackend ? backendGross : totalGross())}</div>
+              <div style={{ fontSize: 9, opacity: 0.6 }}>17(1)+17(2)+17(3)</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.7 }}>EXEMPTIONS</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#4ade80' }}>₹{formatINR(hasBackend ? backendExempt : 0)}</div>
+              <div style={{ fontSize: 9, opacity: 0.6 }}>u/s 10 + u/s 16</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.7 }}>NET TAXABLE</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#fbbf24' }}>₹{formatINR(hasBackend ? backendNet : 0)}</div>
+              <div style={{ fontSize: 9, opacity: 0.6 }}>Income from Salary</div>
+            </div>
+            <div>
+              <div style={{ fontSize: 11, opacity: 0.7 }}>TDS</div>
+              <div style={{ fontSize: 22, fontWeight: 700 }}>₹{formatINR(hasBackend ? backendTDS : totalTDS())}</div>
+              <div style={{ fontSize: 9, opacity: 0.6 }}>u/s 192</div>
+            </div>
+          </div>
+
+          {/* Detailed ITD-tagged breakdown (only when backend has computed) */}
+          {hasBackend && (
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', paddingTop: 12, fontSize: 11 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>17(1) Salary:</span>
+                  <span>₹{formatINR(backendResult?.grossSalaryTotal ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>HRA Exempt 10(13A):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.hraExempt ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>LTA Exempt 10(5):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.ltaExempt ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>Gratuity 10(10):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.gratuityExempt ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>Leave Encash 10(10AA):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.leaveEncashmentExempt ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>Pension Comm 10(10A):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.pensionCommutationExempt ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>Std Deduction 16(ia):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.standardDeduction ?? 0)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ opacity: 0.7 }}>Prof Tax 16(iii):</span>
+                  <span style={{ color: '#4ade80' }}>₹{formatINR(backendResult?.professionalTaxDed ?? 0)}</span>
+                </div>
+              </div>
+              {backendResult?.hraIsMetroCity !== undefined && (
+                <div style={{ marginTop: 8, padding: 8, background: 'rgba(255,255,255,0.05)', borderRadius: 4, fontSize: 10 }}>
+                  <strong>HRA Debug:</strong> Actual={formatINR(backendResult.hraCondition1_Actual)} |
+                  Rent-10%={formatINR(backendResult.hraCondition2_RentMinus10Pct)} |
+                  Metro%={formatINR(backendResult.hraCondition3_MetroPct)} |
+                  City={backendResult.hraCityClassified || 'N/A'} |
+                  Metro={backendResult.hraIsMetroCity ? 'Yes' : 'No'}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div style={{ fontSize: 10, marginTop: 12, textAlign: 'center', opacity: 0.6 }}>
+            All values computed by SalaryScheduleComputer (CBDT-compliant). Final tax in Tax Computation tab.
           </div>
         </div>
       )}
