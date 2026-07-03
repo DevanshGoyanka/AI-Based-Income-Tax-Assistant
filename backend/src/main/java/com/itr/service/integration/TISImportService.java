@@ -2,6 +2,7 @@ package com.itr.service.integration;
 
 import com.itr.dto.TISData;
 import com.itr.util.ITDPdfDecryptor;
+import com.itr.util.PIIMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ import java.util.regex.Pattern;
 public class TISImportService {
 
     private final ITDPdfDecryptor pdfDecryptor;
+    private final PIIMaskingUtil piiMasking;
 
     /**
      * Import TIS PDF (encrypted with PAN + DOB password)
@@ -31,7 +33,7 @@ public class TISImportService {
     public TISData importTIS(byte[] pdfBytes, String pan, LocalDate dob) throws IOException {
         String pdfText = pdfDecryptor.decryptAndExtractText(pdfBytes, pan, dob);
         
-        log.info("Starting TIS parsing for PAN: {}", pan);
+        log.info("Starting TIS parsing for PAN: {}", piiMasking.maskPAN(pan));
         
         TISData data = parseTIS(pdfText);
         

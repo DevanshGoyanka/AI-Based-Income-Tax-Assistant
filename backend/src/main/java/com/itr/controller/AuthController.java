@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.controller;
 
 import com.itr.dto.AuthRequest;
 import com.itr.dto.AuthResponse;
@@ -32,7 +32,11 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<AuthResponse> refresh(@RequestBody Map<String, String> request) {
-        // TODO: implement token refresh if needed
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
+        String refreshToken = request.get("refreshToken");
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        AuthResponse response = authService.refresh(refreshToken);
+        return ResponseEntity.ok(response);
     }
 }

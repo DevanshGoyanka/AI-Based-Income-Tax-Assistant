@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itr.dto.AISData;
 import com.itr.dto.AISData.*;
 import com.itr.util.AISJsonDecryptor;
+import com.itr.util.PIIMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +38,7 @@ public class AISJsonImportService {
 
     private final AISJsonDecryptor decryptor;
     private final ObjectMapper objectMapper;
+    private final PIIMaskingUtil piiMasking;
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // ============================================================

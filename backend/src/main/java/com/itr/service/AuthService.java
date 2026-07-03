@@ -60,4 +60,28 @@ public class AuthService {
                 .expiresIn(900)
                 .build();
     }
+
+    /**
+     * Refreshes the access token using a valid refresh token.
+     * Throws BadCredentialsException if the refresh token is invalid or expired.
+     */
+    public AuthResponse refresh(String refreshToken) {
+        String userId = jwtTokenProvider.getUserIdFromRefreshToken(refreshToken);
+        if (userId == null) {
+            throw new BadCredentialsException("Invalid or expired refresh token");
+        }
+
+        User user = userRepository.findByEmail(userId)
+                .orElseThrow(() -> new BadCredentialsException("User not found"));
+
+        String newAccessToken = jwtTokenProvider.generateAccessToken(user.getEmail(), "USER");
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getEmail());
+
+        return AuthResponse.builder()
+                .token(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .email(user.getEmail())
+                .expiresIn(900)
+                .build();
+    }
 }

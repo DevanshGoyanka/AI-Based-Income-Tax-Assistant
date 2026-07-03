@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.infrastructure.security;
 
 import com.itr.infrastructure.security.JwtTokenProvider;
 import jakarta.servlet.FilterChain;

@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.controller;
 
 import com.itr.model.DocumentMetadata;
 import com.itr.service.DocumentManagementService;

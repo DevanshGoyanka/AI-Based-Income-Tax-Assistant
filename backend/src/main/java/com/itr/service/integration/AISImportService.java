@@ -3,6 +3,7 @@ package com.itr.service.integration;
 import com.itr.dto.AISData;
 import com.itr.dto.AISData.*;
 import com.itr.util.ITDPdfDecryptor;
+import com.itr.util.PIIMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,11 +22,12 @@ import java.util.regex.Pattern;
 public class AISImportService {
 
     private final ITDPdfDecryptor pdfDecryptor;
+    private final PIIMaskingUtil piiMasking;
     private static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public AISData importAIS(byte[] pdfBytes, String pan, LocalDate dob) throws IOException {
         String text = pdfDecryptor.decryptAndExtractText(pdfBytes, pan, dob);
-        log.info("Starting AIS parsing for PAN: {}", pan);
+        log.info("Starting AIS parsing for PAN: {}", piiMasking.maskPAN(pan));
         
         AISData data = AISData.builder()
                 .pan(pan)
@@ -95,7 +97,7 @@ public class AISImportService {
             
             // Debug: log lines with TAN to see what state machine is processing
             if (line.contains("(NGPA") || line.contains("NGPA")) {
-                log.info("SM DEBUG line[{}]: '{}'", i, line);
+                log.info("SM DEBUG line[{}]: '{}'", i, piiMasking.sanitizeForLog(line));
             }
             
             // 1) Info code line: "1 TDS-194A ..." or "1 TDS-192 ..."
@@ -138,7 +140,7 @@ public class AISImportService {
                     
                     // Extract deductor name: strip quoted text and stop words
                     String cleanName = extractDeductorName(nameText);
-                    log.info("B1 DEBUG extractDeductorName input: '{}' -> '{}'", nameText, cleanName);
+                    log.debug("B1 DEBUG extractDeductorName: '{}'", piiMasking.sanitizeForLog(nameText));
                     if (cleanName != null && cleanName.length() >= 3) {
                         curName = cleanName;
                     }
@@ -165,7 +167,7 @@ public class AISImportService {
             // 2) Deductor line: find (TAN), extract section code from original line, deductor name is text after section code
             Matcher tanM = Pattern.compile("\\(([A-Z]{4}\\d{5}[A-Z])\\)").matcher(line);
             if (tanM.find() && !line.contains("Q(")) {
-                log.info("SM TAN MATCH: line[{}] '{}'", i, line);
+                log.debug("SM TAN MATCH: line[{}]", i);
                 // Get text before (TAN), handle PDF carriage returns
                 String before = line.substring(0, tanM.start()).replaceAll("\\r", " ").trim();
                 before = before.replaceFirst("^\\d+\\s+", "");
@@ -238,7 +240,7 @@ public class AISImportService {
                 
                 // Debug: log first few lines of each section to understand format
                 if (line.contains("ANAND") || line.contains("TDS-194A")) {
-                    log.info("B1 DEBUG raw line[{}]: '{}'", i, line);
+                    log.debug("B1 DEBUG raw line[{}]", i);
                 }
                 
                 String tan = null;
@@ -322,7 +324,7 @@ public class AISImportService {
                 
                 if (!cleanName.isEmpty() && cleanName.length() >= 3 && tan.length() == 10) {
                     entries.add(buildEntry(sec, cleanName, tan, amt, 0));
-                    log.info("B1(fb): '{}' TAN:{} Sec:{} Amt:{}", cleanName, tan, sec, amt);
+                    log.debug("B1(fb): '{}' TAN:{} Sec:{} Amt:{}", cleanName, piiMasking.maskTAN(tan), sec, amt);
                     break;
                 }
             }
@@ -333,7 +335,7 @@ public class AISImportService {
     }
 
     private AISTDSEntry buildEntry(String s, String n, String t, long a, long td) {
-        log.info("B1: {} TAN:{} Sec:{} Amt:{} TDS:{}", n, t, s, a, td);
+        log.debug("B1 entry: deductor={} TAN={}", n, piiMasking.maskTAN(t));
         return AISTDSEntry.builder().section(s != null ? s : "OTHER").deductorName(n)
             .deductorTAN(t).totalAmountPaid(a).totalTDSDeducted(td).build();
     }

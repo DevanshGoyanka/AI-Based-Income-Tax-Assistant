@@ -157,6 +157,7 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- TODO Phase 6: Add ArchUnit money-type enforcement once proper version is resolved -->
     </dependencies>
 
     <build>

@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.controller;
 
 import com.itr.dto.ClientRequest;
 import com.itr.dto.ClientResponse;

@@ -3,6 +3,7 @@ package com.itr.service.integration;
 import com.itr.dto.Form26ASData;
 import com.itr.dto.Form26ASData.*;
 import com.itr.util.ITDPdfDecryptor;
+import com.itr.util.PIIMaskingUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -21,10 +22,11 @@ import java.util.regex.Pattern;
 public class Form26ASImportService {
 
     private final ITDPdfDecryptor pdfDecryptor;
+    private final PIIMaskingUtil piiMasking;
 
     public Form26ASData import26AS(byte[] pdfBytes, String pan, LocalDate dob) throws IOException {
         String pdfText = pdfDecryptor.decryptAndExtractText(pdfBytes, pan, dob);
-        log.info("Starting 26AS parsing for PAN: {}", pan);
+        log.info("Starting 26AS parsing for PAN: {}", piiMasking.maskPAN(pan));
         
         Form26ASData data = Form26ASData.builder()
                 .assessePAN(pan)

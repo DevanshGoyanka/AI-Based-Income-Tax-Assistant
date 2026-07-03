@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.controller;
 
 import com.itr.domain.advancetax.*;
 import com.itr.domain.businessincome.*;

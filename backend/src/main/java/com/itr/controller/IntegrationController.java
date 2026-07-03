@@ -1,4 +1,4 @@
-package com.itr.config;
+package com.itr.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

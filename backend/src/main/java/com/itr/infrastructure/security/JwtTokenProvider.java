@@ -95,7 +95,7 @@ public class JwtTokenProvider {
                 .parseSignedClaims(token)
                 .getPayload()
                 .get("role", String.class);
-            
+
             if (role == null || role.isEmpty()) {
                 role = "USER"; // Default role
             }
@@ -103,6 +103,30 @@ public class JwtTokenProvider {
         } catch (Exception e) {
             log.error("Error getting authorities from token: {}", e.getMessage());
             return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+    }
+
+    /**
+     * Validates a refresh token and returns the user ID (subject) embedded in it.
+     * Returns null if the token is invalid or expired.
+     */
+    public String getUserIdFromRefreshToken(String refreshToken) {
+        try {
+            Claims claims = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(refreshToken)
+                .getPayload();
+
+            String type = claims.get("type", String.class);
+            if (!"refresh".equals(type)) {
+                log.warn("Token is not a refresh token");
+                return null;
+            }
+            return claims.getSubject();
+        } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Invalid refresh token: {}", e.getMessage());
+            return null;
         }
     }
 }
