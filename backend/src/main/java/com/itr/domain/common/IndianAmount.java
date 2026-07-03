@@ -11,6 +11,8 @@ import java.util.Objects;
  */
 public final class IndianAmount implements Comparable<IndianAmount> {
 
+    public static final IndianAmount ZERO = new IndianAmount(0);
+    
     private final long paise;
 
     private IndianAmount(long paise) {
@@ -21,6 +23,10 @@ public final class IndianAmount implements Comparable<IndianAmount> {
         return new IndianAmount(paise);
     }
 
+    public static IndianAmount fromRupees(long rupees) {
+        return new IndianAmount(rupees * 100);
+    }
+    
     public static IndianAmount fromRupees(double rupees) {
         return new IndianAmount(Math.round(rupees * 100));
     }
@@ -29,7 +35,11 @@ public final class IndianAmount implements Comparable<IndianAmount> {
         return paise;
     }
 
-    public double toRupees() {
+    public long toRupees() {
+        return paise / 100;
+    }
+    
+    public double toRupeesDecimal() {
         return paise / 100.0;
     }
 

@@ -42,6 +42,28 @@ public class ITRFiling {
 
     @Column(name = "refund_amount")
     private Long refundAmount;
+    
+    // Phase 2 snapshot columns - Document 1 §8
+    @Column(name = "computed_return_json", columnDefinition = "JSONB")
+    private String computedReturnJson;
+    
+    @Column(name = "rules_version", length = 20)
+    private String rulesVersion;
+    
+    @Column(name = "itr_form_version", length = 20)
+    private String itrFormVersion;
+    
+    @Column(name = "json_schema_version", length = 20)
+    private String jsonSchemaVersion;
+    
+    @Column(name = "trigger_action", length = 50)
+    private String triggerAction;
+    
+    @Column(name = "computation_hash", length = 64)
+    private String computationHash;
+    
+    @Column(name = "previous_snapshot_id")
+    private Long previousSnapshotId;
 
     @Column(name = "created_at")
     private OffsetDateTime createdAt;
