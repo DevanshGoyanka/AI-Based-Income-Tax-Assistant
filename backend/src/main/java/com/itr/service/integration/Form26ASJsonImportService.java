@@ -26,6 +26,66 @@ public class Form26ASJsonImportService {
     public Form26ASData importFromJson(String json, String pan) throws Exception {
         JsonNode root = objectMapper.readTree(json);
         
+        // Support both simplified JSON and ITD prefill JSON format
+        if (root.has("form26as")) {
+            return importFromPrefillJson(root, pan);
+        } else {
+            return importFromSimpleJson(root, pan);
+        }
+    }
+    
+    /**
+     * Import from ITD prefill JSON structure (personalInfo.form26as.*)
+     */
+    private Form26ASData importFromPrefillJson(JsonNode root, String pan) {
+        JsonNode form26as = root.path("form26as");
+        JsonNode personalInfo = root.path("personalInfo");
+        
+        String assesseeName = personalInfo.path("assesseeName").path("firstName").asText("") + " " +
+                personalInfo.path("assesseeName").path("middleName").asText("") + " " +
+                personalInfo.path("assesseeName").path("surNameOrOrgName").asText("");
+        
+        Form26ASData data = Form26ASData.builder()
+                .assessePAN(pan)
+                .assesseName(assesseeName.trim())
+                .tdsOnInterest(new ArrayList<>())
+                .tdsOnContractor(new ArrayList<>())
+                .tdsOnProfessional(new ArrayList<>())
+                .tdsOnCommission(new ArrayList<>())
+                .tdsOnRent(new ArrayList<>())
+                .tdsOnInsurance(new ArrayList<>())
+                .tdsOnProperty(new ArrayList<>())
+                .tdsOnOther(new ArrayList<>())
+                .build();
+        
+        // Parse TDS on other than salary
+        JsonNode tdsOther = form26as.path("tdsOnOthThanSals").path("tdSonOthThanSal");
+        if (tdsOther.isArray()) {
+            for (JsonNode entry : tdsOther) {
+                TDSOtherThanSalary tds = parsePrefillTdsEntry(entry);
+                if (tds != null) {
+                    classifyEntry(data, tds);
+                }
+            }
+        }
+        
+        // Calculate totals
+        data.setTotalTDSInterest(calculateTotal(data.getTdsOnInterest()));
+        data.setTotalTDSContractor(calculateTotal(data.getTdsOnContractor()));
+        data.setTotalTDSProfessional(calculateTotal(data.getTdsOnProfessional()));
+        data.setTotalTDSOther(calculateTotal(data.getTdsOnOther()));
+        
+        log.info("26AS prefill JSON import: Interest={}, Contractor={}, Professional={}, Other={}",
+                data.getTdsOnInterest().size(), data.getTdsOnContractor().size(),
+                data.getTdsOnProfessional().size(), data.getTdsOnOther().size());
+        
+        return data;
+    }
+    
+    /**
+     * Import from simplified JSON structure (direct tdsEntries array)
+     */
+    private Form26ASData importFromSimpleJson(JsonNode root, String pan) {
         Form26ASData data = Form26ASData.builder()
                 .assessePAN(pan)
                 .assesseName(root.path("assesseeName").asText(""))
@@ -39,7 +99,6 @@ public class Form26ASJsonImportService {
                 .tdsOnOther(new ArrayList<>())
                 .build();
         
-        // Parse TDS entries from JSON
         JsonNode tdsEntries = root.path("tdsEntries");
         if (tdsEntries.isArray()) {
             for (JsonNode entry : tdsEntries) {
@@ -50,17 +109,36 @@ public class Form26ASJsonImportService {
             }
         }
         
-        // Calculate totals
         data.setTotalTDSInterest(calculateTotal(data.getTdsOnInterest()));
         data.setTotalTDSContractor(calculateTotal(data.getTdsOnContractor()));
         data.setTotalTDSProfessional(calculateTotal(data.getTdsOnProfessional()));
         data.setTotalTDSOther(calculateTotal(data.getTdsOnOther()));
         
-        log.info("26AS JSON import complete: Interest={}, Contractor={}, Professional={}, Other={}",
+        log.info("26AS simple JSON import: Interest={}, Contractor={}, Professional={}, Other={}",
                 data.getTdsOnInterest().size(), data.getTdsOnContractor().size(),
                 data.getTdsOnProfessional().size(), data.getTdsOnOther().size());
         
         return data;
+    }
+    
+    /**
+     * Parse TDS entry from ITD prefill format
+     */
+    private TDSOtherThanSalary parsePrefillTdsEntry(JsonNode entry) {
+        String section = entry.path("sectionCode").asText("");
+        if (section.isEmpty()) return null;
+        
+        JsonNode deductor = entry.path("employerOrDeductorOrCollectDetl");
+        long grossAmount = entry.path("grossAmount").asLong(0);
+        long tdsAmount = entry.path("taxDeductCreditDtls").path("taxDeductedOwnHands").asLong(0);
+        
+        return TDSOtherThanSalary.builder()
+                .deductorName(deductor.path("employerOrDeductorOrCollecterName").asText(""))
+                .deductorTAN(deductor.path("tan").asText(""))
+                .section(section)
+                .amountPaid(BigDecimal.valueOf(grossAmount))
+                .taxDeducted(BigDecimal.valueOf(tdsAmount))
+                .build();
     }
     
     private TDSOtherThanSalary parseTdsEntry(JsonNode entry) {
