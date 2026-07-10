@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    container_name: itr-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://avnadmin:avnpassword@postgres:5432/itrdb
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./storage:/app/storage
+      - ./backups:/app/backups
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: itr-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: avnadmin
+      POSTGRES_PASSWORD: avnpassword
+      POSTGRES_DB: itrdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U avnadmin"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: itr-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:

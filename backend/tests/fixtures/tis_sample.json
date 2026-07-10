@@ -1,0 +1,22 @@
+{
+  "PAN": "LMNOP9876D",
+  "AssessmentYear": "2026-27",
+  "TdsDetails": [
+    {
+      "Tan": "HYDD12345C",
+      "DeductorName": "Global Services Inc",
+      "Section": "194C",
+      "Amount": 500000,
+      "TaxDeducted": 10000,
+      "TaxDeposited": 10000
+    },
+    {
+      "Tan": "KOLB23456D",
+      "DeductorName": "Finance Corp",
+      "Section": "194A",
+      "Amount": 35000,
+      "TDS": 3500,
+      "TaxDeposited": 3500
+    }
+  ]
+}

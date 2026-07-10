@@ -1,0 +1,45 @@
+{
+  "PAN": "ABCDE1234F",
+  "AssessmentYear": "2026-27",
+  "TDSDetail": [
+    {
+      "TAN": "DELA12345E",
+      "Name": "ABC Corp Ltd",
+      "SectionCode": "192",
+      "TransactionDate": "31-Mar-2026",
+      "Status": "F",
+      "AmountPaid": 1200000,
+      "TaxDeducted": 120000,
+      "TaxDeposited": 120000,
+      "Quarter": "Q4",
+      "ReceiptNo": "Q4XXXX1234",
+      "DateOfDeduction": "31-Mar-2026",
+      "DateOfDeposit": "07-Apr-2026",
+      "Remarks": "Salary TDS"
+    },
+    {
+      "TAN": "MUMB23456F",
+      "Name": "XYZ Bank",
+      "SectionCode": "194A",
+      "TransactionDate": "30-Jun-2025",
+      "Status": "F",
+      "AmountPaid": 50000,
+      "TaxDeducted": 5000,
+      "TaxDeposited": 5000,
+      "Quarter": "Q1",
+      "ReceiptNo": "Q1XXXX5678"
+    },
+    {
+      "TAN": "CHEN34567G",
+      "Name": "DEF Mutual Fund",
+      "SectionCode": "194K",
+      "TransactionDate": "31-Dec-2025",
+      "Status": "F",
+      "AmountPaid": 25000,
+      "TaxDeducted": 2500,
+      "TaxDeposited": 2500,
+      "Quarter": "Q3",
+      "ReceiptNo": "Q3XXXX9012"
+    }
+  ]
+}

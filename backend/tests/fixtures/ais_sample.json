@@ -1,0 +1,42 @@
+{
+  "PAN": "XYZAB5678C",
+  "AssessmentYear": "2026-27",
+  "Source": "AIS",
+  "TDSonSalary": [
+    {
+      "TAN": "BANG12345A",
+      "EmployerName": "Tech Solutions Pvt Ltd",
+      "TotalAmount": 1500000,
+      "TotalTaxDeducted": 150000
+    }
+  ],
+  "TDSonOthThanSal": [
+    {
+      "TAN": "PUNE23456B",
+      "DeductorName": "Consulting Services Ltd",
+      "SectionCode": "194J",
+      "AmountPaid": 300000,
+      "TaxDeducted": 30000,
+      "TaxDeposited": 30000
+    }
+  ],
+  "Interest": [
+    {
+      "BankName": "State Bank of India",
+      "PAN": "AAACS1234F",
+      "Amount": 45000
+    },
+    {
+      "BankName": "HDFC Bank",
+      "PAN": "AAACH5678G",
+      "Amount": 12000
+    }
+  ],
+  "Dividend": [
+    {
+      "CompanyName": "Reliance Industries",
+      "PAN": "AAACR9012H",
+      "Amount": 8000
+    }
+  ]
+}

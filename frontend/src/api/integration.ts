@@ -14,8 +14,17 @@ const multipartPost = async (endpoint: string, file: File, params?: Record<strin
 export const integrationApi = {
   extractForm16: (file: File) => multipartPost('/integration/form16/extract', file),
   
-  importAIS: async (file: File, pan: string, dob: string): Promise<AISData> => {
-    return multipartPost('/integration/ais/import', file, { pan, dob });
+  importAIS: async (file: File, clientId: number, assessmentYear: string, pan: string, dob: string): Promise<AISData> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('client_id', clientId.toString());
+    fd.append('assessment_year', assessmentYear);
+    fd.append('pan', pan);
+    fd.append('dob', dob);
+    const { data } = await axiosInstance.post('/api/v1/imports/ais', fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return data;
   },
 
   importAISJson: async (file: File, pan: string, dob: string): Promise<AISData> => {

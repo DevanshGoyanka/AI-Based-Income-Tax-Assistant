@@ -1,0 +1,576 @@
+
+
+========== PAGE 1 ==========
+Data updated till 14-Apr-2026
+ 
+Annual Tax Statement
+ 
+Permanent Account Number (PAN) ACUPG3482G Current Status of PAN Active and Operative Financial Year 2024-25 Assessment Year 2025-26
+Name of Assessee SUNIT RAMASHANKAR GOYANKA
+Address of Assessee FLAT NO. G-1 GAJANAN, PALACE OPP. JANTA, HOMIOPATHIC COLLEGE RAM, NAGAR KEDIYA PLOT AKOLA,
+AKOLA, MAHARASHTRA, 444005
+ 
+Above data / Status of PAN is as per PAN details. For any changes in data as mentioned above, you may submit request for corrections
+Refer www.tinpan.proteantech.in / www.utiitsl.com for more details. In case of discrepancy in status of PAN please contact your Assessing Officer 
+(All amount values are in INR)
+PART-I - Details of Tax Deducted at Source
+Sr. No. Name of Deductor TAN of Deductor Total Amount Paid/
+Credited
+Total Tax Deducted# Total TDS
+Deposited
+1 STATE BANK OF INDIA MUMS89569E 224329.00 22443.00 22443.00
+Sr. No. Section1 Transaction Date Status of Booking* Date of Booking Remarks** Amount Paid / 
+Credited
+Tax Deducted ## TDS Deposited
+1 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+2 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+3 194A 31-Mar-2025 F 23-May-2025 G -4644.00 -465.00 -465.00
+4 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+5 194A 31-Mar-2025 F 23-May-2025 G -7893.00 -790.00 -790.00
+6 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+7 194A 31-Mar-2025 F 23-May-2025 G -2952.00 -296.00 -296.00
+8 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+9 194A 31-Mar-2025 F 23-May-2025 G -28614.00 -2862.00 -2862.00
+10 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+11 194A 31-Mar-2025 F 23-May-2025 G -9133.00 -914.00 -914.00
+12 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+13 194A 31-Mar-2025 F 23-May-2025 G -13394.00 -1340.00 -1340.00
+14 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+15 194A 31-Mar-2025 F 23-May-2025 G -2592.00 -260.00 -260.00
+16 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+17 194A 31-Mar-2025 F 23-May-2025 G -22302.00 -2231.00 -2231.00
+18 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+19 194A 31-Mar-2025 F 23-May-2025 G -1098.00 -110.00 -110.00
+20 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+21 194A 31-Mar-2025 F 23-May-2025 G -7283.00 -729.00 -729.00
+22 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+23 194A 31-Mar-2025 F 23-May-2025 G -24336.00 -2434.00 -2434.00
+24 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+25 194A 31-Mar-2025 F 23-May-2025 G -7461.00 -747.00 -747.00
+26 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+27 194A 31-Mar-2025 F 23-May-2025 G -42822.00 -4283.00 -4283.00
+28 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+29 194A 31-Mar-2025 F 23-May-2025 G -4644.00 -465.00 -465.00
+30 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+31 194A 31-Mar-2025 F 23-May-2025 G -7893.00 -790.00 -790.00
+32 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+33 194A 31-Mar-2025 F 23-May-2025 G -2952.00 -296.00 -296.00
+34 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+35 194A 31-Mar-2025 F 23-May-2025 G -28614.00 -2862.00 -2862.00
+36 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+37 194A 31-Mar-2025 F 23-May-2025 G -9133.00 -914.00 -914.00
+38 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+39 194A 31-Mar-2025 F 23-May-2025 G -13394.00 -1340.00 -1340.00
+40 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+41 194A 31-Mar-2025 F 23-May-2025 G -2592.00 -260.00 -260.00
+42 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+43 194A 31-Mar-2025 F 23-May-2025 G -22302.00 -2231.00 -2231.00
+44 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+
+========== PAGE 2 ==========
+45 194A 31-Mar-2025 F 23-May-2025 G -1098.00 -110.00 -110.00
+46 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+47 194A 31-Mar-2025 F 23-May-2025 G -7283.00 -729.00 -729.00
+48 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+49 194A 31-Mar-2025 F 23-May-2025 G -24336.00 -2434.00 -2434.00
+50 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+51 194A 31-Mar-2025 F 23-May-2025 G -7461.00 -747.00 -747.00
+52 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+53 194A 31-Mar-2025 F 23-May-2025 G -42822.00 -4283.00 -4283.00
+54 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+55 194A 31-Mar-2025 F 23-May-2025 G -4644.00 -465.00 -465.00
+56 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+57 194A 31-Mar-2025 F 23-May-2025 G -7893.00 -790.00 -790.00
+58 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+59 194A 31-Mar-2025 F 23-May-2025 G -2952.00 -296.00 -296.00
+60 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+61 194A 31-Mar-2025 F 23-May-2025 G -28614.00 -2862.00 -2862.00
+62 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+63 194A 31-Mar-2025 F 23-May-2025 G -9133.00 -914.00 -914.00
+64 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+65 194A 31-Mar-2025 F 23-May-2025 G -13394.00 -1340.00 -1340.00
+66 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+67 194A 31-Mar-2025 F 23-May-2025 G -2592.00 -260.00 -260.00
+68 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+69 194A 31-Mar-2025 F 23-May-2025 G -22302.00 -2231.00 -2231.00
+70 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+71 194A 31-Mar-2025 F 23-May-2025 G -1098.00 -110.00 -110.00
+72 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+73 194A 31-Mar-2025 F 23-May-2025 G -7283.00 -729.00 -729.00
+74 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+75 194A 31-Mar-2025 F 23-May-2025 G -24336.00 -2434.00 -2434.00
+76 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+77 194A 31-Mar-2025 F 23-May-2025 G -7461.00 -747.00 -747.00
+78 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+79 194A 31-Mar-2025 F 23-May-2025 G -42822.00 -4283.00 -4283.00
+80 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+81 194A 31-Mar-2025 F 23-May-2025 G -4644.00 -465.00 -465.00
+82 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+83 194A 31-Mar-2025 F 23-May-2025 G -7893.00 -790.00 -790.00
+84 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+85 194A 31-Mar-2025 F 23-May-2025 G -2952.00 -296.00 -296.00
+86 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+87 194A 31-Mar-2025 F 23-May-2025 G -28614.00 -2862.00 -2862.00
+88 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+89 194A 31-Mar-2025 F 23-May-2025 G -9133.00 -914.00 -914.00
+90 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+91 194A 31-Mar-2025 F 23-May-2025 G -13394.00 -1340.00 -1340.00
+92 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+93 194A 31-Mar-2025 F 23-May-2025 G -2592.00 -260.00 -260.00
+94 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+95 194A 31-Mar-2025 F 23-May-2025 G -22302.00 -2231.00 -2231.00
+96 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+97 194A 31-Mar-2025 F 23-May-2025 G -1098.00 -110.00 -110.00
+98 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+99 194A 31-Mar-2025 F 23-May-2025 G -7283.00 -729.00 -729.00
+100 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+101 194A 31-Mar-2025 F 23-May-2025 G -24336.00 -2434.00 -2434.00
+102 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+103 194A 31-Mar-2025 F 23-May-2025 G -7461.00 -747.00 -747.00
+104 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+105 194A 31-Mar-2025 F 23-May-2025 G -42822.00 -4283.00 -4283.00
+106 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+107 194A 31-Mar-2025 F 23-May-2025 G -4644.00 -465.00 -465.00
+108 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+109 194A 31-Mar-2025 F 23-May-2025 G -7893.00 -790.00 -790.00
+110 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26
+
+========== PAGE 3 ==========
+111 194A 31-Mar-2025 F 23-May-2025 G -2952.00 -296.00 -296.00
+112 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+113 194A 31-Mar-2025 F 23-May-2025 G -28614.00 -2862.00 -2862.00
+114 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+115 194A 31-Mar-2025 F 23-May-2025 G -9133.00 -914.00 -914.00
+116 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+117 194A 31-Mar-2025 F 23-May-2025 G -13394.00 -1340.00 -1340.00
+118 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+119 194A 31-Mar-2025 F 23-May-2025 G -2592.00 -260.00 -260.00
+120 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+121 194A 31-Mar-2025 F 23-May-2025 G -22302.00 -2231.00 -2231.00
+122 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+123 194A 31-Mar-2025 F 23-May-2025 G -1098.00 -110.00 -110.00
+124 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+125 194A 31-Mar-2025 F 23-May-2025 G -7283.00 -729.00 -729.00
+126 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+127 194A 31-Mar-2025 F 23-May-2025 G -24336.00 -2434.00 -2434.00
+128 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+129 194A 31-Mar-2025 F 23-May-2025 G -7461.00 -747.00 -747.00
+130 194A 31-Mar-2025 F 23-May-2025 - 42822.00 4283.00 4283.00
+131 194A 31-Mar-2025 F 23-May-2025 G -42822.00 -4283.00 -4283.00
+132 194A 31-Mar-2025 F 23-May-2025 - 28614.00 2862.00 2862.00
+133 194A 31-Mar-2025 F 23-May-2025 - 4644.00 465.00 465.00
+134 194A 31-Mar-2025 F 23-May-2025 - 9133.00 914.00 914.00
+135 194A 31-Mar-2025 F 23-May-2025 - 13394.00 1340.00 1340.00
+136 194A 31-Mar-2025 F 23-May-2025 - 2952.00 296.00 296.00
+137 194A 31-Mar-2025 F 23-May-2025 - 2592.00 260.00 260.00
+138 194A 31-Mar-2025 F 23-May-2025 - 7893.00 790.00 790.00
+139 194A 31-Mar-2025 F 23-May-2025 - 22302.00 2231.00 2231.00
+140 194A 31-Mar-2025 F 23-May-2025 - 1098.00 110.00 110.00
+141 194A 31-Mar-2025 F 23-May-2025 - 7283.00 729.00 729.00
+142 194A 31-Mar-2025 F 23-May-2025 - 24336.00 2434.00 2434.00
+143 194A 31-Mar-2025 F 23-May-2025 - 7461.00 747.00 747.00
+144 194A 11-Mar-2025 F 23-May-2025 - 15060.00 1506.00 1506.00
+145 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+146 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+147 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+148 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+149 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+150 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+151 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+152 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+153 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+154 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+155 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+156 194A 06-Nov-2024 F 03-Feb-2025 - 31383.00 3139.00 3139.00
+157 194A 06-Nov-2024 F 03-Feb-2025 G -31383.00 -3139.00 -3139.00
+158 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+159 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+160 194A 05-Jul-2024 F 08-Nov-2024 G -1946.00 -195.00 -195.00
+161 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+162 194A 05-Jul-2024 F 08-Nov-2024 G -1946.00 -195.00 -195.00
+163 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+164 194A 05-Jul-2024 F 08-Nov-2024 G -1946.00 -195.00 -195.00
+165 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+166 194A 05-Jul-2024 F 08-Nov-2024 G -1946.00 -195.00 -195.00
+167 194A 05-Jul-2024 F 08-Nov-2024 - 1946.00 195.00 195.00
+168 194A 05-Jul-2024 F 08-Nov-2024 G -1946.00 -195.00 -195.00
+169 194A 02-Jun-2024 F 07-Aug-2024 - 409.00 41.00 41.00
+170 194A 02-Jun-2024 F 07-Aug-2024 - 409.00 41.00 41.00
+171 194A 02-Jun-2024 F 07-Aug-2024 G -409.00 -41.00 -41.00
+172 194A 02-Jun-2024 F 07-Aug-2024 - 409.00 41.00 41.00
+173 194A 02-Jun-2024 F 07-Aug-2024 G -409.00 -41.00 -41.00
+174 194A 02-Jun-2024 F 07-Aug-2024 - 409.00 41.00 41.00
+175 194A 02-Jun-2024 F 07-Aug-2024 G -409.00 -41.00 -41.00
+176 194A 02-Jun-2024 F 07-Aug-2024 - 409.00 41.00 41.00
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26
+
+========== PAGE 4 ==========
+177 194A 02-Jun-2024 F 07-Aug-2024 G -409.00 -41.00 -41.00
+178 194A 03-May-2024 F 07-Aug-2024 - 1007.00 101.00 101.00
+179 194A 03-May-2024 F 07-Aug-2024 - 1007.00 101.00 101.00
+180 194A 03-May-2024 F 07-Aug-2024 G -1007.00 -101.00 -101.00
+181 194A 03-May-2024 F 07-Aug-2024 - 1007.00 101.00 101.00
+182 194A 03-May-2024 F 07-Aug-2024 G -1007.00 -101.00 -101.00
+183 194A 03-May-2024 F 07-Aug-2024 - 1007.00 101.00 101.00
+184 194A 03-May-2024 F 07-Aug-2024 G -1007.00 -101.00 -101.00
+185 194A 03-May-2024 F 07-Aug-2024 - 1007.00 101.00 101.00
+186 194A 03-May-2024 F 07-Aug-2024 G -1007.00 -101.00 -101.00
+PART-II-Details of Tax Deducted at Source for 15G / 15H
+ 
+Sr. No. Name of Deductor TAN of Deductor Total Amount Paid / 
+Credited
+Total Tax Deducted# Total TDS 
+Deposited
+     
+Sr. No. Section1 Transaction Date Date of Booking Remarks** Amount Paid/Credited Tax Deducted ## TDS Deposited
+No Transactions Present
+PART-III - Details of Transactions under Proviso to section 194B/First Proviso to sub-section (1) of section 194R/ Proviso to sub-section(1) of section 194S/Sub-section (2) of section 194BA
+ 
+Sr. No. Name of Deductor TAN of Deductor Total Amount Paid / Credited
+   
+Sr. No. Section1 Transaction Date Status of Booking* Remarks** Amount Paid/Credited
+No Transactions Present
+PART-IV -Details of Tax Deducted at Source u/s 194IA/ 194IB / 194M/ 194S (For Seller/Landlord of Property/Contractors or Professionals/ Seller of Virtual Digital Asset)
+ 
+Sr. No. Acknowledgement 
+Number
+Name of Deductor PAN of  
+Deductor
+Transaction Date Total Transaction 
+Amount
+Total TDS 
+Deposited***
+       
+Sr. No. TDS Certificate 
+Number
+Section1 Date of Deposit Status of 
+Booking*
+Date of Booking Demand Payment TDS Deposited***
+Gross Total Across Deductor(s)   
+No Transactions Present
+PART-V - Details of Transactions under Proviso to sub-section (1) of section 194S as per Form-26QE (For Seller of Virtual Digital Asset)
+ 
+Sr. No. Acknowledgement Number Name of Buyer PAN of  Buyer Transaction Date Total Transaction Amount
+      
+Sr. No Challan Details mentioned in the Statement Status of Booking*
+BSR Code Date of Deposit Challan Serial Number Total Tax Amount
+Gross Total Across Buyer(s)  
+No Transactions Present
+PART-VI-Details of Tax Collected at Source
+Sr. No. Name of Collector TAN of Collector Total Amount Paid/
+Debited
+Total Tax Collected+ Total TCS 
+Deposited
+     
+Sr. No. Section1 Transaction Date Status of Booking* Date of Booking Remarks** Amount Paid/
+Debited
+Tax Collected ++ TCS Deposited
+No Transactions Present
+PART-VII- Details of Paid Refund (For which source is CPC TDS. For other details refer AIS at E-filing portal)
+ 
+Sr. 
+No.
+Assessment Year Mode Refund Issued Nature of Refund Amount of Refund Interest Date of Payment Remarks
+No Transactions Present
+PART-VIII-Details of Tax Deducted at Source u/s 194IA/ 194IB /194M/194S (For Buyer/Tenant of Property /Person making payment to contractors or Professionals / Buyer of Virtual Digital 
+Asset)
+ 
+Sr. 
+No.
+Acknowledgement 
+Number
+Name Of Deductee PAN of  
+Deductee
+Transaction 
+Date
+Total Transaction 
+Amount
+Total TDS 
+Deposited***
+Total Amount 
+Deposited other 
+than TDS
+###
+        
+Sr. 
+No.
+TDS Certificate 
+Number
+Section1 Date of Deposit Status of 
+Booking*
+Date of Booking Demand Payment TDS Deposited*** Total Amount 
+Deposited other 
+than TDS
+###
+Gross Total Across Deductee(s)    
+No Transactions Present
+PART-IX - Details of Transactions/Demand Payments under Proviso to sub-section (1) of section 194S as per Form 26QE (For Buyer of Virtual Digital Asset)
+ 
+Sr. 
+No.
+Acknowledgement 
+Number
+Name of Seller PAN of  Seller Transaction Date Total Transaction 
+Amount
+Total Amount Deposited 
+other than TDS
+###
+       
+Sr. No Challan Details Status of Booking* Demand Payment Total Amount Deposited 
+other than TDS
+###
+BSR Code Date of Deposit Challan Serial 
+Number
+Total Tax Amount
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26
+
+========== PAGE 5 ==========
+Gross Total Across Seller(s)   
+No Transactions Present
+PART X-TDS/TCS Defaults* (Processing of Statements)
+ 
+(All amount values are in INR)
+Sr. No. Financial Year Short Payment Short 
+Deduction/
+Collection
+Interest on  TDS/
+TCS Payments 
+Default
+Interest on TDS/TCS 
+Deduction/Collection 
+Default
+Late Filing Fee u/s 
+234E
+Interest u/s 220(2) Total Default
+        
+Sr. No. TANs Short Payment Short 
+Deduction/
+Collection
+Interest on  TDS/
+TCS Payments 
+Default
+Interest on TDS/TCS 
+Deduction/Collection 
+Default
+Late Filing Fee u/s 
+234E
+Interest u/s 220(2) Total Default
+No Transactions Present
+*Notes:
+1.Defaults related to processing of statements, do not include demand raised by the respective Assessing Officers.
+2.For more details please log on to TRACES as taxpayer.
+Contact Information
+Part of Annual Tax Statement Contact in case of any clarification
+I Deductor
+II Deductor
+III Deductor
+IV Deductor
+V Buyer
+VI Collector
+VII Assessing Officer / Bank
+VIII NSDL / E-Filing/ Concerned Bank 
+Branch
+IX E-Filing/ Concerned Bank Branch/
+Seller
+X Deductor
+Legends used in Annual Tax Statement
+*Status Of Booking
+Legend Description Definition
+U Unmatched Deductors have not deposited taxes or have furnished incorrect particulars of tax payment. Final credit will be reflected only 
+when payment details in bank match with details of deposit in TDS / TCS statement
+M Matched Particulars of challan details provided in TDS statement have matched with the challan details available in OLTAS
+P Provisional Provisional tax credit is effected only for TDS / TCS Statements filed by Government deductors."P" status will be changed to 
+Final (F) on verification of payment details submitted by Pay and Accounts Officer (PAO)
+F Final In case of non-government deductors, payment details of TDS / TCS deposited in bank by deductors have matched with the 
+payment details mentioned in the TDS / TCS statement filed by the deductors. In case of government deductors, details of 
+TDS / TCS booked in Government account have been verified with payment details submitted by Pay and Accounts Officer 
+(PAO)
+O Overbooked Payment details of TDS / TCS deposited in bank by deductor have matched with details mentioned in the TDS / TCS 
+statement but the amount is over claimed in the statement. Final (F) credit will be reflected only when deductor reduces 
+claimed amount in the statement or makes additional payment for excess amount claimed in the statement
+Z Mismatch Particulars of challan details provided in TDS statement have not matched with the challan details available in OLTAS. Status 
+of challan will be updated as "M" (Matched), once correction is done by the deductor.
+**Remarks
+Legend Description
+'A' Rectification of error in challan uploaded by bank
+'B' Rectification of error in statement uploaded by deductor
+'D' Rectification of error in Form 24G filed by Accounts Officer
+'E' Rectification of error in Challan by Assessing Officer
+'F' Lower/ No deduction certificate u/s 197
+'G' Reprocessing of Statement
+'T' Transporter
+'W' For Part III, Details shown are as per details submitted by Deductor
+# Total Tax Deducted includes TDS, Surcharge and Education Cess
+## Tax Deducted includes TDS, Surcharge and Education Cess
++ Total Tax Collected includes TCS, Surcharge and Education Cess
+++ Tax Collected includes TCS, Surcharge and Education Cess
+*** Total TDS Deposited will not include the amount deposited as Fees and Interest
+### "Total Amount Deposited other than TDS" includes Fees, Interest and Other etc.It also includes any default amount paid by deductor in case of Transactions covered under Proviso to 
+sub-section (1) of section 194S
+Notes for Annual Tax Statement
+a. Figures in brackets represent reversal (negative) entries
+b. Tax Credits appearing in Part I, II, IV and VI of the Annual Tax Statement are on the basis of details given by deductor/collector in the TDS / TCS statement filed by them. The same 
+should be verified before claiming tax credit and only the amount which pertains to you should be claimed
+c. Date is displayed in dd-MMM-yyyy format
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26
+
+========== PAGE 6 ==========
+d. Part II of Annual Tax Statement contains details of transactions related to Form 15G/15H furnished by the deductor in the TDS statement.
+1.Sections
+Section Description
+192 Salary
+192A TDS on PF withdrawal
+193 Interest on Securities
+194 Dividends
+194A Interest other than 'Interest on securities'
+194B Winning from lottery or crossword puzzle, etc
+194BA Winnings from online games
+194BB Winning from horse race
+194C Payments to contractors and sub-contractors
+194D Insurance commission
+194DA Payment in respect of life insurance policy
+194E Payments to non-resident sportsmen or sports associations
+194EE Payments in respect of deposits under National Savings Scheme
+194F Payments on account of repurchase of units by Mutual Fund or Unit Trust of 
+India (omitted w.e.f. 01-oct-2024).
+194G Commission, price, etc. on sale of lottery tickets
+194H Commission or brokerage
+194I(a) Rent on hiring of plant and machinery
+194I(b) Rent on other than plant and machinery
+194IA TDS on Sale of immovable property
+194IB Payment of rent by certain individuals or Hindu undivided family
+194IC Payment under specified agreement
+194J(a) Fees for technical services
+194J(b) Fees for professional services or royalty etc
+194K Income payable to a resident assessee in respect of units of a specified mutual 
+fund or of the units of the Unit Trust of India
+194LA Payment of compensation on acquisition of certain immovable
+194LB Income by way of Interest from Infrastructure Debt fund
+194LC(2
+)(i) and 
+(ia)
+Income under clause (i) and (ia) of sub-section (2) of section 194LC
+194LC(2
+)(ib)
+Income under clause (ib) of sub-section (2) of section 194LC
+194LC(2
+)(ic)
+Income under clause (ic) of sub-section (2) of section 194LC
+194LBA Certain income from units of a business trust
+194LBB Income in respect of units of investment fund
+194LBC Income in respect of investment in securitization trust
+194R Benefits or perquisites of business or profession
+194S Payment of consideration for transfer of virtual digital asset by persons other 
+than specified persons
+Proviso 
+to 
+section 
+194B
+Winnings from lotteries and crossword puzzles, etc where consideration is 
+made in kind or cash is not sufficient to meet the tax liability and tax has been 
+paid before such winnings are released
+First 
+Proviso 
+to sub-
+section(1
+) of 
+section 
+194R
+Benefits or perquisites of business or profession where such benefit is provided 
+in kind or where part in cash is not sufficient to meet tax liability and tax 
+required to be deducted is paid before such benefit is released
+Proviso 
+to sub- 
+section(1
+) of 
+section 
+194S
+Payment for transfer of virtual digital asset where payment is in kind or in 
+exchange of another virtual digital asset and tax required to be deducted is paid 
+before such payment is released
+Sub-
+section 
+(2) of 
+section 
+194BA
+Net Winnings from online games where the net winnings are made in kind or 
+cash is not sufficient to meet the tax liability and tax has been paid before such 
+net winnings are released
+Section Description
+194LD TDS on interest on bonds / government securities
+194M Payment of certain sums by certain individuals or Hindu Undivided Family
+194N Payment of certain amounts in cash other than cases covered by first proviso or 
+third proviso
+194N 
+First 
+Proviso
+Payment of certain amounts in cash to non-filers except in case of co-operative 
+societies
+194N 
+Third 
+Proviso
+Payment of certain amounts in cash to co-operative societies not covered by 
+first proviso
+194N 
+First 
+Proviso 
+read 
+with 
+Third 
+Proviso
+Payment of certain amount in cash to non-filers being co-operative societies
+194O Payment of certain sums by e-commerce operator to e-commerce participant
+194P Deduction of tax in case of specified senior citizen
+194Q Deduction of tax at source on payment of certain sum for purchase of goods
+195 Other sums payable to a non-resident
+196A Income in respect of units of non-residents
+196B Payments in respect of units to an offshore fund
+196C Income from foreign currency bonds or shares of Indian
+196D Income of foreign institutional investors from securities
+196DA Income of specified fund from securities 
+206CA Collection at source from alcoholic liquor for human
+206CB Collection at source from timber obtained under forest lease
+206CC Collection at source from timber obtained by any mode other than a forest 
+lease
+206CD Collection at source from any other forest produce (not being tendu leaves)
+206CE Collection at source from any scrap
+206CF Collection at source from contractors or licensee or lease relating to parking 
+lots
+206CG Collection at source from contractors or licensee or lease relating to toll plaza
+206CH Collection at source from contractors or licensee or lease relating to mine or 
+quarry
+206CI Collection at source from tendu Leaves
+206CJ Collection at source from on sale of certain Minerals
+206CK Collection at source on cash case of Bullion and Jewellery
+206CL Collection at source on sale of Motor vehicle
+206CM Collection at source on sale in cash of any goods(other than bullion/jewelry)
+206CN Collection at source on providing of any services(other than Chapter-XVII-B)
+206CO Collection at source on remittance under LRS for purchase of overseas tour 
+program package
+206CP Collection at source on remittance under LRS for educational loan taken from 
+financial institution mentioned in section 80E
+206CQ Collection at source on remittance under LRS for purpose other than for 
+purchase of overseas tour package or for educational loan taken from financial 
+institution
+206CR Collection at source on sale of goods
+206CT Collection at source on remittance under LRS is for the purposes of education 
+or medical treatment and not covered under Code P
+2.Minor Head                                                                                                                       3.Major Head
+Code Description
+200 TDS/TCS
+400 Tax on regular assessment
+800 TDS on sale of immovable property
+Code Description
+0020 Corporation Tax
+0021 Income Tax (other than companies)
+Glossary
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26
+
+========== PAGE 7 ==========
+Abbreviation Description
+AY Assessment Year
+Abbreviation Description
+TDS Tax Deducted at Source
+TCS Tax Collected at Source
+Assessee PAN: ACUPG3482G Assessee Name: SUNIT RAMASHANKAR GOYANKA Assessment Year: 2025-26

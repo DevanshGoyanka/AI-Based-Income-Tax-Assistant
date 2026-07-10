@@ -356,7 +356,7 @@ export default function ITRComputationPage() {
           data = JSON.parse(text);
         } else if (typeStr === 'ais-pdf') {
           const { integrationApi } = await import('../api/integration');
-          data = await integrationApi.importAIS(file, pan!, dob!);
+          data = await integrationApi.importAIS(file, Number(clientId), year!, pan!, dob!);
           setImportedAIS(data);
         } else if (typeStr === 'ais-json') {
           const { integrationApi } = await import('../api/integration');
@@ -602,12 +602,34 @@ export default function ITRComputationPage() {
           const freshFormData = await itrApi.getFormData(Number(clientId), year!);
           console.log('Fresh form data from backend:', freshFormData);
           
-          // Update form with the extracted data
+          // Update form with the extracted data - use direct assignment for numeric fields
           setFormData((prev: any) => ({ 
             ...prev,
-            ...freshFormData,
-            // Also merge any auto-populated fields
+            // Numeric fields - use ?? for null/undefined, allow 0 values through
+            interestSB: freshFormData.interestSB ?? prev.interestSB,
+            interestFD: freshFormData.interestFD ?? prev.interestFD,
+            bankInterest: freshFormData.bankInterest ?? prev.bankInterest,
+            totalDividend: freshFormData.totalDividend ?? prev.totalDividend,
+            dividends: freshFormData.dividends ?? prev.dividends,
+            itRefundInterest: freshFormData.itRefundInterest ?? prev.itRefundInterest,
+            incomeFromITRefund: freshFormData.incomeFromITRefund ?? prev.incomeFromITRefund,
+            s80TTB: freshFormData.s80TTB ?? prev.s80TTB,
+            s80C: freshFormData.s80C ?? prev.s80C,
+            s80D: freshFormData.s80D ?? prev.s80D,
+            s80E: freshFormData.s80E ?? prev.s80E,
+            s80TTA: freshFormData.s80TTA ?? prev.s80TTA,
+            s80G: freshFormData.s80G ?? prev.s80G,
+            s80CCD: freshFormData.s80CCD ?? prev.s80CCD,
+            s80CCC1B: freshFormData.s80CCC1B ?? prev.s80CCC1B,
+            totalTds: freshFormData.totalTds ?? prev.totalTds,
+            tds194A: freshFormData.tds194A ?? prev.tds194A,
+            // String fields - use || for empty strings
             name: freshFormData.name || prev.name,
+            pan: freshFormData.pan || prev.pan,
+            email: freshFormData.email || prev.email,
+            mobile: freshFormData.mobile || prev.mobile,
+            aadhaar: freshFormData.aadhaar || prev.aadhaar,
+            // Array fields - preserve if empty
             employerEntries: freshFormData.employerEntries || prev.employerEntries,
             tdsEntries: freshFormData.tdsEntries || prev.tdsEntries,
             bankAccountDetails: freshFormData.bankAccountDetails || prev.bankAccountDetails,
