@@ -61,20 +61,18 @@ created_by = Column(UUID, nullable=True)        # No FK to users(id)
 
 **Recommendation:** Add FK constraints in new migration, cascade delete rules
 
-#### 🟠 HIGH: form26as.py Too Large (900+ lines)
+#### 🟢 RESOLVED: form26as.py Split (Hexagonal Architecture)
 
-**Location:** `backend/app/services/form26as.py`
+**Status:** RESOLVED — The codebase now uses a clean hexagonal structure:
+- `Form26ASZipParser` (in `core/parsers/form26as_zip_parser.py`) handles password-protected ZIP files containing all 10 parts via `Canonical26AS` domain model
+- `Form26ASPDFParser` (in `core/parsers/form26as_pdf_parser.py`) handles PDF extraction for Part I, II, VI, VII
+- `Form26ASNormalizer` (in `core/normalizers/form26as_normalizer.py`) converts `Canonical26AS` to `CanonicalTDS` / `CanonicalAdvanceTax`
+- `ImportForm26ASUseCase` (in `core/use_cases/import_form26as.py`) orchestrates the flow
+- `Canonical26AS` (in `core/domain/canonical_26as.py`) domain model holds all 10 parts
 
-**Impact:** Difficult to maintain, test, debug. Single responsibility principle violated.
-
-**Recommendation:** Split into separate parsers per part:
-```
-services/form26as/
-├── __init__.py
-├── part1_parser.py  # TDS on salary
-├── part2_parser.py  # TDS other than salary
-├── part3_parser.py  # TCS
-├── part4_parser.py  # Advance tax
+All 10 parts of Form 26AS (Part I–X) are handled in a single `Canonical26AS`
+domain model. No separate part-specific files needed. This is cleaner than
+the original recommendation of splitting into 10 separate parsers.
 ├── part5_parser.py  # Self-assessment tax
 └── common.py        # Shared utilities
 ```
@@ -178,7 +176,7 @@ id = sa.Column(sa.UUID(), nullable=False)  # No server_default
 | Service | Location 1 | Location 2 | Issue |
 |---------|-----------|-----------|-------|
 | AIS parsing | `services/ais_parser.py` | `services/ais_pdf_parser.py` | Split logic |
-| 26AS parsing | `services/form26as.py` | `services/form26as_pdf_tables.py` | Split logic |
+| 26AS parsing | `form26as_zip_parser.py` + `form26as_pdf_parser.py` | `form26as_normalizer.py` | Hexagonal structure ✅ |
 | Decryption | `services/ais_decrypt.py` | `services/importers/crypto.py` | Incompatible |
 
 **Recommendation:** Consolidate to single implementation per concern.
@@ -435,58 +433,45 @@ filing/
 
 ## 4. Recommended Actions (Priority Order)
 
-### Phase 0: Critical Fixes (Week 1)
+### Phase 0: Critical Fixes (Week 1) — ✅ COMPLETE
 
-1. **Delete duplicate AIS decrypt** (1 hour)
-   - Remove `backend/app/services/ais_decrypt.py`
-   - Update all imports to use `importers/crypto.py`
+1. **Delete duplicate AIS decrypt** ✅ (1 hour) — `ais_decrypt.py` removed, no stale imports
+2. **Add missing foreign keys** ✅ (4 hours) — Migration `0005_add_missing_foreign_keys.py`
+3. **Fix prefill_data.id** ✅ (1 hour) — Migration `0004_fix_prefill_id_default.py`
+4. **Add unique constraints** ✅ (2 hours) — Migration `0006_add_unique_constraints_and_indexes.py`
+5. **Split form26as** ✅ — Already in hexagonal structure, no part-specific split needed
+6. **Add .env.example** ✅ — Root `.env.example` exists
+7. **Update .gitignore** ✅ — Vendor code is tracked in git
 
-2. **Add missing foreign keys** (4 hours)
-   - Create migration: `0003_add_foreign_keys.py`
-   - Add FK constraints with CASCADE rules
-   - Test with existing data
+### Phase 1: OpenTax Vendoring (Week 2) — ✅ COMPLETE
 
-3. **Fix prefill_data.id** (1 hour)
-   - Create migration: `0004_fix_prefill_id_default.py`
-   - Add `server_default=gen_random_uuid()`
-
-4. **Add auth guards** (4 hours)
-   - Create `ProtectedRoute.tsx` component
-   - Wrap all protected routes
-   - Add token expiry check
-
-### Phase 1: OpenTax Vendoring (Week 2)
-
-5. **Fork and vendor OpenTax** (6 hours)
+5. **Fork and vendor OpenTax** ✅ (6 hours)
    - Fork OpenTax repository
    - Extract tax_calculation/ as standalone package
-   - Lock to commit SHA (add to requirements.txt)
+   - Lock to commit SHA (added to requirements.txt)
 
-6. **Build adapter layer** (65 hours across weeks 2-4)
-   - Create `backend/app/adapters/opentax_adapter.py`
-   - Map ERP models → FilingModel
-   - Map TaxRegimeBreakdownModel → ComputedReturn
+6. **Build adapter layer** → Changed to Owned Engine per ADR-022
+   - Original plan: Create `model_mapper.py` and `response_mapper.py` to map ERP → OpenTax
+   - New plan: Build our OWN `TaxEngine` that operates on our domain schedules directly
+   - OpenTax is reference/test oracle only, NOT a runtime dependency
+   - `model_mapper.py` and `response_mapper.py` will be DELETED
 
-7. **Integration tests** (20 hours)
-   - Golden test cases (10 client scenarios)
-   - Compare OpenTax vs manual computations
-   - Validate ITR JSON against ITD schema
+7. **Integration tests** — To be implemented in Phase 2 comparing our engine vs OpenTax oracle
 
-### Phase 2: Code Consolidation (Week 3)
+### Phase 2: Code Consolidation → Owned Tax Engine (Weeks 3-5)
 
-8. **Split form26as.py** (8 hours)
-   - Create part-specific parsers
-   - Extract common utilities
-   - Update imports
+8. **Build owned TaxEngine** (replaces adapter layer)
+   - Create `core/services/slab_tables.py` (AY-versioned CBDT rules)
+   - Create `core/services/tax_engine.py` (owned computation engine)
+   - Create `core/services/interest_234_engine.py` (234A/B/C logic)
+   - Delete `model_mapper.py` and `response_mapper.py` (no longer needed)
+   - Rewrite `tax_engine_adapter.py` to delegate to owned engine
+   - Update `computed_return.py` with `TaxBreakdown`
+   - Update `ITaxEngine` interface with `person_dob`/`person_pan`
+   - See `10_Phase_Implementation_Plan.md` for full details
 
-9. **Move test scripts** (2 hours)
-   - Create `backend/tests/manual/`
-   - Move or delete debug scripts
-
-10. **Fix frontend issues** (8 hours)
-    - Add missing useDebounce hook
-    - Replace hardcoded URLs with env vars
-    - Add token refresh logic
+9. ~~Move test scripts~~ — Already clean, no debug scripts in root
+10. ~~Fix frontend issues~~ — Deferred to Phase 8 (frontend rebuild)
 
 ---
 

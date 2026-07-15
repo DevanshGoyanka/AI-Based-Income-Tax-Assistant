@@ -1,26 +1,31 @@
 # Computation Engine Design
 
-**Version:** 1.0  
+**Version:** 2.0  
 **Pattern:** Pipeline + Strategy  
-**Core Principle:** Single Canonical Computation Path
+**Core Principle:** Single Canonical Computation Path  
+**Updated:** 2026-07-15 — Owned engine replaces OpenTax runtime dependency
 
 ---
 
 ## Overview
 
-The Computation Engine is the heart of the tax system. It takes normalized income/deduction data and produces an immutable ComputedReturn snapshot using OpenTax's battle-tested tax logic.
+The Computation Engine is the heart of the tax system. It takes domain schedules
+(`ScheduleSalary`, `ScheduleHP`, etc.) and produces an immutable `ComputedReturn`
+snapshot using our OWNED tax logic. OpenTax is used as a test oracle only.
+
+Per ADR-022, OpenTax is NOT called at runtime for tax computation.
 
 ---
 
 ## Computation Pipeline
 
 ```
-Input: Filing (with income heads, deductions, TDS)
+Input: Filing (with income heads, deductions, TDS) + Client (dob, pan)
   │
   ▼
 ┌─────────────────────────────────────┐
-│ 1. Normalize to Canonical Model     │
-│    (from AIS/26AS/manual inputs)    │
+│ 1. Extract Schedules from Filing     │
+│    (ScheduleSalary, ScheduleHP, etc.)│
 └────────────┬────────────────────────┘
              ▼
 ┌─────────────────────────────────────┐

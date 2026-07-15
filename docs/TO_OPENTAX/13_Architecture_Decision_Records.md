@@ -7,38 +7,42 @@
 
 ## ADR-001: Adopt OpenTax as Tax Computation Engine
 
-**Status:** Accepted  
-**Date:** 2026-07-10  
-**Deciders:** Tech Lead, Product Owner, Tax Domain Expert
+**Status:** Superseded by ADR-022  
+**Date:** 2026-07-10
 
 ### Context
 Need production-grade tax computation engine supporting ITR-1/2/3/4 with AY-versioned rules.
 
 **Options Considered:**
 1. Build custom tax engine from scratch
-2. Use OpenTax (community OSS)
+2. Use OpenTax (community OSS) **← original decision**
 3. License commercial solution (ClearTax API)
 
-### Decision
+### Original Decision (SUPERSEDED)
 Adopt OpenTax tax_calculation module, vendored and wrapped in adapter layer.
 
-### Rationale
-- **Time to market:** 60% faster (3 months vs 8 months)
-- **Accuracy:** Battle-tested by community
-- **Cost:** Zero licensing fees vs ₹5L/year commercial
-- **Flexibility:** Full source control, can patch if needed
-- **Risk:** Mitigated via vendoring (not runtime dependency)
+### Superseding Decision (ADR-022)
+Build our OWN tax engine, using OpenTax as reference implementation only.
+We study OpenTax's logic and reimplement it ourselves operating on our
+domain schedules directly. OpenTax is NOT called at runtime.
 
-### Consequences
-**Positive:**
-- Proven tax logic (slabs, surcharge, cess, rebate)
-- Active community support
-- Regular updates for new AY rules
+### Rationale for change
+- OpenTax's `FilingModel` data structure doesn't match our domain model
+- OpenTax reads salary from `salary_section_171/172/173` (ESOP fields),
+  not from a simple `gross_salary` field
+- The adapter layer (model_mapper → FilingModel → response_mapper) adds
+  complexity, fragility, and a maintenance burden
+- Our domain schedules already have `compute_income()` methods
+- We need full control over AY versioning, explanation engine, and
+  computation logic
+- OpenTax will still be used for ITR JSON generation (Phase 7)
 
-**Negative:**
-- Dependency on OSS project health
-- Must monitor for breaking changes
-- Learning curve for OpenTax internals
+### Consequences (updated)
+- We own 100% of production tax computation code
+- OpenTax vendored code is reference + test oracle only
+- No runtime dependency on OpenTax for tax computation
+- Simpler data flow: Schedule → TaxEngine → ComputedReturn
+- Explanation engine built natively (ADR-021)
 
 ---
 
@@ -205,14 +209,21 @@ JWT tokens with 30-minute expiry, refresh tokens for extended sessions.
 
 ## ADR-007: Vendor OpenTax, Don't Fork Permanently
 
-**Status:** Accepted  
-**Date:** 2026-07-10
+**Status:** Accepted (Updated)  
+**Date:** 2026-07-10 (Updated 2026-07-15)
 
 ### Context
 Need OpenTax code but want control over updates.
 
 ### Decision
 Vendor OpenTax code into our repo, locked to specific commit. Update on our schedule.
+
+**IMPORTANT UPDATE (2026-07-15):** Per ADR-022, the vendored OpenTax code is now **reference only, not a runtime dependency** for tax computation. It is used for:
+1. Test oracle — verifying our engine matches within ₹1 tolerance
+2. ITR JSON generation (Phase 7)
+3. Validation rules reference (Phase 7)
+
+It is NOT called in production for tax computation.
 
 ### Rationale
 - **Stability:** No surprise breakage
@@ -736,6 +747,158 @@ computed_return = ComputedReturn(
 - Computation engine must capture trace
 
 ---
+
+## ADR-022: Owned Tax Engine (Not OpenTax Runtime Dependency)
+
+**Status:** Accepted  
+**Date:** 2026-07-15  
+**Deciders:** Tech Lead, Product Owner  
+**Supersedes:** ADR-001 (OpenTax as tax computation engine)
+
+### Context
+Phase 1 vendored OpenTax code. Phase 2 planned to use it as runtime dependency via adapter/mapper pattern. After detailed analysis, the OpenTax `FilingModel` data structure fundamentally mismatches our domain model. The adapter layer would be fragile, hard to maintain, and OpenTax reads salary from ESOP fields we don't use.
+
+### Decision
+Build our OWN tax computation engine that operates directly on our domain schedules (`ScheduleSalary`, `ScheduleHP`, etc.). OpenTax vendored code is retained as **reference implementation and test oracle only** — never called at runtime for tax computation.
+
+### Rationale
+1. **Data model mismatch:** OpenTax reads salary from `salary_section_171/172/173` (ESOP/perquisite), not `gross_salary`. Our ERP has `SalaryDetail.gross_salary` — no natural mapping exists.
+2. **Our schedules already compute:** `ScheduleSalary.compute_income()`, `ScheduleHP.compute_income()`, `ScheduleVIA.total_deductions()` already exist and work.
+3. **Full control:** We own AY versioning, explanation engine, computation logic. No external dependency.
+4. **Simpler data flow:** `Schedule → TaxEngine → ComputedReturn` instead of `Schedule → Mapper → FilingModel → OpenTax → FilingModel → Mapper → ComputedReturn`.
+5. **Testability:** Compare our engine vs OpenTax oracle within ₹1 tolerance.
+6. **Explanation engine:** Every computation produces `List[ComputationStep]` for CA audit trail.
+
+### What We Build Ourselves
+| Component | Description |
+|-----------|-------------|
+| `core/services/slab_tables.py` | AY-versioned CBDT slab rates, deduction limits, surcharge thresholds |
+| `core/services/tax_engine.py` | Owned computation engine operating on our domain schedules |
+| `core/services/interest_234_engine.py` | Interest u/s 234A/B/C (reimplemented from OpenTax algorithm) |
+| `core/domain/computed_return.py` | Updated with `TaxBreakdown`, dual-regime fields |
+
+### What We Keep from OpenTax (Reference Only)
+| Component | Usage |
+|-----------|-------|
+| `vendor/filing/tax_calculation/tax_calculation_service.py` | Test oracle — verify our engine matches within ₹1 |
+| `vendor/filing/itr/itr_building_orchestrator.py` | ITR JSON generation (Phase 7) |
+| `vendor/filing/itr/validations/tax_validation_service.py` | Validation rules reference (Phase 7) |
+| `vendor/filing/models/` | Pydantic model schemas for ITR JSON (Phase 7) |
+
+### What We Delete
+| File | Reason |
+|------|--------|
+| `app/adapters/opentax/model_mapper.py` | No longer map to OpenTax FilingModel |
+| `app/adapters/opentax/response_mapper.py` | No longer map from OpenTax response |
+
+### Consequences
+**Positive:**
+- Full ownership of core business logic
+- Simpler data flow (no mapper layer)
+- Native explanation engine (ADR-021)
+- Both regimes always computed for comparison
+- No runtime dependency on external code
+- AY versioning controlled by our `slab_tables.py`
+
+**Negative:**
+- Must reimplement interest 234A/B/C logic (~35KB from OpenTax)
+- Must maintain slab tables for new AY rules
+- Must keep OpenTax test oracle in sync
+
+### Enforcement
+```python
+# WRONG — importing OpenTax in production code
+from app.adapters.opentax.vendor.filing.tax_calculation_service import TaxCalculationService  # ❌
+
+# CORRECT — using our owned engine
+from app.core.services.tax_engine import TaxEngine  # ✅
+
+# ACCEPTABLE — using OpenTax as test oracle in test files only
+from app.adapters.opentax.vendor.filing.tax_calculation_service import TaxCalculationService  # ✅ (in tests/)
+
+# ACCEPTABLE — using OpenTax for ITR JSON generation (Phase 7)
+from app.adapters.opentax.vendor.filing.itr.itr_building_orchestrator import ItrBuildingOrchestrator  # ✅ (Phase 7)
+```
+
+---
+
+## ADR-023: Explanation Engine for Every Computation
+
+**Status:** Accepted  
+**Date:** 2026-07-15
+
+### Context
+CAs and clients ask "Why is tax ₹1,17,000?" The system currently returns only final numbers. ADR-021 mentioned this conceptually but did not specify implementation requirements.
+
+### Decision
+Every tax computation method MUST produce a `List[ComputationStep]` explaining each calculation. This is a hard requirement, not optional.
+
+### Structure
+```python
+@dataclass
+class ComputationStep:
+    step: str          # "salary_income", "standard_deduction", "slab_tax"
+    description: str   # "Gross salary from Tech Corp"
+    input_value: str   # "₹15,00,000"
+    output_value: str  # "₹14,25,000"
+    rule_applied: str  # "New regime standard deduction ₹75,000 u/s 16(ia)"
+```
+
+### Example Output
+```
+Step 1:  salary_income         | Gross salary from Tech Corp       | ₹15,00,000
+Step 2:  standard_deduction      | New regime u/s 16(ia)           | -₹75,000
+Step 3:  gross_total_income     | ₹15,00,000 - ₹75,000            | ₹14,25,000
+Step 4:  total_deductions       | New regime: 80CCD(2) only        | ₹0
+Step 5:  total_income           | ₹14,25,000 - ₹0                  | ₹14,25,000
+Step 6:  slab_tax               | See slab breakdown                | ₹93,750
+Step 7:  rebate_87a             | Tax > ₹60,000, no rebate         | ₹0
+Step 8:  surcharge              | Income < ₹50L, no surcharge       | ₹0
+Step 9:  health_education_cess  | ₹93,750 × 4%                     | ₹3,750
+Step 10: total_tax_liability    | ₹93,750 + ₹0 + ₹3,750           | ₹97,500
+Step 11: tds_credit             | TDS from employer                 | -₹1,50,000
+Step 12: tax_payable             | ₹97,500 < ₹1,50,000             | ₹0
+Step 13: refund                 | ₹1,50,000 - ₹97,500              | ₹52,500
+```
+
+### Consequences
+**Positive:**
+- CA audit trail for every computation
+- Client-facing explanation page
+- Debugging incorrect results
+- Regulatory compliance (CBDT expects explanation)
+
+**Negative:**
+- Extra storage per snapshot (~2KB per computation)
+- Computation engine must track every step
+
+---
+
+## ADR-024: Single Regime Computation with On-Demand Comparison
+
+**Status:** Accepted  
+**Date:** 2026-07-15
+
+### Context
+The UI needs to show both regimes for comparison, but computing both for every request is wasteful if the user only views one.
+
+### Decision
+Compute the requested regime by default. Provide a separate endpoint/method to compute the other regime on demand. The UI offers a "Compare Regimes" button that calls the comparison endpoint.
+
+### Rationale
+- **Performance:** Computing both regimes doubles computation time
+- **UX:** Most users view one regime at a time
+- **Flexibility:** Comparison available when needed
+
+### Consequences
+**Positive:**
+- Faster default computation (single regime)
+- Comparison available on demand
+- Simpler API
+
+**Negative:**
+- Two API calls for comparison
+- Must ensure both computations use identical inputs
 
 **Total ADRs:** 21  
 **Status:** Living document, updated as decisions made  

@@ -21,42 +21,39 @@ def decode_aadhaar(value: str) -> str:
 def decrypt_ais_json(encrypted_text: str, password: str) -> dict:
     """Decrypt AIS JSON using PBKDF2 + AES-256-CBC.
     
-    Format: {64-hex-chars}{base64-ciphertext}
-    Algorithm: PBKDF2-SHA256(100k iterations, salt from first 32 hex) -> AES-256-CBC
-    IV: first 16 bytes of decrypted ciphertext
+    Format: {32-hex-IV}{32-hex-salt}{base64-ciphertext}
+    Algorithm: PBKDF2-SHA256(1000 iterations) -> AES-256-CBC
     """
     import json
     
     if len(encrypted_text) < 64:
-        raise ValueError("Encrypted text too short (need at least 64 chars for hash)")
+        raise ValueError("Encrypted text too short (need at least 64 chars for IV+salt)")
     
-    hash_hex = encrypted_text[:64]
-    ciphertext_b64 = encrypted_text[64:]
-    
-    salt = bytes.fromhex(hash_hex[:64])[:32]
-    
-    ciphertext = base64.b64decode(ciphertext_b64)
-    if len(ciphertext) < 16:
-        raise ValueError("Ciphertext too short (need at least 16 bytes for IV)")
+    iv = bytes.fromhex(encrypted_text[:32])
+    salt = bytes.fromhex(encrypted_text[32:64])
+    ciphertext = base64.b64decode(encrypted_text[64:])
     
     kdf = PBKDF2HMAC(
         algorithm=hashes.SHA256(),
         length=32,
         salt=salt,
-        iterations=100000,
+        iterations=1000,
         backend=default_backend()
     )
     key = kdf.derive(password.encode("utf-8"))
     
-    iv = ciphertext[:16]
-    actual_ciphertext = ciphertext[16:]
-    
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
     decryptor = cipher.decryptor()
-    plaintext_padded = decryptor.update(actual_ciphertext) + decryptor.finalize()
+    plaintext_padded = decryptor.update(ciphertext) + decryptor.finalize()
     
-    # PKCS7 unpad
     padding_len = plaintext_padded[-1]
+    if padding_len < 1 or padding_len > 16:
+        raise ValueError(f"Invalid padding length: {padding_len}. Check password or file format.")
+    
+    padding_bytes = plaintext_padded[-padding_len:]
+    if not all(b == padding_len for b in padding_bytes):
+        raise ValueError("Invalid PKCS7 padding. Password may be incorrect.")
+    
     plaintext = plaintext_padded[:-padding_len]
     
     return json.loads(plaintext.decode("utf-8"))

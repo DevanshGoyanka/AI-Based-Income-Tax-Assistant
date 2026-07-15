@@ -81,8 +81,17 @@ core/domain/
 │   └── ComputedReturn      # Immutable aggregate
 │       ├── id: UUID
 │       ├── filing_id: UUID
-│       ├── snapshot_hash: str
+│       ├── client_id: UUID
+│       ├── pan: str
+│       ├── ay: str
+│       ├── itr_form: str
+│       ├── regime: str
+│       ├── rule_version: str
 │       ├── payload: JSONB (read-only)
+│       ├── tax_breakdown: TaxBreakdown  # Current regime
+│       ├── old_regime_breakdown: TaxBreakdown | None  # For comparison
+│       ├── new_regime_breakdown: TaxBreakdown | None  # For comparison
+│       ├── slab_breakdown: List[SlabBreakdown]
 │       ├── explanation: List[ComputationStep]
 │       └── created_at: timestamp
 │
@@ -118,14 +127,16 @@ class IClientRepository(ABC):
 
 # core/interfaces/tax_engine.py
 class ITaxEngine(ABC):
-    """Tax computation engine interface - OpenTax is ONE implementation."""
+    """Tax computation engine interface - our owned engine is the implementation."""
     
     @abstractmethod
     async def compute_tax(
         self, 
         schedules: List[Schedule],
         regime: TaxRegime,
-        ay: AssessmentYear
+        ay: AssessmentYear,
+        person_dob: Optional[date] = None,  # For age-based slabs
+        person_pan: Optional[str] = None,     # For filing context
     ) -> ComputedReturn: ...
     
     @abstractmethod
@@ -165,23 +176,33 @@ class IDocumentParser(ABC):
 ```python
 # adapters/opentax/tax_engine_adapter.py
 class OpenTaxAdapter(ITaxEngine):
+    """Our owned tax engine. Uses domain schedules directly.
+    
+    OpenTax vendored code is used ONLY as test oracle and for
+    ITR JSON generation (Phase 7). NOT called at runtime for
+    tax computation per ADR-022.
+    """
+    
     def __init__(self):
-        self.tax_service = TaxCalculationService()  # Vendored
-        self.itr_builder = ItrBuildingOrchestrator()  # Vendored
+        self.engine = TaxEngine()  # OUR owned engine (core/services/tax_engine.py)
     
     async def compute_tax(
         self, 
-        filing: Filing, 
-        regime: TaxRegime
-    ) -> TaxComputation:
-        # Map ERP Filing → OpenTax FilingModel
-        opentax_filing = self.mapper.to_opentax(filing)
-        
-        # Call vendored OpenTax
-        result = await self.tax_service.calculate(opentax_filing)
-        
-        # Map OpenTax result → ERP TaxComputation
-        return self.mapper.from_opentax(result)
+        schedules: List[Schedule],
+        regime: TaxRegime,
+        ay: AssessmentYear,
+        person_dob: Optional[date] = None,
+        person_pan: Optional[str] = None,
+    ) -> ComputedReturn:
+        return self.engine.compute(
+            schedules=schedules,
+            regime=regime.value,
+            ay=ay.value,
+            dob=person_dob,
+        )
+    
+    def explain_computation(self, computed: ComputedReturn) -> List[dict]:
+        return computed.explanation or []
 
 # adapters/repositories/sqlalchemy_client_repo.py
 class SQLAlchemyClientRepository(IClientRepository):

@@ -1,31 +1,63 @@
 # OpenTax Integration Blueprint
 
-**Document Version:** 2.0 (Critical Refactor)  
-**Date:** 2026-07-10  
-**Integration Pattern:** Compatibility Layer (Not Core)
+**Document Version:** 3.0 (Owned Engine)  
+**Date:** 2026-07-15  
+**Integration Pattern:** Reference Implementation + Test Oracle
 
 ---
 
-## CRITICAL ARCHITECTURAL CHANGE
+## CRITICAL ARCHITECTURAL CHANGE (v3.0)
 
-OpenTax is now a **compatibility layer**, NOT the core tax engine.
+OpenTax is a **reference implementation and test oracle**, NOT a runtime dependency.
 
-### Before (Wrong):
+### Data Flow (Final Architecture):
 ```
-ERP Domain
-    ↓
-OpenTax (Core)
-    ↓
-Tax Computation
-```
+User Request
+    │
+    ▼
+┌─────────────────────────────────────────────────┐
+│  ComputeTaxUseCase                              │
+│  1. Load Filing from DB                        │
+│  2. Load Client (for dob, pan)                 │
+│  3. Extract schedules                          │
+│  4. Call TaxEngine.compute()  ← OUR ENGINE     │
+│  5. Create ComputedReturn snapshot             │
+└──��─────────┬────────────────────────────────────┘
+             │
+             ▼
+┌─────────────────────────────────────────────────┐
+│  TaxEngine (OWNED - core/services/tax_engine)  │
+│                                                 │
+│  Operates on our domain schedules directly:    │
+│  - ScheduleSalary → compute_salary_income()     │
+│  - ScheduleHP → compute_hp_income()             │
+│  - ScheduleOS → compute_os_income()             │
+│  - ScheduleVIA → compute_deductions()           │
+│  - ScheduleTDS → TDS credit                    │
+│  - ScheduleIT → advance tax credit              │
+│                                                 │
+│  Uses slab_tables.py for AY-versioned rules    │
+│  Uses interest_234_engine.py for 234A/B/C     │
+│  Produces ComputedReturn with TaxBreakdown      │
+│  Produces ComputationStep[] explanation          │
+└────────────┬────────────────────────────────────┘
+             │
+             ▼
+┌───────��─────────────────────────────────────────┐
+│  ComputedReturn (immutable aggregate)            │
+│  - payload: dict (full breakdown)               │
+│  - tax_breakdown: TaxBreakdown (current regime) │
+│  - slab_breakdown: List[SlabBreakdown]           │
+│  - explanation: List[ComputationStep]            │
+│  - created_at: datetime                          │
+└─────────────────────────────────────────────────┘
 
-### After (Correct):
-```
-ERP Domain (Core Tax Logic)
-    ↓
-ITaxEngine Interface
-    ↓
-OpenTaxAdapter | CustomAdapter | CommercialAdapter
+  OpenTax (vendor/filing/) is used ONLY for:
+  1. Test oracle — comparing our results within ₹1
+  2. ITR JSON generation (Phase 7)
+  3. Validation rules reference (Phase 7)
+  
+  OpenTax is NEVER called in production for tax computation.
 ```
 
 OpenTax is ONE implementation of ITaxEngine, easily swappable.

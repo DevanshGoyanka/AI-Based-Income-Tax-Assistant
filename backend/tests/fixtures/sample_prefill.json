@@ -1,0 +1,107 @@
+{
+  "personalInfo": {
+    "pan": "ABCDE1234F",
+    "assesseeName": {
+      "firstName": "John",
+      "middleName": "",
+      "surName": "Doe"
+    },
+    "dob": "1990-01-15",
+    "aadhaarCardNo": "1234567890",
+    "address": {
+      "emailAddress": "john@example.com",
+      "mobileNo": "9876543210"
+    }
+  },
+  "filingStatus": {
+    "AssessmentYear": "2026-27"
+  },
+  "form24q": {
+    "salaries": {
+      "salary": [
+        {
+          "employerOrDeductorOrCollectDetl": {
+            "name": "ABC Corp Pvt Ltd",
+            "tanOfEmployer": "BANG12345A"
+          },
+          "incomeDeductions": {
+            "salary": 1500000,
+            "allowances": 50000,
+            "deductionUs16Ia": 50000,
+            "professionalTax": 2400
+          },
+          "tdsOnSalaries": {
+            "salaryTDSQuarter": [
+              {"taxDeducted": 30000},
+              {"taxDeducted": 30000},
+              {"taxDeducted": 35000},
+              {"taxDeducted": 35000}
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "form26as": {
+    "tdsOnSalaries": {
+      "tdsOnSalary": [
+        {
+          "deductorName": "ABC Corp Pvt Ltd",
+          "tanOfDeductor": "BANG12345A",
+          "amountPaid": 1500000,
+          "totalTaxDeducted": 130000,
+          "totalTaxDeposited": 130000
+        }
+      ]
+    },
+    "tdsOnOthThanSals": {
+      "tdSonOthThanSal": [
+        {
+          "deductorName": "XYZ Bank",
+          "tanOfDeductor": "DELH56789B",
+          "section": "194A",
+          "amountPaid": 25000,
+          "totalTaxDeducted": 2500,
+          "totalTaxDeposited": 2500,
+          "quarter": "Q4"
+        }
+      ]
+    }
+  },
+  "insights": {
+    "intrstFrmSavingBank": 15000,
+    "intrstFrmTermDeposit": 10000,
+    "scheduleOS": {
+      "incOthThanOwnRaceHorse": {
+        "dividendGross": 5000,
+        "otherGross": 0
+      }
+    }
+  },
+  "scheduleHP": {
+    "houseProperties": {
+      "houseProperty": [
+        {
+          "address": {
+            "addressDetail": "123 Main St, Mumbai"
+          },
+          "ownedPercentage": 100,
+          "rentReceived": 120000,
+          "taxPaidToLocalAuth": 5000,
+          "intOnBorwCap": 200000
+        }
+      ]
+    }
+  },
+  "bankAccountDtls": [
+    {
+      "addtnlBankDetails": [
+        {
+          "ifsccode": "HDFC0001234",
+          "bankAccountNo": "12345678901234",
+          "bankName": "HDFC Bank"
+        }
+      ]
+    }
+  ]
+}

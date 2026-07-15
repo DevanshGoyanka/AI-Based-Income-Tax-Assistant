@@ -21,8 +21,8 @@ from app.services.prefill_import import (
     parse_26as_json,
     summarize_tds, store_tds_records, get_or_create_client,
 )
-from app.services.ais_decrypt import decrypt_ais
-from app.services.ais_parser import parse_ais_json as parse_ais_decrypted_json, AISParsedData
+from app.services.importers.crypto import decrypt_ais_json
+from app.core.parsers.ais_json_parser import AISJSONParser
 from app.services.tis_parser import parse_tis_json as parse_tis_decrypted_json
 from app.services.pdf_decrypt import (
     decrypt_and_extract_tables,
@@ -185,7 +185,9 @@ async def import_ais_encrypted_json(
 
     # Decrypt
     try:
-        decrypted: dict = decrypt_ais(raw_bytes, pan, dob)
+        encrypted_text = raw_bytes.decode("utf-8").strip()
+        password = pan.strip().lower() + "GQ39%*g" + dob.strip()
+        decrypted: dict = decrypt_ais_json(encrypted_text, password)
     except ValueError as e:
         logger.warning("AIS decrypt failed for PAN %s: %s", pan, e)
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"AIS decryption failed: {e}")
@@ -193,23 +195,36 @@ async def import_ais_encrypted_json(
     # Log structure for debugging
     logger.info("Decrypted AIS keys: %s", list(decrypted.keys()))
     
-    # Parse the decrypted JSON
-    parsed: AISParsedData = parse_ais_decrypted_json(decrypted)
+    # Parse the decrypted JSON using new parser
+    ais_parser = AISJSONParser()
+    parsed = ais_parser._parse_decrypted(decrypted)
 
     # Get PAN from parsed data (may differ from form input)
-    resolved_pan = parsed.personal_info.get("pan") or pan.upper()
+    resolved_pan = parsed.personal_info.pan or pan.upper()
     client = await get_or_create_client(db, resolved_pan)
 
-    # Build TDS records
+    # Build TDS records from canonical model
     from app.schemas.prefill import TDSRecord
     tds_records = []
     for raw_rec in parsed.tds_records:
-        tds_records.append(raw_rec)
+        tds_records.append(TDSRecord(
+            deductor_name=raw_rec.deductor_name,
+            deductor_tan=raw_rec.deductor_tan,
+            section_code=raw_rec.section_code,
+            amount_paid=int(raw_rec.amount_paid * 100),  # Convert to paise
+            tax_deducted=int(raw_rec.tax_deducted * 100),
+            tds_deposited=int(raw_rec.tds_deposited * 100),
+            quarter=raw_rec.quarter,
+            date_of_deduction=raw_rec.date_of_deduction,
+            date_of_booking=raw_rec.date_of_booking,
+            status=raw_rec.status,
+            remarks=raw_rec.remarks
+        ))
 
-    if not tds_records and not parsed.info_items:
+    if not tds_records and not parsed.sft_records:
         raise HTTPException(
             status.HTTP_400_BAD_REQUEST,
-            "Decrypted AIS JSON contains no TDS records or info items. "
+            "Decrypted AIS JSON contains no TDS or SFT records. "
             "Check if the PAN and DOB are correct."
         )
 
@@ -224,13 +239,16 @@ async def import_ais_encrypted_json(
         source="AIS_ENCRYPTED",
         raw_json=decrypted,
         parsed_summary={
-            "info_items": [i.model_dump() for i in parsed.info_items],
-            "bank_accounts": parsed.bank_accounts,
-            "personal_info": parsed.personal_info,
+            "sft_records": len(parsed.sft_records),
+            "tax_payments": len(parsed.tax_payments),
+            "personal_info": {
+                "pan": parsed.personal_info.pan,
+                "name": parsed.personal_info.name,
+                "dob": parsed.personal_info.dob,
+            },
             "tds_salary_count": sum(1 for r in tds_records if r.section_code == "192"),
             "tds_others_count": sum(1 for r in tds_records if r.section_code != "192"),
-            "info_items_count": len(parsed.info_items),
-            "total_tax_deducted": parsed.total_tds_tax,
+            "total_tax_deducted": int(parsed.total_tds * 100),
         },
         imported_by=current_user.id,
     ))
@@ -242,15 +260,15 @@ async def import_ais_encrypted_json(
         ay=ay,
         tds_salary_count=sum(1 for r in tds_records if r.section_code == "192"),
         tds_others_count=sum(1 for r in tds_records if r.section_code != "192"),
-        info_items_count=len(parsed.info_items),
-        total_tax_deducted=parsed.total_tds_tax,
+        info_items_count=len(parsed.sft_records),
+        total_tax_deducted=int(parsed.total_tds * 100),
         stored=stored,
-        personal_info=parsed.personal_info,
-        bank_accounts=parsed.bank_accounts,
-        message=(
-            f"Decrypted and imported {stored} TDS records and "
-            f"{len(parsed.info_items)} info items for PAN {resolved_pan}"
-        ),
+        personal_info={
+            "pan": parsed.personal_info.pan,
+            "name": parsed.personal_info.name,
+        },
+        bank_accounts=[],
+        message=f"Imported {stored} TDS records from AIS for PAN {resolved_pan}"
     )
 
 

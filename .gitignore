@@ -26,3 +26,24 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OpenTax vendored code — tracked in git (OpenTax@90c60bb)
+# Do NOT add backend/app/adapters/opentax/vendor/ to .gitignore
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~

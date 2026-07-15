@@ -40,9 +40,19 @@ backend/
 │   │   │   ├── __init__.py
 │   │   │   ├── client.py              # Client aggregate root
 │   │   │   ├── filing.py              # Filing aggregate root
-│   │   │   ├── computed_return.py     # Immutable computation snapshot
+│   │   │   ├── computed_return.py     # Immutable computation snapshot (with TaxBreakdown)
 │   │   │   ├── user.py                # User entity
 │   │   │   ├── document.py            # Document entity
+│   │   │   ├── schedules/              # ITR schedule entities
+│   │   │   │   ├── base.py            # Schedule base class
+│   │   │   │   ├── salary.py          # ScheduleSalary
+│   │   │   │   ├── house_property.py  # ScheduleHP
+│   │   │   │   ├── capital_gains.py  # ScheduleCG
+│   │   │   │   ├── other_sources.py  # ScheduleOS
+│   │   │   │   ├── schedule_via.py   # ScheduleVIA (deductions)
+│   │   │   │   ├── tds.py            # ScheduleTDS
+│   │   │   │   ├── schedule_it.py    # ScheduleIT (advance tax)
+│   │   │   │   └── bank_accounts.py  # ScheduleBA
 │   │   │   └── value_objects/
 │   │   │       ├── __init__.py
 │   │   │       ├── pan.py            # PAN value object
@@ -91,9 +101,8 @@ backend/
 │   │   ├── __init__.py
 │   │   ├── opentax/                   # OpenTax adapter
 │   │   │   ├── __init__.py
-│   │   │   ├── tax_engine_adapter.py  # Implements tax_engine port
-│   │   │   ├── model_mapper.py        # ERP models → FilingModel
-│   │   │   ├── response_mapper.py     # TaxRegimeBreakdown → ComputedReturn
+│   │   │   ├── tax_engine_adapter.py  # Implements ITaxEngine, delegates to our TaxEngine
+│   │   │   ├── vendor/                # REFERENCE ONLY per ADR-022
 │   │   │   └── vendor/                # Vendored OpenTax code
 │   │   │       ├── __init__.py
 │   │   │       ├── tax_calculation/   # Copied from OpenTax
@@ -108,8 +117,8 @@ backend/
 │   │   │   ├── __init__.py
 │   │   │   ├── ais_json_parser.py    # Keep existing
 │   │   │   ├── ais_pdf_parser.py     # Keep existing
-│   │   │   ├── form26as_txt_parser.py # Keep existing
-│   │   │   ├── form26as_pdf_parser.py # Keep existing
+│   │   │   ├── form26as_zip_parser.py # 26AS ZIP (password-protected TXT)
+│   │   │   ├── form26as_pdf_parser.py # 26AS PDF (table extraction)
 │   │   │   ├── form16_parser.py       # NEW
 │   │   │   └── prefill_parser.py     # Keep existing
 │   │   ├── storage/                   # File storage implementations
@@ -176,13 +185,18 @@ backend/
 │   │   ├── validation.py
 │   │   └── common.py
 │   │
-│   ├── services/                      # Application services (legacy, to be migrated)
+│   ├── services/                      # Application services
 │   │   ├── __init__.py
-│   │   ├── canonical/                 # NEW: Canonical model
+│   │   ├── canonical/                 # Canonical model normalization
 │   │   │   ├── __init__.py
 │   │   │   ├── canonical_income.py   # Normalized income model
 │   │   │   ├── canonical_deduction.py
 │   │   │   └── normalizer.py         # Normalize from all sources
+│   │   ├── tax/                       # OWNED tax engine (per ADR-022)
+│   │   │   ├── __init__.py
+│   │   │   ├── slab_tables.py        # AY-versioned CBDT slab data
+│   │   │   ├── tax_engine.py         # Main computation engine
+│   │   │   └── interest_234_engine.py  # Interest u/s 234A/B/C
 │   │   └── utils/
 │   │       ├── __init__.py
 │   │       ├── rounding.py           # CBDT rounding rules
@@ -420,9 +434,31 @@ backend/app/infra/database/models/
 backend/app/services/importers/
 ├── crypto.py              # AIS decryption (100k iterations)
 ├── ais_pdf_parser.py
-├── form26as_pdf_tables.py
 └── prefill.py
+
+backend/app/core/parsers/
+├── form26as_zip_parser.py  # 26AS ZIP (password-protected TXT)
+├── form26as_pdf_parser.py  # 26AS PDF (table extraction)
+├── ais_json_parser.py      # AIS JSON parsing
+├── ais_pdf_parser.py       # AIS PDF parsing
+└── tis_pdf_parser.py       # TIS PDF parsing
+
+backend/app/core/normalizers/
+├── form26as_normalizer.py  # 26AS → CanonicalTDS/CanonicalAdvanceTax
+├── prefill_normalizer.py    # Prefill → CanonicalIncome
+└── canonical_models.py      # Shared canonical models
 ```
+
+**Note on Form 26AS:** The original audit flagged `form26as.py` as "900+ lines, needs splitting."
+This has already been resolved — the codebase now uses a clean hexagonal structure:
+- `Form26ASZipParser` handles password-protected ZIP files
+- `Form26ASPDFParser` handles PDF extraction
+- `Form26ASNormalizer` converts to canonical models
+- `ImportForm26ASUseCase` orchestrates the flow
+- `Canonical26AS` domain model holds all 10 parts (Part I–X)
+
+No further splitting is needed. The single codebase handles all 26AS formats
+(ZIP, PDF) through a unified `Canonical26AS` domain model.
 
 ### Files to DELETE
 
@@ -444,21 +480,39 @@ backend/ (root)
 ### Files to MOVE
 
 ```
-OLD LOCATION → NEW LOCATION
-
-backend/app/services/form26as.py
-  → backend/app/adapters/parsers/form26as/
-      ├── part1_parser.py
-      ├── part2_parser.py
-      ├── ...
-      └── part10_parser.py
-
-backend/app/services/ais_parser.py
-  → backend/app/adapters/parsers/ais_json_parser.py
-
-backend/app/services/importers/ais_pdf.py
-  → backend/app/adapters/parsers/ais_pdf_parser.py
+(No files to move. 26AS is already in the correct hexagonal structure.)
 ```
+
+### Form 26AS Architecture (Clarification)
+
+The original audit recommended splitting `form26as.py` into part-specific modules.
+This is **NOT needed** because the codebase already uses a clean hexagonal structure:
+
+```
+Form 26AS Data Flow:
+
+  User Upload (ZIP or PDF)
+       │
+       ▼
+  ImportForm26ASUseCase.execute(file, file_type, password)
+       │
+       ├──► Form26ASZipParser.parse()    # ZIP → Canonical26AS
+       │         or
+       └──► Form26ASPDFParser.parse()    # PDF → Canonical26AS
+                    │
+                    ▼
+              Canonical26AS (domain model, all 10 parts)
+                    │
+                    ▼
+              Form26ASNormalizer.normalize_to_tds() → List[CanonicalTDS]
+              Form26ASNormalizer.normalize_to_tcs() → List[dict]
+                    │
+                    ▼
+              CanonicalIncome (unified output)
+```
+
+All 10 parts of Form 26AS (Part I–X) are handled in a single
+`Canonical26AS` domain model. No separate files per part needed.
 
 ### Files to CREATE (New)
 
@@ -470,9 +524,9 @@ backend/app/core/interfaces/
 └── storage.py             # NEW
 
 backend/app/adapters/opentax/
-├── tax_engine_adapter.py  # NEW (facade to vendored OpenTax)
-├── model_mapper.py        # NEW (ERP → FilingModel)
-└── response_mapper.py     # NEW (TaxBreakdown → ComputedReturn)
+├── tax_engine_adapter.py  # Implements ITaxEngine, delegates to our TaxEngine
+├── vendor/                # REFERENCE ONLY per ADR-022
+└── (model_mapper.py and response_mapper.py DELETED per ADR-022)
 
 backend/app/adapters/opentax/vendor/
 ├── tax_calculation/       # VENDOR (from OpenTax)

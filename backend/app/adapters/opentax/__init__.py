@@ -1,0 +1,1 @@
+"""OpenTax adapter package."""
