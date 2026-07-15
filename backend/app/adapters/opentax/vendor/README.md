@@ -15,6 +15,18 @@ all tax computation at runtime. This vendored OpenTax code is used ONLY for:
 
 ---
 
+## What Was Removed
+
+The following files previously existed but have been **permanently removed** (Phase 2):
+- `adapters/opentax/model_mapper.py` — replaced by our owned `TaxEngine`
+- `adapters/opentax/response_mapper.py` — replaced by our owned `TaxEngine`
+- `vendor/filing/tax_calculation/tax_calculation_service.py` — no longer called at runtime
+
+Our owned implementations:
+- `core/services/tax_engine.py` — main owned tax engine (replaces OpenTax)
+- `core/services/interest_234_engine.py` — owned 234A/B/C/F interest engine
+- `core/services/slab_tables.py` — owned CBDT slab rates and rule constants
+
 ## Vendored Modules
 
 Copied from OpenTax-Reference@90c60bb on 2026-07-14 and converted to relative imports.
@@ -29,6 +41,7 @@ To update to a new OpenTax version:
 4. Re-run `_fix_absolute_imports.py` to convert imports
 5. Update `__version__.py` with the new commit SHA
 6. Test all imports
+7. Re-enable cross-validation tests comparing owned engine vs OpenTax oracle
 
 ## Architecture Note
 

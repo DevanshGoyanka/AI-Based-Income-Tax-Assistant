@@ -22,6 +22,11 @@ class TaxBreakdown:
     advance_tax: int = 0
     tax_payable: int = 0
     refund: int = 0
+    # Interest u/s 234A/B/C (computed by our owned Interest234Engine)
+    interest_234a: int = 0
+    interest_234b: int = 0
+    interest_234c: int = 0
+    late_fee_234f: int = 0
 
 
 @dataclass
