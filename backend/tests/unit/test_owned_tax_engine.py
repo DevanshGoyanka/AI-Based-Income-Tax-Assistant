@@ -24,6 +24,7 @@ from app.core.domain.schedules.salary import ScheduleSalary, SalaryDetail
 from app.core.domain.schedules.house_property import ScheduleHP, HPDetail
 from app.core.domain.schedules.other_sources import ScheduleOS, InterestDetail
 from app.core.domain.schedules.schedule_via import ScheduleVIA, Section80C, Section80D
+from app.core.domain.schedules.schedule_cg import ScheduleCG, CGTransaction
 from app.core.domain.schedules.tds import ScheduleTDS, TDSDetail
 from app.core.domain.value_objects import Money
 
@@ -78,6 +79,69 @@ def _via_sched_80c(amount: int) -> ScheduleVIA:
         filing_id=uuid4(),
         ay="2026-27",
         section_80c=Section80C(life_insurance=Money.from_rupees(amount)),
+    )
+
+
+def _cg_sched_stcg_111a(gain: int) -> ScheduleCG:
+    """ScheduleCG with STCG u/s 111A (listed equity @ 15%)."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="listed_equity",
+                purchase_date=date(2024, 4, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(gain + 50_000),
+                purchase_price=Money.from_rupees(50_000),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="111A",
+            )
+        ],
+    )
+
+
+def _cg_sched_ltcg_112a(gain: int) -> ScheduleCG:
+    """ScheduleCG with LTCG u/s 112A (listed equity @ 12.5%)."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="listed_equity",
+                purchase_date=date(2020, 4, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(gain + 1_00_000),
+                purchase_price=Money.from_rupees(1_00_000),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="112A",
+            )
+        ],
+    )
+
+
+def _cg_sched_ltcg_112(gain: int) -> ScheduleCG:
+    """ScheduleCG with LTCG u/s 112 (other assets @ 20%)."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="property",
+                purchase_date=date(2015, 4, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(gain + 5_00_000),
+                purchase_price=Money.from_rupees(5_00_000),
+                transfer_expenses=Money.from_rupees(50_000),
+                indexed_cost=None,
+                section="112",
+            )
+        ],
     )
 
 
@@ -495,6 +559,50 @@ class TestTaxEnginePayload:
         result = engine.compute(schedules=[salary], regime="new", ay="2026-27")
         assert len(result.slab_breakdown) > 0
         assert all(e.tax >= 0 for e in result.slab_breakdown)
+
+
+class TestCapitalGains:
+    """Test capital gains (ScheduleCG) integration in tax engine."""
+
+    def test_ltcg_112a_listed_equity(self):
+        """LTCG on listed equity u/s 112A @ 12.5% (AY 2026-27)."""
+        engine = TaxEngine()
+        cg = _cg_sched_ltcg_112a(5_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 5_00_000
+        # LTCG is special rate income, included in GTI but not taxed at slab rates yet
+        # For now, CG flows through as regular income (special rate tax is Phase 4)
+        assert result.breakdown.total_income == 5_00_000
+        
+    def test_stcg_111a_listed_equity(self):
+        """STCG on listed equity u/s 111A @ 15%."""
+        engine = TaxEngine()
+        cg = _cg_sched_stcg_111a(3_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 3_00_000
+        
+    def test_salary_plus_cg(self):
+        """Combined salary and capital gains income."""
+        engine = TaxEngine()
+        salary = _salary_sched(8_00_000)
+        cg = _cg_sched_ltcg_112a(2_00_000)
+        result = engine.compute(schedules=[salary, cg], regime="new", ay="2026-27")
+        
+        # Salary after std deduction: 8L - 75K = 7.25L
+        # CG: 2L
+        # GTI: 9.25L
+        assert result.breakdown.gross_total_income == 9_25_000
+        
+    def test_cg_explanation_steps(self):
+        """Verify CG appears in explanation steps."""
+        engine = TaxEngine()
+        cg = _cg_sched_ltcg_112a(3_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        cg_steps = [s for s in result.explanation if "cg" in s.step or "capital" in s.description.lower()]
+        assert len(cg_steps) >= 2  # At least section-specific + total CG
 
 
 class TestTaxEngineAdapter:

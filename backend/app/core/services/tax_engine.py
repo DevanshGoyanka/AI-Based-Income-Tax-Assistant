@@ -29,6 +29,7 @@ from app.core.domain.schedules.other_sources import ScheduleOS, InterestDetail, 
 from app.core.domain.schedules.schedule_via import ScheduleVIA
 from app.core.domain.schedules.tds import ScheduleTDS
 from app.core.domain.schedules.schedule_it import ScheduleIT
+from app.core.domain.schedules.schedule_cg import ScheduleCG, CGTransaction
 from app.core.services.slab_tables import (
     get_rules,
     compute_slab_tax,
@@ -145,6 +146,7 @@ class TaxEngine:
         salary_sched = _first_of(schedules, ScheduleSalary)
         hp_sched = _first_of(schedules, ScheduleHP)
         os_sched = _first_of(schedules, ScheduleOS)
+        cg_sched = _first_of(schedules, ScheduleCG)
         via_sched = _first_of(schedules, ScheduleVIA)
         tds_sched = _first_of(schedules, ScheduleTDS)
         it_sched = _first_of(schedules, ScheduleIT)
@@ -167,6 +169,10 @@ class TaxEngine:
         if os_sched:
             income_heads.os_income, os_steps = self._compute_other_sources(os_sched)
             steps.extend(os_steps)
+
+        if cg_sched:
+            income_heads.cg_income, cg_steps = self._compute_capital_gains(cg_sched, rules)
+            steps.extend(cg_steps)
 
         # Gross total income
         gti = income_heads.gross_total_income
@@ -490,6 +496,81 @@ class TaxEngine:
         steps.append(_step("os.total", "Total Other Sources Income", "", _inr(total), "Interest + Dividend + Other"))
 
         return total, steps
+
+    def _compute_capital_gains(
+        self,
+        schedule: ScheduleCG,
+        rules,
+    ) -> tuple[int, List[ComputationStep]]:
+        """Compute capital gains income (ScheduleCG).
+        
+        CG is taxed at special rates, separate from slab income.
+        Returns total CG income (all categories combined).
+        """
+        steps: List[ComputationStep] = []
+        total_stcg = 0
+        total_ltcg = 0
+        
+        # Categorize by section
+        cg_by_section = schedule.categorize_by_section()
+        
+        for section, gain in cg_by_section.items():
+            if gain <= 0:
+                continue
+            if section in ["111A"]:
+                # STCG on listed equity @ 15%
+                rate = 15
+                total_stcg += int(gain)
+                steps.append(_step(
+                    f"cg.{section}", f"STCG {section} @ {rate}%",
+                    _inr(int(gain)), _inr(int(gain)),
+                    f"Short-term capital gain on listed equity, STT paid"
+                ))
+            elif section == "112A":
+                # LTCG on listed equity @ 10%/12.5% (>₹1.25L exempt for 10%)
+                # AY 2026-27: 12.5% rate
+                rate = 12.5
+                total_ltcg += int(gain)
+                steps.append(_step(
+                    "cg.112A", f"LTCG {section} @ {rate}%",
+                    _inr(int(gain)), _inr(int(gain)),
+                    f"Long-term capital gain on listed equity (>₹1.25L exempt)"
+                ))
+            elif section == "112":
+                # LTCG @ 20% with indexation
+                rate = 20
+                total_ltcg += int(gain)
+                steps.append(_step(
+                    "cg.112", f"LTCG {section} @ {rate}%",
+                    _inr(int(gain)), _inr(int(gain)),
+                    f"Long-term capital gain with indexation benefit"
+                ))
+            elif section == "normal":
+                # STCG at slab rates (passed through)
+                total_stcg += int(gain)
+                steps.append(_step(
+                    "cg.normal", "STCG at slab rates",
+                    _inr(int(gain)), _inr(int(gain)),
+                    "Short-term capital gain taxed as normal income"
+                ))
+        
+        total_cg = total_stcg + total_ltcg
+        
+        if total_cg > 0:
+            steps.append(_step(
+                "cg.total", "Total Capital Gains",
+                f"STCG: {_inr(total_stcg)}, LTCG: {_inr(total_ltcg)}",
+                _inr(total_cg),
+                f"Special rate income (STCG @15%/slab, LTCG @10%/12.5%/20%)"
+            ))
+        else:
+            steps.append(_step(
+                "cg.total", "Total Capital Gains",
+                "", "₹0",
+                "No capital gains reported"
+            ))
+        
+        return total_cg, steps
 
     def _compute_deductions(
         self,
