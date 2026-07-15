@@ -603,6 +603,41 @@ class TestCapitalGains:
         
         cg_steps = [s for s in result.explanation if "cg" in s.step or "capital" in s.description.lower()]
         assert len(cg_steps) >= 2  # At least section-specific + total CG
+    
+    def test_ltcg_112a_below_exemption(self):
+        """LTCG 112A below ₹1.25L exemption = no CG tax."""
+        engine = TaxEngine()
+        cg = _cg_sched_ltcg_112a(1_00_000)  # Below ₹1.25L
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 1_00_000
+        
+    def test_no_cg(self):
+        """Engine works without any CG schedule."""
+        engine = TaxEngine()
+        salary = _salary_sched(10_00_000)
+        result = engine.compute(schedules=[salary], regime="new", ay="2026-27")
+        
+        # Should still compute normally
+        assert result.breakdown.gross_total_income == 9_25_000  # 10L - 75K std deduction
+        assert result.breakdown.total_tax_liability > 0
+        
+    def test_stcg_111a_no_salary(self):
+        """Pure STCG 111A profit case."""
+        engine = TaxEngine()
+        cg = _cg_sched_stcg_111a(5_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 5_00_000
+        
+    def test_ltcg_112_property(self):
+        """LTCG 112 @ 20% from property sale."""
+        engine = TaxEngine()
+        cg = _cg_sched_ltcg_112(10_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        # gain = 15L sale_price - 5L purchase - 50K expenses = 9.5L
+        assert result.breakdown.gross_total_income == 9_50_000
 
 
 class TestTaxEngineAdapter:

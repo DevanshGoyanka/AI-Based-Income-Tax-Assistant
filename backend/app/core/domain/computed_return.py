@@ -7,26 +7,57 @@ from uuid import UUID, uuid4
 
 
 @dataclass
+class CGRateBucketBreakdown:
+    """Individual CG rate bucket breakdown."""
+    section: str
+    description: str
+    rate: float  # e.g. 0.125 = 12.5%
+    income: int  # Total CG in this bucket
+    taxable_income: int  # After exemption threshold
+    tax: int  # Tax at special rate
+
+
+@dataclass
 class TaxBreakdown:
     """Detailed tax breakdown."""
     gross_total_income: int = 0
     total_deductions: int = 0
     total_income: int = 0
+    
+    # Normal income (non-CG, taxed at slab rates)
+    normal_income: int = 0
+    normal_tax: int = 0  # Tax on slab income
+    
+    # Capital gains (taxed at special rates)
+    cg_total: int = 0
+    cg_stcg: int = 0
+    cg_ltcg: int = 0
+    cg_special_rate_tax: int = 0  # Tax on CG at special rates
+    cg_rate_buckets: List[CGRateBucketBreakdown] = field(default_factory=list)
+    
+    # Tax computation
     tax_before_rebate: int = 0
     rebate_87a: int = 0
     surcharge: int = 0
     cess: int = 0
     total_tax_liability: int = 0
+    
+    # Tax credits
     tds: int = 0
     tcs: int = 0
     advance_tax: int = 0
     tax_payable: int = 0
     refund: int = 0
-    # Interest u/s 234A/B/C (computed by our owned Interest234Engine)
+    
+    # Interest u/s 234A/B/C
     interest_234a: int = 0
     interest_234b: int = 0
     interest_234c: int = 0
     late_fee_234f: int = 0
+    
+    # BEL shortfall (for surcharge calculation)
+    bel: int = 0
+    bel_shortfall: int = 0
 
 
 @dataclass

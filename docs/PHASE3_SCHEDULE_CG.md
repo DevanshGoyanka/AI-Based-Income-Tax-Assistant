@@ -1,9 +1,10 @@
 # Phase 3: ScheduleCG - Capital Gains
 
-**Status:** PHASE 3 INTEGRATION COMPLETE ✅  
+**Status:** PHASE 3 COMPLETE ✅  
 **Started:** 2026-07-15  
 **Completed:** 2026-07-15  
-**Reference:** `docs/TO_OPENTAX/04a_Schedule_Architecture.md`
+**Tests:** 41/41 passing (8 CG tests)  
+**Reference:** `docs/SCHEDULE_PLANNING_MASTER.md`, `docs/TO_OPENTAX/04a_Schedule_Architecture.md`
 
 ---
 
@@ -63,17 +64,28 @@ backend/app/core/domain/schedules/
 ## Status
 
 **Implemented:**
-- [x] CGTransaction data class
-- [x] ScheduleCG base class
-- [x] STCG/LTCG categorization
-- [x] Section 111A (15% STCG)
-- [x] Section 112A (10%/12.5% LTCG)
-- [x] Section 112 (20% LTCG)
-- [ ] Section 115BB (lottery)
-- [ ] Section 115BBH (VDA)
-- [ ] Section 115BBE (unexplained)
-- [ ] Real estate capital gains
-- [ ] Indexation benefit calculation
+- [x] CGTransaction data class with STT, FMV, broker fields
+- [x] ScheduleCG base class with full rate bucket categorization
+- [x] STCG/LTCG categorization with auto section detection
+- [x] Section 111A (15% STCG listed equity)
+- [x] Section 112A (12.5% LTCG listed equity, ₹1.25L exempt)
+- [x] Section 112 (20% LTCG with/without indexation)
+- [x] Section 115BB (lottery @ 30%)
+- [x] Section 115BBH (VDA/crypto @ 30%)
+- [x] Section 115BBE (unexplained income @ 60%)
+- [x] Section 115BBJ (online gaming @ 30%)
+- [x] CG rate bucket computation with exemption thresholds
+- [x] CG special rate tax computation in tax engine
+- [x] BEL (Basic Exemption Limit) for surcharge calculation
+- [x] surcharge now uses BEL + CG LTCG for threshold
+- [x] TaxBreakdown with CG fields (cg_total, cg_stcg, cg_ltcg, cg_special_rate_tax)
+- [x] CGRateBucketBreakdown in ComputedReturn
+- [x] 8 comprehensive CG test cases
+- [x] ITR-1/4 LTCG112A correctly documented in planning doc
+- [ ] Full ScheduleCGFor23 ITR-2 JSON generation (Phase 7)
+- [ ] Schedule112A detailed schedule (Phase 7)
+- [ ] ScheduleVDA/115AD domain models (Phase 7)
+- [ ] DCG (Deemed CG) for ITR-3 (Phase 7)
 
 ---
 

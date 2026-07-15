@@ -45,6 +45,7 @@ class DeductionLimits:
     section_80u: int = 75_000
     section_80u_severe: int = 125_000
     hp_loss_setoff: int = -200_000    # Section 24B cap
+    bel_threshold: int = 2_50_000     # Basic exemption limit for surcharge calc
 
 
 @dataclass(frozen=True)
