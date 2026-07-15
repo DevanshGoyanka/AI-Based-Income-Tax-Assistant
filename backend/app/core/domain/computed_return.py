@@ -18,6 +18,35 @@ class CGRateBucketBreakdown:
 
 
 @dataclass
+class CapitalGainsBreakdown:
+    """Complete capital gains breakdown — all rate buckets."""
+    # ── STCG ──
+    stcg_total: int = 0
+    stcg_111a_15_pct: int = 0
+    stcg_111a_20_pct: int = 0
+    stcg_applicable_rate: int = 0  # At slab rates
+    
+    # ── LTCG ──
+    ltcg_total: int = 0
+    ltcg_112a_12_5_pct: int = 0  # Listed equity (>₹1.25L exempt)
+    ltcg_112a_exempt: int = 0    # ₹1.25L exemption used
+    ltcg_112_20_pct: int = 0     # Other assets with indexation
+    ltcg_112_12_5_pct: int = 0   # Bonds without indexation
+    ltcg_112_proviso_credit: int = 0  # BEL shortfall credit
+    
+    # ── Special Rate ──
+    lottery_30_pct: int = 0       # 115BB
+    online_gaming_30_pct: int = 0 # 115BBJ
+    vda_30_pct: int = 0           # 115BBH
+    unexplained_60_pct: int = 0   # 115BBE
+    
+    # ── Computed ──
+    cg_total: int = 0
+    cg_tax: int = 0
+    rate_buckets: List[CGRateBucketBreakdown] = field(default_factory=list)
+
+
+@dataclass
 class TaxBreakdown:
     """Detailed tax breakdown."""
     gross_total_income: int = 0

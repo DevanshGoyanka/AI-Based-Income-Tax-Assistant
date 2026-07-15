@@ -22,6 +22,7 @@ from app.core.domain.computed_return import (
     ComputationStep,
     InterestBreakdown,
     CGRateBucketBreakdown,
+    CapitalGainsBreakdown,
 )
 from app.core.domain.schedules.base import Schedule
 from app.core.domain.schedules.salary import ScheduleSalary, SalaryDetail
@@ -75,37 +76,31 @@ class ComputationContext:
 # ─── Income Heads ────────────────────────────────────────────────────────────
 
 @dataclass
-class CGIncomeDetail:
-    """Capital gains breakdown by category."""
-    stcg: int = 0       # STCG (taxed at special rates or slab)
-    ltcg: int = 0       # LTCG (taxed at special rates)
-    special_rate: int = 0  # Lottery/VDA/gaming/unexplained @ 30%/60%
-    total: int = 0
-    cg_tax: int = 0      # CG tax at special rates
-    rate_buckets: List[CGRateBucketBreakdown] = field(default_factory=list)
-
-
-@dataclass
 class IncomeHeads:
     """All income heads before deductions."""
     salary_income: int = 0
     hp_income: int = 0
     os_income: int = 0
-    cg_detail: Optional[CGIncomeDetail] = None  # Phase 3 - full CG breakdown
+    cg_detail: Optional[CapitalGainsBreakdown] = None
     cg_income: int = 0        # Legacy: total CG (sum of detail)
-    bp_income: int = 0        # Phase 3
+    bp_income: int = 0
 
     @property
     def gross_total_income(self) -> int:
-        cg = self.cg_detail.total if self.cg_detail else self.cg_income
+        cg = self.cg_detail.cg_total if self.cg_detail else self.cg_income
         return self.salary_income + self.hp_income + self.os_income + cg + self.bp_income
     
     @property
     def normal_income(self) -> int:
         """Income taxed at slab rates (excludes CG special rate income)."""
-        cg_special = self.cg_detail.special_rate if self.cg_detail else 0
-        cg_slap = self.cg_detail.stcg if self.cg_detail else 0
-        return self.salary_income + self.hp_income + self.os_income + cg_slap + self.bp_income
+        if not self.cg_detail:
+            return self.salary_income + self.hp_income + self.os_income + self.bp_income
+        
+        cg_at_slab = (
+            self.cg_detail.stcg_applicable_rate +
+            self.cg_detail.ltcg_112_proviso_credit
+        )
+        return self.salary_income + self.hp_income + self.os_income + cg_at_slab + self.bp_income
 
 
 # ─── Tax Engine ───────────────────────────────────────────────────────────────
@@ -194,7 +189,7 @@ class TaxEngine:
         if cg_sched:
             cg_detail, cg_steps = self._compute_capital_gains(cg_sched, rules)
             income_heads.cg_detail = cg_detail
-            income_heads.cg_income = cg_detail.total
+            income_heads.cg_income = cg_detail.cg_total
             steps.extend(cg_steps)
 
         # Gross total income
@@ -234,8 +229,8 @@ class TaxEngine:
 
         # BEL (for surcharge calculation): normal income + CG special rate income
         # Section 112A/112 LTCG with 12.5%/20% rates counts toward BEL for surcharge
-        cg_ltcg_for_bel = income_heads.cg_detail.ltcg if income_heads.cg_detail else 0
-        cg_stcg_for_bel = income_heads.cg_detail.stcg if income_heads.cg_detail else 0
+        cg_ltcg_for_bel = income_heads.cg_detail.ltcg_total if income_heads.cg_detail else 0
+        cg_stcg_for_bel = income_heads.cg_detail.stcg_total if income_heads.cg_detail else 0
         bel = total_income + cg_ltcg_for_bel  # LTCG (special rate) counts in BEL
         bel_shortfall = max(0, rules.deductions.bel_threshold - bel)
         
@@ -325,9 +320,9 @@ class TaxEngine:
             total_income=total_income,
             normal_income=income_heads.normal_income,
             normal_tax=slab_tax,
-            cg_total=income_heads.cg_detail.total if income_heads.cg_detail else 0,
-            cg_stcg=income_heads.cg_detail.stcg if income_heads.cg_detail else 0,
-            cg_ltcg=income_heads.cg_detail.ltcg if income_heads.cg_detail else 0,
+            cg_total=income_heads.cg_detail.cg_total if income_heads.cg_detail else 0,
+            cg_stcg=income_heads.cg_detail.stcg_total if income_heads.cg_detail else 0,
+            cg_ltcg=income_heads.cg_detail.ltcg_total if income_heads.cg_detail else 0,
             cg_special_rate_tax=cg_special_tax,
             cg_rate_buckets=income_heads.cg_detail.rate_buckets if income_heads.cg_detail else [],
             tax_before_rebate=tax_before_rebate,
@@ -397,7 +392,7 @@ class TaxEngine:
         """Compute tax breakdown for a single regime (used for comparison)."""
         # CG special rate tax
         cg_special_tax = income_heads.cg_detail.cg_tax if income_heads.cg_detail else 0
-        cg_ltcg_for_bel = income_heads.cg_detail.ltcg if income_heads.cg_detail else 0
+        cg_ltcg_for_bel = income_heads.cg_detail.ltcg_total if income_heads.cg_detail else 0
         
         # Deductions
         total_deductions = 0
@@ -439,9 +434,9 @@ class TaxEngine:
             total_income=total_income,
             normal_income=income_heads.normal_income,
             normal_tax=slab_tax,
-            cg_total=income_heads.cg_detail.total if income_heads.cg_detail else 0,
-            cg_stcg=income_heads.cg_detail.stcg if income_heads.cg_detail else 0,
-            cg_ltcg=income_heads.cg_detail.ltcg if income_heads.cg_detail else 0,
+            cg_total=income_heads.cg_detail.cg_total if income_heads.cg_detail else 0,
+            cg_stcg=income_heads.cg_detail.stcg_total if income_heads.cg_detail else 0,
+            cg_ltcg=income_heads.cg_detail.ltcg_total if income_heads.cg_detail else 0,
             cg_special_rate_tax=cg_special_tax,
             cg_rate_buckets=income_heads.cg_detail.rate_buckets if income_heads.cg_detail else [],
             tax_before_rebate=tax_before_rebate,
@@ -573,7 +568,7 @@ class TaxEngine:
         self,
         schedule: ScheduleCG,
         rules,
-    ) -> tuple[CGIncomeDetail, List[ComputationStep]]:
+    ) -> tuple[CapitalGainsBreakdown, List[ComputationStep]]:
         """Compute capital gains with special rate tax computation.
         
         CG is taxed at SPECIAL RATES, separate from slab income:
@@ -586,11 +581,11 @@ class TaxEngine:
         - STCG at slab rates (non-listed equity, no STT)
         
         Returns:
-            CGIncomeDetail with stcg, ltcg, special_rate, total, cg_tax, rate_buckets
+            CapitalGainsBreakdown with all rate buckets populated
         """
         steps: List[ComputationStep] = []
         
-        # Get CG totals
+        # Get CG totals from ScheduleCG
         totals = schedule.get_totals()
         stcg = totals["short_term"]
         ltcg = totals["long_term"]
@@ -605,6 +600,39 @@ class TaxEngine:
         # CG tax at special rates
         cg_special_tax, _ = schedule.compute_special_rate_tax(
             exempt_threshold=CGExemptionThreshold.SECTION_112A_EXEMPT
+        )
+        
+        # Get detailed bucket-level categorisation
+        bucket_map = schedule.categorize_by_rate_bucket()
+        
+        # Build breakdown from actual bucket map
+        breakdown = CapitalGainsBreakdown(
+            stcg_total=stcg,
+            stcg_111a_15_pct=bucket_map["stcg_111a_15_pct"],
+            stcg_111a_20_pct=bucket_map["stcg_20_pct"],
+            stcg_applicable_rate=bucket_map["stcg_applicable_rate"],
+            ltcg_total=ltcg,
+            ltcg_112a_12_5_pct=max(0, bucket_map["ltcg_112a_12_5_pct"] - CGExemptionThreshold.SECTION_112A_EXEMPT),
+            ltcg_112a_exempt=min(bucket_map["ltcg_112a_12_5_pct"], CGExemptionThreshold.SECTION_112A_EXEMPT),
+            ltcg_112_20_pct=bucket_map["ltcg_20_pct"],
+            ltcg_112_12_5_pct=bucket_map["ltcg_12_5_pct_other"],
+            lottery_30_pct=bucket_map["lottery_30_pct"],
+            online_gaming_30_pct=bucket_map["online_gaming_30_pct"],
+            vda_30_pct=bucket_map["vda_30_pct"],
+            unexplained_60_pct=bucket_map["unexplained_60_pct"],
+            cg_total=total_cg,
+            cg_tax=cg_special_tax,
+            rate_buckets=[
+                CGRateBucketBreakdown(
+                    section=b.section,
+                    description=b.description,
+                    rate=float(b.rate),
+                    income=b.income,
+                    taxable_income=b.taxable_income,
+                    tax=b.tax,
+                )
+                for b in rate_buckets if b.income > 0
+            ],
         )
         
         # Add section-specific steps
@@ -637,26 +665,7 @@ class TaxEngine:
         else:
             steps.append(_step("cg.total", "Total Capital Gains", "", "₹0", "No capital gains reported"))
 
-        # Build CGIncomeDetail
-        detail = CGIncomeDetail(
-            stcg=stcg,
-            ltcg=ltcg,
-            special_rate=special_rate_income,
-            total=total_cg,
-            cg_tax=cg_special_tax,
-            rate_buckets=[
-                CGRateBucketBreakdown(
-                    section=b.section,
-                    description=b.description,
-                    rate=float(b.rate),
-                    income=b.income,
-                    taxable_income=b.taxable_income,
-                    tax=b.tax,
-                )
-                for b in rate_buckets if b.income > 0
-            ],
-        )
-        return detail, steps
+        return breakdown, steps
 
     def _compute_deductions(
         self,

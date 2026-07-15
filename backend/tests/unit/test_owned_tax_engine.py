@@ -145,6 +145,131 @@ def _cg_sched_ltcg_112(gain: int) -> ScheduleCG:
     )
 
 
+def _cg_sched_lottery(gain: int) -> ScheduleCG:
+    """ScheduleCG with lottery income u/s 115BB @ 30%."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="lottery",
+                purchase_date=date(2025, 4, 1),
+                sale_date=date(2025, 4, 15),
+                sale_price=Money.from_rupees(gain),
+                purchase_price=Money.from_rupees(0),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="115BB",
+            )
+        ],
+    )
+
+
+def _cg_sched_vda(gain: int) -> ScheduleCG:
+    """ScheduleCG with VDA/crypto income u/s 115BBH @ 30%."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="crypto",
+                purchase_date=date(2024, 6, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(gain),
+                purchase_price=Money.from_rupees(0),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="115BBH",
+            )
+        ],
+    )
+
+
+def _cg_sched_unexplained(income: int) -> ScheduleCG:
+    """ScheduleCG with unexplained income u/s 115BBE @ 60%."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="unexplained",
+                purchase_date=date(2025, 4, 1),
+                sale_date=date(2025, 4, 15),
+                sale_price=Money.from_rupees(income),
+                purchase_price=Money.from_rupees(0),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="115BBE",
+            )
+        ],
+    )
+
+
+def _cg_sched_multi_bucket() -> ScheduleCG:
+    """ScheduleCG with transactions across multiple rate buckets."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="listed_equity",
+                purchase_date=date(2020, 4, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(5_50_000),
+                purchase_price=Money.from_rupees(1_00_000),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="112A",
+            ),
+            CGTransaction(
+                asset_type="lottery",
+                purchase_date=date(2025, 4, 1),
+                sale_date=date(2025, 4, 15),
+                sale_price=Money.from_rupees(1_00_000),
+                purchase_price=Money.from_rupees(0),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="115BB",
+            ),
+            CGTransaction(
+                asset_type="crypto",
+                purchase_date=date(2024, 6, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(2_00_000),
+                purchase_price=Money.from_rupees(0),
+                transfer_expenses=Money.from_rupees(0),
+                indexed_cost=None,
+                section="115BBH",
+            ),
+        ],
+    )
+
+
+def _cg_sched_loss() -> ScheduleCG:
+    """ScheduleCG with capital LOSS (loss setoff scenario)."""
+    return ScheduleCG(
+        id=uuid4(),
+        filing_id=uuid4(),
+        ay="2026-27",
+        transactions=[
+            CGTransaction(
+                asset_type="listed_equity",
+                purchase_date=date(2024, 4, 1),
+                sale_date=date(2025, 3, 31),
+                sale_price=Money.from_rupees(50_000),
+                purchase_price=Money.from_rupees(5_00_000),
+                transfer_expenses=Money.from_rupees(10_000),
+                indexed_cost=None,
+                section="111A",
+            )
+        ],
+    )
+
+
 # ─── Slab table tests ─────────────────────────────────────────────────────────
 
 class TestSlabTables:
@@ -638,6 +763,92 @@ class TestCapitalGains:
         
         # gain = 15L sale_price - 5L purchase - 50K expenses = 9.5L
         assert result.breakdown.gross_total_income == 9_50_000
+    
+    def test_lottery_115bb_30_pct(self):
+        """Lottery income u/s 115BB @ 30% flat rate."""
+        engine = TaxEngine()
+        cg = _cg_sched_lottery(1_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        # Lottery is special rate income (not slab)
+        assert result.breakdown.gross_total_income == 1_00_000
+        assert result.breakdown.cg_total == 1_00_000
+        # CG tax = 30% of 1L = ₹30,000
+        assert result.breakdown.cg_special_rate_tax == 30_000
+    
+    def test_vda_115bbh_30_pct(self):
+        """VDA/Crypto income u/s 115BBH @ 30% flat rate."""
+        engine = TaxEngine()
+        cg = _cg_sched_vda(2_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 2_00_000
+        assert result.breakdown.cg_total == 2_00_000
+        # CG tax = 30% of 2L = ₹60,000
+        assert result.breakdown.cg_special_rate_tax == 60_000
+    
+    def test_unexplained_115bbe_60_pct(self):
+        """Unexplained income u/s 115BBE @ 60% flat rate."""
+        engine = TaxEngine()
+        cg = _cg_sched_unexplained(50_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        assert result.breakdown.gross_total_income == 50_000
+        assert result.breakdown.cg_total == 50_000
+        # CG tax = 60% of 50K = ₹30,000
+        assert result.breakdown.cg_special_rate_tax == 30_000
+    
+    def test_multi_bucket_cg(self):
+        """Multiple CG transactions across different rate buckets."""
+        engine = TaxEngine()
+        cg = _cg_sched_multi_bucket()
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        # 3 transactions: 112A (4.5L gain = 5.5L-1L), lottery (1L), VDA (2L)
+        # Total CG = 7.5L
+        assert result.breakdown.gross_total_income == 7_50_000
+        assert result.breakdown.cg_total == 7_50_000
+        # CG tax: 112A (4.5L-1.25L exempt)=3.25L@12.5%=40,625
+        #        + lottery 1L@30%=30,000 + VDA 2L@30%=60,000
+        #        Total = 1,30,625
+        assert result.breakdown.cg_special_rate_tax == 1_30_625
+    
+    def test_cg_loss_no_gain(self):
+        """CG loss scenario — no taxable capital gain."""
+        engine = TaxEngine()
+        cg = _cg_sched_loss()
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        # Sale: 50K, Purchase: 5L, Expenses: 10K => Loss = -4.6L
+        # Loss should set off other income, but with only CG → total = 0
+        assert result.breakdown.cg_total == 0
+        assert result.breakdown.cg_special_rate_tax == 0
+    
+    def test_bel_shortfall_with_ltcg(self):
+        """LTCG pushes BEL above threshold, reducing surcharge via marginal relief."""
+        engine = TaxEngine()
+        # Salary: 48L, CG LTCG 112: 4.5L gain
+        # BEL = 47.25L (salary after std ded) + 4.5L (CG LTCG) = 51.75L > 25L BEL
+        # bel_shortfall = 0 (BEL already above threshold)
+        # But surcharge IS computed because total > 50L
+        salary = _salary_sched(48_00_000)
+        cg = _cg_sched_ltcg_112(5_00_000)  # 10L - 5L - 50K = 4.5L gain
+        result = engine.compute(schedules=[salary, cg], regime="new", ay="2026-27")
+        
+        # BEL > 25L BEL threshold → bel_shortfall = 0
+        assert result.breakdown.bel_shortfall == 0
+        # But total income 51.75L > 50L surcharge threshold
+        assert result.breakdown.surcharge > 0
+    
+    def test_surcharge_triggered_by_cg_alone(self):
+        """Surcharge applies when total income exceeds BEL threshold due to CG."""
+        engine = TaxEngine()
+        # No salary, only CG LTCG of 60L → BEL shortfall triggers surcharge
+        cg = _cg_sched_ltcg_112(60_00_000)
+        result = engine.compute(schedules=[cg], regime="new", ay="2026-27")
+        
+        # 60L gain - 5L purchase - 50K = 54.5L → total CG > 50L BEL
+        assert result.breakdown.surcharge > 0
 
 
 class TestTaxEngineAdapter:
